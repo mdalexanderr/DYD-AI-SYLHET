@@ -81,3 +81,9 @@ desktop.ini
 .deploy-tmp/
 *.tar.gz
 release-*.tar.gz
+
+# ── Plan rewrite scratch (tools/plan_lint.py --toc writes in place, but a
+#    full restructure is staged through plan.new.md before being swapped in) ──
+plan.new.md
+plan.*.md
+!plan.md
