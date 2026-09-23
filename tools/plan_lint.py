@@ -33,7 +33,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PLAN = REPO_ROOT / "plan.md"
 
-TOP_LEVEL_SECTIONS = 28
+MAX_REASONABLE_SECTIONS = 60   # sanity ceiling; the range is derived, not fixed
 HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$")
 TOC_ROW_RE = re.compile(r"^(\s*)- \[(.+?)\]\(#(.+?)\)", re.M)
 TOC_ANCHOR_RE = re.compile(r"^(- \[(\d+)\. )", re.M)
@@ -110,22 +110,35 @@ class Lint:
                 self.problems.append(f"line {i}: leftover build sentinel")
         self.notes.append(f"{len(self.lines)} lines, {len(self.raw) / 1024:.1f} KB, {fences} code fences")
 
+    def section_numbers(self) -> list[int]:
+        """Top-level section numbers actually present, ascending."""
+        return sorted(
+            {
+                int(m.group(1))
+                for _, _, text in self.headings
+                if (m := re.match(r"^(\d+)\.", text))
+            }
+        )
+
     def check_sections(self) -> None:
-        present = {
-            int(m.group(1))
-            for _, _, text in self.headings
-            if (m := re.match(r"^(\d+)\.", text))
-        }
-        missing = [n for n in range(1, TOP_LEVEL_SECTIONS + 1) if n not in present]
-        extra = sorted(n for n in present if n > TOP_LEVEL_SECTIONS)
+        present = self.section_numbers()
+        if not present:
+            self.problems.append("no numbered top-level sections found")
+            return
+        missing = [n for n in range(1, max(present) + 1) if n not in present]
         if missing:
             self.problems.append(f"missing top-level sections: {missing}")
-        if extra:
-            self.problems.append(f"sections beyond {TOP_LEVEL_SECTIONS} (update TOP_LEVEL_SECTIONS?): {extra}")
-        self.notes.append(f"top-level sections present: {len(present)}/{TOP_LEVEL_SECTIONS}")
+        if max(present) > MAX_REASONABLE_SECTIONS:
+            self.problems.append(
+                f"section numbering reached {max(present)} (expected <= {MAX_REASONABLE_SECTIONS})"
+            )
+        self.notes.append(
+            f"top-level sections: {len(present)}, numbered 1-{max(present)}, "
+            f"gaps: {missing or 'none'}"
+        )
 
     def check_subsection_gaps(self) -> None:
-        for n in range(1, TOP_LEVEL_SECTIONS + 1):
+        for n in self.section_numbers():
             subs = sorted(
                 {
                     int(m.group(1))
@@ -160,7 +173,7 @@ class Lint:
             self.problems.append(f"{len(broken)} TOC links do not resolve: {shown}")
 
         in_toc = {int(m.group(2)) for m in (TOC_ANCHOR_RE.match(l) for l in self.lines) if m}
-        missing = [n for n in range(1, TOP_LEVEL_SECTIONS + 1) if n not in in_toc]
+        missing = [n for n in self.section_numbers() if n not in in_toc]
         if missing:
             self.problems.append(f"sections absent from the TOC: {missing}")
 
