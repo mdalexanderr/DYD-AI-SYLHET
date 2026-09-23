@@ -16,40 +16,47 @@ Companion to the national site: <https://www.dydaiproject.com> · Scope: **4 dis
 
 | Item | State |
 |---|---|
-| Master plan | ✅ [`plan.md`](plan.md) — 3,300 lines, 27 sections |
-| Design direction | ✅ A + C hybrid — 「সুরমা প্রোটোকল」 (Surma Protocol) |
+| Master plan | ✅ [`plan.md`](plan.md) — ~3,900 lines, 27 sections, 218 indexed headings |
+| Design direction | ✅ A + C hybrid (Surma Protocol) |
 | CSS approach | ✅ Tailwind CSS v4 (CSS-first `@theme`) |
+| Development model | ✅ Solo build + an external design supplier (`plan.md` §10.5) |
 | Hosting / domain / dates / brand assets | ⏳ pending, unblocked via provisional defaults (`plan.md` §26.1) |
-| **Next step** | **M1a — the design handoff kit** (`plan.md` §10.6), which unblocks the frontend collaborator |
+| **Next step** | **M1 — the supplier handoff kit** (`plan.md` §10.6) |
 
 ---
 
 ## Team
 
-| Track | Who | Owns |
+**One developer on this project**, working with GitHub Copilot. The frontend collaborator is a
+**supplier of markup**, not a second engineer on the codebase.
+
+| | Who | Produces |
 |---|---|---|
-| **A** | Backend team | All backend, the **admin console** (full-stack), the **student portal**, deployment, data, security |
-| **B** | Frontend collaborator | The **public site only** — markup + styling, as standalone HTML/Tailwind |
+| **Sole developer** | The project owner | Everything — backend, database, auth, admin console, student portal, public-site wiring, documents, notifications, deployment, data, security |
+| **Design supplier** | Collaborator | **HTML + CSS for the public pages only.** No Python, no Jinja, no access to `app/` |
 
-**How the seam works.** In a server-rendered Jinja app there is no horizontal backend/frontend
-line, so the split is by a **frozen contract plus a one-way delivery pipe**:
+**Why it is not a "backend/frontend split".** In a server-rendered Jinja app there is no
+horizontal line — a template calls `url_for()`, reads `current_user` and is chosen by a Python
+view. With one developer there is nothing to parallelise, only a sequence of work plus one
+external input:
 
 ```
-  B: design-src/public/*.html   ──convert──►   A: app/templates/public/*.html
-     standalone HTML + Tailwind                Jinja wired to routes and data
-     [[TOKEN]] placeholders                    real context variables
-     NOT deployed                              owns the runtime
+  Supplier: design-src/public/*.html  ──convert──►  Developer: app/templates/public/*.html
+            standalone HTML + Tailwind               Jinja wired to routes and data
+            [[TOKEN]] placeholders                   real context variables
+            NOT deployed                             owns the entire runtime
 ```
 
-Because `design-src/` is **excluded from the deploy sync**, the collaborator's pushes to `main`
-are structurally incapable of affecting production.
+Because `design-src/` is **excluded from the deploy sync**, the supplier's files are structurally
+incapable of affecting production. No `CODEOWNERS`, no branch protection needed.
 
 The four frozen contracts (URL map, design tokens, component inventory, placeholder dictionary)
-and the full ownership map are in `plan.md` §10.5.3 and §10.5.2.
+are in `plan.md` §10.5.3; the file-level breakdown is §10.5.2.
 
-> ⚠️ **Capacity note.** The public site is one of the smaller workstreams — this split gives the
-> collaborator ~12 days and leaves ~108 days on the A-track (~21 weeks elapsed). `plan.md` §24.1
-> quantifies it and §24.2 lists four ways to reach ~17 weeks. Worth reading before the work starts.
+> ⚠️ **Capacity note — read before starting.** 108 developer-days on one person is **~22 weeks
+> best case, 24–27 realistic**. The lever is scope, not people. `plan.md` §24.1 quantifies it and
+> §24.2 lists the cuts that reach ~17 weeks. Stage 1 (public + apply) still clears the application
+> deadline in ~7–8 weeks.
 
 ---
 

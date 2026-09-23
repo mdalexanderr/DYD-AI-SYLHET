@@ -86,11 +86,11 @@
   - [10.2 App factory essentials](#102-app-factory-essentials)
   - [10.3 Database strategy](#103-database-strategy)
   - [10.4 Background work on shared hosting](#104-background-work-on-shared-hosting)
-  - [10.5 Two-developer model: ownership map and the seam](#105-two-developer-model-ownership-map-and-the-seam)
-    - [10.5.1 The uncomfortable truth about a "backend/frontend" split in Jinja](#1051-the-uncomfortable-truth-about-a-backendfrontend-split-in-jinja)
-    - [10.5.2 Ownership map (file level)](#1052-ownership-map-file-level)
+  - [10.5 Development model: solo build with an external design supplier](#105-development-model-solo-build-with-an-external-design-supplier)
+    - [10.5.1 Why this is not a "backend/frontend split"](#1051-why-this-is-not-a-backendfrontend-split)
+    - [10.5.2 Who produces what (file level)](#1052-who-produces-what-file-level)
     - [10.5.3 The four frozen contracts](#1053-the-four-frozen-contracts)
-  - [10.6 The design handoff kit — what we owe the collaborator](#106-the-design-handoff-kit--what-we-owe-the-collaborator)
+  - [10.6 The design handoff kit — what to send the supplier](#106-the-design-handoff-kit--what-to-send-the-supplier)
     - [10.6.1 Why the kit must exist (and what happens without it)](#1061-why-the-kit-must-exist-and-what-happens-without-it)
     - [10.6.2 The preview harness](#1062-the-preview-harness)
     - [10.6.3 The kitchen sink (the single most valuable artifact)](#1063-the-kitchen-sink-the-single-most-valuable-artifact)
@@ -99,10 +99,10 @@
     - [10.6.6 The "do not" list (goes in design-src/README.md)](#1066-the-do-not-list-goes-in-design-srcreadmemd)
     - [10.6.7 What else we hand over](#1067-what-else-we-hand-over)
   - [10.7 Conversion: design-src/ → Jinja](#107-conversion-design-src--jinja)
-    - [10.7.1 tools/convert-design.py](#1071-toolsconvert-designpy)
+    - [10.7.1 The eight rewrites (a manual checklist, or the converter's spec)](#1071-the-eight-rewrites-a-manual-checklist-or-the-converters-spec)
     - [10.7.2 After conversion, the Jinja file wins](#1072-after-conversion-the-jinja-file-wins)
     - [10.7.3 Conversion acceptance checklist](#1073-conversion-acceptance-checklist)
-  - [10.8 Git and CI for a two-person team](#108-git-and-ci-for-a-two-person-team)
+  - [10.8 Git and CI for a solo developer](#108-git-and-ci-for-a-solo-developer)
 - [11. Database Schema (full)](#11-database-schema-full)
   - [11.1 Identity & access](#111-identity--access)
     - [users](#users)
@@ -214,8 +214,8 @@
   - [23.3 Regression test fixtures worth gold](#233-regression-test-fixtures-worth-gold)
   - [23.4 Anti-slop and quality gates for the UI](#234-anti-slop-and-quality-gates-for-the-ui)
 - [24. Milestones & Effort Estimate](#24-milestones--effort-estimate)
-  - [24.1 The honest capacity finding — read this before committing to the split](#241-the-honest-capacity-finding--read-this-before-committing-to-the-split)
-  - [24.2 Four ways to close the gap](#242-four-ways-to-close-the-gap)
+  - [24.1 The honest capacity finding — read this before committing to the plan](#241-the-honest-capacity-finding--read-this-before-committing-to-the-plan)
+  - [24.2 Scope levers — what to cut if 22 weeks is too long](#242-scope-levers--what-to-cut-if-22-weeks-is-too-long)
   - [24.3 Staged launch — which matters more than the total](#243-staged-launch--which-matters-more-than-the-total)
 - [25. Risks & Mitigations](#25-risks--mitigations)
 - [26. Decisions Needed From You (blocking)](#26-decisions-needed-from-you-blocking)
@@ -1554,14 +1554,14 @@ DYD AI SYLHET/
 ├── assets/tailwind/
 │   ├── source.css                  ← THE ONLY HAND-WRITTEN CSS (@theme + @utility + layers)
 │   └── components.css              ← extra @utility blocks when source.css gets long
-├── design-src/                     ← FRONTEND COLLABORATOR'S WORKSPACE (see §10.5–§10.7)
+├── design-src/                     ← DESIGN SUPPLIER'S DELIVERY AREA (see §10.5–§10.7)
 │   ├── README.md                   how to preview, the conventions, the "do not" list
 │   ├── PLACEHOLDERS.md             the [[TOKEN]] dictionary
 │   ├── preview.css                 imports ../assets/tailwind/source.css + @source design-src
 │   ├── kitchen-sink.html           component gallery: every component, every state (§10.6)
 │   ├── content/                    the approved Bangla copy sheets, per screen
 │   ├── public/                     one standalone .html per public screen
-│   └── assets/                     images/fonts the collaborator adds (NOT deployed)
+│   └── assets/                     images/fonts the supplier adds (NOT deployed)
 ├── migrations/                     Flask-Migrate (Alembic)
 ├── tests/                          pytest: unit / integration / e2e / fixtures
 ├── tools/                          check-css.py  tailwindcss(.exe)  one-off maintenance scripts
@@ -1632,106 +1632,103 @@ No Celery/Redis on cPanel. Instead:
 A tiny `worker_lock` table row (`SELECT … FOR UPDATE`) prevents two cron runs from
 double-processing the same queue batch.
 
-### 10.5 Two-developer model: ownership map and the seam
+### 10.5 Development model: solo build with an external design supplier
 
-**Agreed split (2026-09-23):**
+**Confirmed 2026-09-23.** There is **one developer on this project — you**, working with me as the
+assistant. The frontend collaborator is a **supplier of markup**, not a second engineer on the
+codebase.
 
-| | Person | Owns |
+| | Who | Produces |
 |---|---|---|
-| **A-track** | You + me | **All backend, the admin console (full-stack, incl. its UI), the student portal, deployment, data, security** |
-| **B-track** | Frontend collaborator | **The public-facing site only** — markup + styling, delivered as standalone HTML/Tailwind |
+| **Sole developer** | You + me | **Everything**: backend, database, auth, the admin console full-stack, the student portal, all public-site wiring, documents/PDF, notifications, deployment, data, security — *and* the conversion of the supplied HTML into Jinja |
+| **Design supplier** | Collaborator | **HTML + CSS for the public-facing pages only.** No Python, no Jinja, no access to `app/`, no ownership of anything that runs |
 
-#### 10.5.1 The uncomfortable truth about a "backend/frontend" split in Jinja
+#### 10.5.1 Why this is not a "backend/frontend split"
 
-In a server-rendered Flask app there is **no horizontal backend/frontend line**. A template is
-not frontend in the SaaS sense: it calls `url_for()`, reads `current_user`, filters through
-`bn_date`, and is chosen by a Python view. Splitting "one person does Python, the other does HTML"
-usually fails because every screen ends up touching both.
+Earlier drafts of this plan framed the work as two parallel tracks. That was wrong, and it is worth
+recording why so the framing does not creep back in:
 
-So we do not split horizontally. We split **by a frozen seam plus a one-way delivery pipe**:
+- In a server-rendered Jinja app there is **no horizontal backend/frontend line**. A template calls
+  `url_for()`, reads `current_user`, filters through `bn_date`, and is chosen by a Python view.
+  "One person does Python, the other does HTML" always collapses, because every screen touches both.
+- With a single developer there is no parallelisation to reason about — only a **sequence of work**
+  plus **one external input**.
+
+So the model is not two tracks. It is **one build, with a markup package arriving from outside**:
 
 ```
-   B-track                                    A-track
-   ────────                                   ────────
-   design-src/public/*.html      ──────────►   app/templates/public/*.html
-   standalone HTML + Tailwind                  Jinja, wired to routes and data
-   [[TOKEN]] placeholders                      real context variables
-   NO Python, NO Jinja                         owns the runtime
-        │                                           │
-        └── excluded from the deploy sync ──────────┘
-            → B can never break production
+   Design supplier                    You (sole developer)
+   ───────────────                    ────────────────────
+   design-src/public/*.html  ───────►  converted → app/templates/public/*.html
+   standalone HTML + Tailwind          Jinja wired to routes, data, permissions
+   [[TOKEN]] placeholders              real context variables
+   no Python, no Jinja                 owns the entire runtime
+        │                                    │
+        └── excluded from the deploy ────────┘
+            → their files can never break production
 ```
 
-**Why this is the right shape for the chosen constraints (HTML+Tailwind only, standalone
-handover):** the collaborator works in a folder that the deploy script **excludes**, so their
-direct pushes to `main` are structurally incapable of breaking the live site. Conversion is a
-tooled, one-way step we control. Neither person ever edits a file the other is editing.
+**Two consequences that matter:**
 
-#### 10.5.2 Ownership map (file level)
+1. **`design-src/` is excluded from the deploy sync**, so whatever the supplier delivers — including
+   anything half-finished — is structurally incapable of affecting the live site. No branch
+   protection or review ceremony is needed to make that safe.
+2. **The schedule is a solo schedule.** See §24.1: ~108 developer-days, ≈22 weeks best case. That is
+   the single most important planning fact in this document, and §24.2 lists *scope levers* rather
+   than ways to add people.
 
-| Path | Owner | Notes |
+#### 10.5.2 Who produces what (file level)
+
+| Path | Who writes it | Notes |
 |---|---|---|
-| `design-src/**` | **B** | Their entire workspace. Free to push directly. Not deployed. |
-| `assets/tailwind/source.css` | **A** | The design tokens. **B must not edit this** — request a token instead (§10.6.5). |
-| `app/static/css/app.css` | **A** | Compiled artifact, committed. |
-| `app/static/img/**`, `fonts/**` | **B** proposes → **A** places | Assets land through the conversion step. |
-| `app/templates/public/**` | **A** (after conversion) | Born from `design-src/public/**`. |
-| `app/templates/portal/**` | **A** | B does not touch the student portal. |
-| `app/templates/admin/**` | **A** | B does not touch the admin console. |
-| `app/templates/components/**` | **A** | The Jinja macro library. Macros mirror the classes B uses. |
-| `app/templates/documents/**` | **A** | Admit card, certificate, transcript print views. |
-| `app/**` (Python), `migrations/**` | **A** | |
-| `tests/**`, `tools/**` | **A** | `tools/convert-design.py` and `tools/check-css.py` live here. |
-| `deploy.sh`, `.github/**`, `.env*` | **A** | |
-| `plan.md`, `README.md` | **A** | B reads them; change proposals come as issues/PRs. |
-| `DESIGN-NOTES.md` | **B** | Their running log: decisions, questions, blockers, token requests. |
+| `design-src/**` | **Supplier** | Their delivery area. Not deployed. Free to change anything here. |
+| `assets/tailwind/source.css` | **You** | The design tokens **and** the component classes. The supplier must not edit it — they request changes (§10.6.5). |
+| `app/static/css/app.css` | **You** | Compiled artifact, committed. |
+| `app/templates/public/**` | **You** | Born from `design-src/public/**` via conversion (§10.7). |
+| `app/templates/admin/**`, `portal/**`, `components/**`, `documents/**` | **You** | The supplier never sees these. |
+| `app/**` (Python), `migrations/**`, `tests/**`, `tools/**` | **You** | |
+| `app/static/img/**`, `fonts/**` | Supplier proposes → you place | Assets arrive with the markup. |
+| `deploy.sh`, `.github/**`, `.env*`, `plan.md`, `README.md` | **You** | |
+| `DESIGN-NOTES.md` | **Supplier** | Their questions, token requests, missing copy. One file, one writer. |
 
-**`.github/CODEOWNERS`** (advisory — it auto-requests review; the collaborator holds write access,
-so this does not *block* them, it only makes the boundary visible in every PR):
-
-```
-# Default: A-track
-*                       @<team-a-handle>
-
-# B-track workspace
-/design-src/            @<collaborator-handle>
-/DESIGN-NOTES.md        @<collaborator-handle>
-
-# Never edit directly — the design system is a shared contract
-/assets/tailwind/       @<team-a-handle>
-/app/static/css/        @<team-a-handle>
-```
+**No `CODEOWNERS` file.** With a single developer and a supplier who never touches `app/`, code
+ownership rules would be ceremony without a purpose. The boundary is enforced by something better:
+`design-src/` is not deployed, so their edits cannot reach production by construction.
 
 #### 10.5.3 The four frozen contracts
 
-The whole collaboration rests on these. They are frozen **before either track writes code**, and
-changing one is a deliberate, announced event — not a quiet edit.
+The supplier's output is only useful if it can be converted mechanically. These four things are
+therefore frozen **before they start their first screen** — and changing one is a deliberate event,
+not a quiet edit.
 
 | # | Contract | Where it lives |
 |---|---|---|
-| **C1** | **URL map** — every public route and its final path, frozen forever | §8.2 (public rows) + the list handed to B in `design-src/content/routes.md` |
+| **C1** | **URL map** — every public route and its final path | §8.2 (public rows) + `design-src/content/routes.md` |
 | **C2** | **Design tokens** — the complete colour, type, radius, shadow and spacing scale | `assets/tailwind/source.css` (§7.3) |
 | **C3** | **Component inventory** — the ~40 named components and their exact variants/states | §7.7 + `design-src/kitchen-sink.html` (§10.6.3) |
-| **C4** | **Placeholder dictionary** — every `[[TOKEN]]` and what it will become in Jinja | `design-src/PLACEHOLDERS.md` (§10.6.4) |
+| **C4** | **Placeholder dictionary** — every `[[TOKEN]]` and what it becomes in Jinja | `design-src/PLACEHOLDERS.md` (§10.6.4) |
 
-> **Why freeze them:** every integration bug between two developers is a contract violation. If C1–C4
-> are stable, conversion is mechanical and the two tracks genuinely run in parallel. If they drift,
-> each person is building to a different mental model and the merge cost dwarfs the build cost.
+> **Why freeze them:** with a single developer, the expensive failure is not a merge conflict — it is
+> **rework**. If the supplier invents a colour that does not exist, writes English filler, or
+> hard-codes a roll number, you discover it at conversion time and pay for the screen twice. C1–C4
+> are what make their output convertible on first delivery.
 
-### 10.6 The design handoff kit — what we owe the collaborator
+### 10.6 The design handoff kit — what to send the supplier
 
-> ⚠️ **This is on the critical path.** B cannot start a single screen until the kit exists.
-> It is a **~2-day A-track deliverable** and the highest-leverage thing we build first.
+> ⚠️ **On the critical path.** The supplier cannot start a single screen until this kit exists.
+> It is a **1–2 day job** and the highest-leverage thing to build first, because it decides whether
+> their output converts on the first pass or comes back three times.
 
 #### 10.6.1 Why the kit must exist (and what happens without it)
 
-Without it, B would: invent their own colour scale (their classes would not compile against our
-wiped palette), invent component variants we do not have, write English placeholder copy, and
-produce markup whose dynamic fields we cannot identify. Every one of those becomes rework.
+Without it, the supplier would: invent their own colour scale (their classes would not compile
+against our wiped palette), invent component variants we do not have, write English placeholder
+copy, and produce markup whose dynamic fields cannot be identified. Every one of those becomes
+rework — and with a single developer, rework is the only real cost that matters.
 
-With it, B is building screens from **our** palette, **our** components, **our** real Bangla copy,
-**our** frozen routes and **our** declared dynamic fields — so conversion is a tooled step rather
-than an act of interpretation.
+With it, they build screens from **your** palette, **your** components, **your** real Bangla copy,
+**your** frozen routes and **your** declared dynamic fields — so conversion is a mechanical step
+rather than an act of interpretation.
 
 #### 10.6.2 The preview harness
 
@@ -1836,12 +1833,28 @@ DO NOT commit design-src/preview.out.css or node_modules.
 
 ### 10.7 Conversion: `design-src/` → Jinja
 
-> **Goal:** a tooled, repeatable, ~1-day-per-4-screens step, with nothing silently dropped.
+Since you are the only developer, conversion is **your** work either way. The only question is
+whether to automate it. The honest arithmetic:
 
-#### 10.7.1 `tools/convert-design.py`
+| Approach | Cost | Verdict |
+|---|---|---|
+| Convert ~18 public screens by hand | ~4–5 days | ✅ **Do this first** |
+| Write `tools/convert-design.py`, then convert | ~2–3 days to build, ~1 day to convert | ⚠️ Worth it only past a threshold |
 
-Reads `design-src/public/<screen>.html` and writes `app/templates/public/<screen>.html`, applying
-**eight deterministic rewrites** and then **reporting everything it could not resolve**:
+**Build the converter when any of these becomes true:**
+
+1. the supplier delivers **more than ~25 screens**, or
+2. the **same screen is re-delivered more than twice**, or
+3. a **second programme** reuses this codebase and needs the same pipeline.
+
+Until then, hand-convert — but **do** use the `[[TOKEN]]` convention and the guard rules below,
+because they are nearly free and they prevent the expensive failure (dynamic fields you cannot
+identify). The rewrite table is written so it doubles as your **manual conversion checklist**.
+
+#### 10.7.1 The eight rewrites (a manual checklist, or the converter's spec)
+
+Each row is a pass you make over each delivered file. If the converter is built later, these are
+exactly its rules.
 
 | # | Rewrite | Rule |
 |---|---|---|
@@ -1891,21 +1904,22 @@ actually need — `{% extends %}`, `{% block %}`, `{% include %}`, `{{ var }}`, 
 □ Print styles verified if the screen is printable
 ```
 
-### 10.8 Git and CI for a two-person team
+### 10.8 Git and CI for a solo developer
 
-**Branching.** The collaborator has write access and may push to `main` directly (their choice).
-That is safe *because `design-src/` is excluded from the deploy sync*. The A-track still uses
-short-lived branches for anything that touches `app/**`, because that is the code that becomes the
-live site:
+**Branching.** You are the only person committing to `app/**`, so branching is a **safety** tool
+rather than a coordination tool. Short-lived branches before anything risky, merge to `main` when
+CI is green:
 
 ```
-main ──●──●──●──●──●──●  (B pushes design-src freely; A merges reviewed work)
+main ──●──●──●──●──●──●  (supplier's design-src/ arrives freely; you merge reviewed work)
         \         /
-         ●──●────●        feat/applications-review   (A, PR required)
+         ●──●────●        feat/applications-review
 ```
 
-**CI on every push to `main` (including direct pushes)** — so breakage is visible within a minute
-even when nobody opened a PR:
+The supplier may push to `main` directly if they have access. That is safe **only because
+`design-src/` is excluded from the deploy sync** — their files never reach the server.
+
+**CI on every push to `main`** — so breakage is visible within a minute:
 
 ```
 npm run css:build  →  git diff --exit-code app/static/css/app.css   (drift gate)
@@ -1918,8 +1932,9 @@ flask render-check --all              ← renders every public route with fixtur
                                         catching undefined variables and bad url_for() calls
 ```
 
-The last two are the ones that matter for a two-person team: they turn "B's screen silently broke
-because a variable name changed" from a production incident into a CI failure.
+The last two are the ones that matter most here: with one developer working quickly across ~60
+screens, they turn "a template broke because a variable name changed" from a production incident
+into a CI failure.
 
 **Pre-deploy validation (recommended, and a change from §22.7).** We keep `push to main` as the
 deploy trigger, but the deploy workflow gains a **blocking pre-flight job** that runs
@@ -1937,7 +1952,8 @@ feat(admin): merit list builder with auto-ranking
 docs(plan): freeze C1 public route map
 ```
 
-`design:*` commits are B's. Anyone can read the log and tell which track a change came from.
+`design:*` commits are the supplier's. Everything else is yours, so the log reads as one history
+with a clearly-marked external input.
 
 **Merge-conflict reduction, concretely:**
 
@@ -3332,8 +3348,8 @@ SYNC (excluding the list above, plus __pycache__, *.pyc, .venv, node_modules, .g
   fallback:  tar czf - --exclude=… . | ssh … "tar xzf - -C $REMOTE_APP"
   # NOTE: app/static/css/app.css IS synced — it is the shipped artifact.
   #       assets/ (the Tailwind source) deliberately is NOT — the server cannot compile it.
-  #       design-src/ (the collaborator's workspace) is NOT — this is what makes their
-  #       direct pushes to main incapable of affecting production. See §10.5.1.
+  #       design-src/ (the supplier's delivery area) is NOT — this is what makes their
+  #       files incapable of affecting production. See §10.5.1.
 
 REMOTE STEPS (in order):
   1. mkdir -p $REMOTE_APP/tmp                      (Passenger restart dir)
@@ -3433,8 +3449,8 @@ JOB 2 — deploy   (needs: validate)
 
 > **This is a change from the original plan.** Keeping `push to main` as the deploy trigger (your
 > existing habit) is fine **only because** Job 1 is blocking and `design-src/` is excluded. Without
-> both of those, a collaborator's direct push to `main` would be a production deploy of untested
-> markup. With them, "push to main deploys" stays true and stays safe.
+> both, a supplier's direct push to `main` would be a production deploy of untested markup. With
+> them, "push to main deploys" stays true and stays safe.
 
 Secrets required: `DEPLOY_SSH_KEY`, `DEPLOY_SSH_PASSPHRASE`, `DEPLOY_HOST`, `DEPLOY_USER`,
 `DEPLOY_PORT`, `DEPLOY_APP_PATH`, `DEPLOY_URL`.
@@ -3549,78 +3565,85 @@ Before any screen is called done:
 
 ## 24. Milestones & Effort Estimate
 
-Assumes the **two-developer split agreed in §10.5**: A-track (us) builds all backend, the admin
-console full-stack, the student portal and deployment; B-track (collaborator) builds the public
-site markup in `design-src/`. Days are **working days of effort**, not elapsed days.
+You are the **sole developer** (§10.5). The public-site markup arrives from the design supplier, so
+those days are theirs, not yours. Everything below is **your** effort. Days are working days, not
+elapsed days.
 
-| # | Track | Milestone | Deliverable | Days |
-|---|---|---|---|---|
-| **M0** | both | Discovery & **contract freeze** | Plan signed off; **C1–C4 frozen** (§10.5.3); server, domain and DB provisioned | 3 |
-| **M1a** | **A** 🔴 | **Handoff kit** — *on the critical path* | Tailwind v4 `source.css` (tokens, wiped defaults, `@utility` components) · `kitchen-sink.html` · `PLACEHOLDERS.md` · real Bangla copy sheets · preview harness · `routes.md` · `DESIGN-NOTES.md` · walkthrough call | **2** |
-| **M1b** | **B** ⚡ | **Public screens** *(runs in parallel with M2 onward)* | All 18 public screens in `design-src/public/` built strictly to C1–C4 | **12** |
-| **M2** | A | Foundation | Flask skeleton, config, extensions, `check-config`, logging, error pages, DB models for all 52 tables, migrations, seeders, layout shells + component macros, base JS, CI incl. CSS drift gate + `jinja-lint` + `render-check` | 6 |
-| **M1c** | A | **Conversion & review** | `tools/convert-design.py`; convert all 18 screens; a11y, responsive and print pass on each | 5 |
-| **M3** | A | Public site wiring | Routes, caching, live-status computation, notices, contact, SEO/PWA, sitemap, robots, `noindex` on lookups | 4 |
-| **M4** | A | Application | Form wiring (all fields), server validation, AJAX checks, photo pipeline, Turnstile, draft autosave, `application_no`, Application Copy document, confirmation + SMS/email | 9 |
-| **M5** | A | Lookups | admit-card, results, certificate-verification, `/verify/<code>`, signed URLs, rate limits, print views | 5 |
-| **M6** | A | Auth | Portal login (dual mode), lockout states, set/reset password, OTP, staff login, 2FA, sessions, RBAC + row scoping, audit service | 8 |
-| **M7** | A | Admin core | Shell + its own UI kit, dashboard, applications list/detail/review, bulk actions, notes, import/export, batches, centres, partners, users, settings, audit viewer | 12 |
-| **M8** | A | Exam & selection | Exam CRUD, allocation (manual + auto), roll generation, admit-card bulk, attendance grid, marks grid + 4-eyes verify, result publish, merit builder, waitlist | 12 |
-| **M9** | A | Student portal | 14 portal screens (full-stack — B does not touch this), provisioning, notifications history, support tickets, security page | 8 |
-| **M10** | A | Training & certificates | Enrollment, schedules, attendance + TA report, materials, certificate issue/revoke, bulk ZIP | 8 |
-| **M11** | A | Comms & CMS | SMS adapters, email adapters, queue + cron drain, blast composer with cost preview, templates, CMS (pages/FAQ/sliders/gallery), stats editor | 7 |
-| **M12** | A | Reports & analytics | All 14 reports, watermarked exports, funnel, dashboards | 5 |
-| **M13** | A | Hardening | Security checklist, a11y audit, performance budget, load test, E2E suite, bug fixes | 9 |
-| **M14** | A | Deploy & handover | `deploy.sh`, CI, cron, backups, monitoring, `ADMIN_GUIDE.md`, `RUNBOOK.md`, training sessions, UAT | 5 |
-| | | **A-track total** | | **108** |
-| | | **B-track total** | | **12** |
+| # | Milestone | Deliverable | Your days |
+|---|---|---|---|
+| **M0** | Discovery & **contract freeze** | Plan signed off; **C1–C4 frozen** (§10.5.3); server, domain and DB provisioned | 3 |
+| **M1** | **Supplier handoff kit** 🔴 *critical path* | Tailwind v4 `source.css` (tokens, wiped defaults, `@utility` components) · `kitchen-sink.html` · `PLACEHOLDERS.md` · real Bangla copy sheets · preview harness · `routes.md` · `DESIGN-NOTES.md` · walkthrough | **2** |
+| *M1-S* | *Supplier delivers 18 public screens* | *Built to C1–C4 in `design-src/public/` — **their 12 days**, runs in parallel, blocks nothing until M3* | *—* |
+| **M2** | Foundation | Flask skeleton, config, extensions, `check-config`, logging, error pages, DB models for all 52 tables, migrations, seeders, layout shells + component macros, base JS, CI incl. CSS drift gate + `jinja-lint` + `render-check` | 6 |
+| **M3** | **Convert & review public screens** | Convert all 18 delivered screens to Jinja; a11y, responsive and print pass on each | 5 |
+| **M4** | Public site wiring | Routes, caching, live-status computation, notices, contact, SEO/PWA, sitemap, robots, `noindex` on lookups | 4 |
+| **M5** | Application | Form wiring (all fields), server validation, AJAX checks, photo pipeline, Turnstile, draft autosave, `application_no`, Application Copy document, confirmation + SMS/email | 9 |
+| **M6** | Lookups | admit-card, results, certificate-verification, `/verify/<code>`, signed URLs, rate limits, print views | 5 |
+| **M7** | Auth | Portal login (dual mode), lockout states, set/reset password, OTP, staff login, 2FA, sessions, RBAC + row scoping, audit service | 8 |
+| **M8** | Admin core | Shell + its own UI kit, dashboard, applications list/detail/review, bulk actions, notes, import/export, batches, centres, partners, users, settings, audit viewer | 12 |
+| **M9** | Exam & selection | Exam CRUD, allocation (manual + auto), roll generation, admit-card bulk, attendance grid, marks grid + 4-eyes verify, result publish, merit builder, waitlist | 12 |
+| **M10** | Student portal | 14 portal screens full-stack, provisioning, notifications history, support tickets, security page | 8 |
+| **M11** | Training & certificates | Enrollment, schedules, attendance + TA report, materials, certificate issue/revoke, bulk ZIP | 8 |
+| **M12** | Comms & CMS | SMS adapters, email adapters, queue + cron drain, blast composer with cost preview, templates, CMS (pages/FAQ/sliders/gallery), stats editor | 7 |
+| **M13** | Reports & analytics | All 14 reports, watermarked exports, funnel, dashboards | 5 |
+| **M14** | Hardening | Security checklist, a11y audit, performance budget, load test, E2E suite, bug fixes | 9 |
+| **M15** | Deploy & handover | `deploy.sh`, CI, cron, backups, monitoring, `ADMIN_GUIDE.md`, `RUNBOOK.md`, training sessions, UAT | 5 |
+| | **Total on your plate** | | **108** |
 
-### 24.1 The honest capacity finding — read this before committing to the split
+### 24.1 The honest capacity finding — read this before committing to the plan
 
 | Measure | Value |
 |---|---|
-| Total effort | **120 developer-days** |
-| A-track share | **108 days (90%)** |
-| B-track share | **12 days (10%)** |
-| **Realistic elapsed time** | **~20–22 weeks** |
-| Original estimate for two *evenly* loaded developers | ~11 weeks |
+| Work on your plate | **108 developer-days** |
+| Supplier's contribution | 12 days — parallel, *their* time, **not yours** |
+| Best case (5 productive days/week) | **~22 weeks ≈ 5 months** |
+| **Realistic case** (4–4.5 productive days/week, which is what actually happens solo) | **24–27 weeks ≈ 6 months** |
 
-**Why the split does not parallelise the way "frontend/backend" implies.** The public site is one
-of the *smaller* workstreams (§9.1, ~18 screens). The bulk of the system is the admin console
-(~40 screens), the exam/selection engine, the student portal, certificates, notifications and
-reports — all of which sit on the A-track. So B finishes their 12 days around **week 3** and the
-remaining ~19 weeks of work then sits with one effective developer.
+**The binding constraint on this project is the schedule, not the technical risk.** Every technical
+risk in §25 has a mitigation. There is no mitigation for "one person, 108 days". So the levers are
+**scope**, not people — and they should be chosen deliberately now, not under pressure in month 4.
 
-This is not a criticism of the collaborator — it is a consequence of the chosen boundary, and it is
-better to see it now than in week 12.
+Also worth stating plainly: the supplier's 12 days do **not** shorten your 108. Their markup is an
+input you convert, not capacity added to the build. The parallel work buys you a head start on
+screens, not a shorter critical path.
 
-### 24.2 Four ways to close the gap
+### 24.2 Scope levers — what to cut if 22 weeks is too long
 
-| Option | Change | A-track becomes | Elapsed | Trade-off |
-|---|---|---|---|---|
-| **1. Do nothing** | Accept the boundary | 108 days | ~21 weeks | Simplest; slowest. Staged launch (§24.3) matters a lot here. |
-| **2. Teach B Jinja** ⭐ | **½ day** of coaching on 6 constructs (`extends`, `block`, `include`, `{{ }}`, `\| filter`, `for`), then B owns `app/templates/public/**` directly — no conversion step ever again | ~80 days | **~16 weeks** | B loses the "no Python" comfort. Small, bounded learning. **Best value by far.** |
-| **3. Give B the print documents** ⭐ | Certificates, admit cards, transcripts and merit-list PDFs are **pure HTML+CSS** — the most design-sensitive artifacts in the project and currently on the A-track | ~101 days | ~19 weeks | Requires the token dictionary to cover document fields. Improves the highest-visibility output. |
-| **4. B takes the portal UI too** | Same Jinja coaching as option 2, plus `app/templates/portal/**` | ~72 days | **~14 weeks** | B's engagement grows to ~30 days; A is still the bottleneck on admin + exam. |
+| Lever | Your days saved | What it costs |
+|---|---|---|
+| **Delegate the certificate + admit-card design to the supplier** | **–4** | Extend the token dictionary to cover document fields. **Pure upside** — these are the most visible artifacts and they are pure HTML/CSS |
+| **Drop the training layer** (M11: schedule, attendance, materials, TA report) | **–14** | The department tracks attendance on paper and loses the ৳200/day TA report. **The single biggest lever** |
+| **Student portal read-only** (no tickets, no notifications history, no materials) | **–5** | More phone support; fewer self-service features |
+| **Defer certificates to a second phase** (first batch issued from a manual template) | **–8** | No QR verification for batch 1; certificates produced by hand |
+| **Cut reports to the 4 HQ actually asks for** | **–3** | Ad-hoc SQL later; no CSV history for the rest |
+| **Import: fixed CSV template only** (no column-mapping UI) | **–2** | You reformat source files by hand before importing |
+| ~~**Skip the CMS**~~ | –6 | ❌ **Do not.** A live government site needs notices and dates changed without a deploy |
 
-**Recommendation: options 2 + 3 together.** Half a day of teaching removes the permanent
-conversion tax, and handing over the certificate/admit-card design puts the project's most
-visible artifacts in the designer's hands where they belong. That lands at **~17 weeks** with
-a much better document set — and B gets a real ~30-day engagement instead of a 2-week cameo.
+**Best combination for ~17 weeks:** supplier takes the document design (–4) + drop the training
+layer (–14) + portal read-only (–5) = **85 days ≈ 17 weeks**. That is the shape to pick if the
+application deadline is the only fixed date — it still delivers the full admission pipeline.
+
+**The one lever that changes the model.** Everything above cuts features. There is exactly one way
+to add capacity: give the supplier the **six Jinja constructs** they need (`extends`, `block`,
+`include`, `{{ }}`, `\| filter`, `for`) — about half a day of coaching — and let them own
+`app/templates/public/**` directly. That removes M3 entirely (–5) and, if they also take the portal
+markup, another 8. **Recorded as an option only.** The agreed model has them supplying HTML/CSS and
+you doing all development, and this plan is built to that decision.
 
 ### 24.3 Staged launch — which matters more than the total
 
-| Stage | Ships | A-track days | Elapsed | When |
-|---|---|---|---|---|
-| **Stage 1 — Public + Apply** | M0, M1a–c, M2, M3, M4, M5 + a minimal admin review screen | ~31 | **~7 weeks** | **Before the application deadline.** Replaces the paper form. |
-| **Stage 2 — Exam & Selection** | M6, M7, M8 | +32 | ~13 weeks | Before the written exam |
-| **Stage 3 — Portal & Certificates** | M9, M10, M11 | +23 | ~18 weeks | Before classes start |
-| **Stage 4 — Reports & hardening** | M12, M13, M14 | +19 | ~22 weeks | During the training period |
+| Stage | Ships | Your days | Cumulative | Elapsed | When |
+|---|---|---|---|---|---|
+| **Stage 1 — Public + Apply** | M0, M1, M2, M3, M4, M5, M6 + a minimal admin review screen | 34 | 34 | **~7–8 weeks** | **Before the application deadline.** Replaces the paper form. |
+| **Stage 2 — Exam & Selection** | M7, M8, M9 | +32 | 66 | ~13 weeks | Before the written exam |
+| **Stage 3 — Portal & Training** | M10, M11, M12 | +23 | 89 | ~18 weeks | Before classes start |
+| **Stage 4 — Reports, hardening, handover** | M13, M14, M15 | +19 | 108 | ~22 weeks | During the training period |
 
-The programme's **hard deadline is the application close date**, and Stage 1 clears it in ~7 weeks
-on the A-track alone — *before B's screens are even needed for stages 2–4*. So the team shape
-does not put the critical public commitment at risk, as long as Stage 1 is prioritised and B's
-screens land in time for M1c.
+The programme's **hard deadline is the application close date**, and Stage 1 clears it in
+**~7–8 weeks** on your own — *before the supplier's screens are even needed*. So the solo schedule
+does not put the critical public commitment at risk, **provided Stage 1 is prioritised and nothing
+from stages 2–4 is allowed to jump the queue**. That discipline matters more here than it would
+with a larger team, because there is no spare capacity to absorb a distraction.
 
 ---
 
@@ -3646,12 +3669,12 @@ screens land in time for M1c.
 | **R16** | **Committed CSS drifts from the templates** (someone edits Jinja, forgets `css:build`) | **High** | Low | `npm run css:watch` in dev; **CI `git diff --exit-code`** fails the build and names the command; `deploy.sh` pre-flight aborts on stale CSS; `flask check-config` warns; the failure mode is a *missing* style, never a broken page. |
 | **R17** | Tailwind adds a **Node/npm dependency** to a Python project | Medium | Low | Node is **dev/CI-only**. The compiled `app.css` is committed, so the server never needs Node — a developer without Node uses the standalone `tools/tailwindcss` binary. CI is the only hard requirement, and it can be relaxed to "use the standalone binary" if npm CI ever becomes unavailable. |
 | **R18** | Tailwind's *defaults* reintroduce generic design (blue-500, `rounded-3xl`, `shadow-lg`) | Medium | Medium | `--color-*: initial`, `--radius-*: initial`, `--shadow-*: initial` in `@theme` — those utilities **do not compile**. `tools/check-css.py` in CI verifies the compiled output contains no banned construct. The design system is enforced by the build, not by review. |
-| **R19** | **The conversion step becomes a permanent tax** — the collaborator's standalone HTML never converts cleanly, so every visual change costs a re-conversion cycle | **High** | Medium | The handoff kit (§10.6) plus the eight deterministic rewrite rules and hard-error guards in `tools/convert-design.py` (§10.7.1) make conversion mechanical. **Kill-switch: after 2 re-conversions of the same screen, teach B the 6 Jinja constructs instead (½ day) and delete the step entirely.** See §24.2 option 2. |
-| **R20** | **Capacity mismatch** — B finishes ~12 days of work by week 3 and then idles while ~19 weeks remain on the A-track | **High** | High | Quantified up front in §24.1 rather than discovered in week 12. Options in §24.2: hand B the print documents (pure HTML/CSS, ~5 days), then the portal UI after Jinja coaching. **Recommended: options 2+3 → ~17 weeks.** |
-| **R21** | **Contract drift** — C1–C4 change after B has already built screens to them, invalidating work | Medium | High | Contracts frozen in M0 (§10.5.3); changing one is an announced event with a migration note in `design-src/content/`. The conversion script hard-errors on unknown tokens and unknown URLs, so drift surfaces immediately rather than silently. |
-| **R22** | **Direct pushes to `main`** by the collaborator reach a branch that auto-deploys | Low | High | **Structurally mitigated:** `design-src/**` is excluded from the deploy sync (§22.5), so B's pushes cannot reach the server at all. A-track changes to `app/**` are additionally gated by the blocking `flask render-check --all` pre-deploy job (§22.7). |
-| **R23** | **Design drift** — B invents components, colours or variants that are not in the system | Medium | Medium | The palette/radius/shadow namespaces are wiped, so invented colours **do not compile**; the "do not" list (§10.6.6) plus `kitchen-sink.html` as the shared vocabulary; `DESIGN-NOTES.md` is the sanctioned channel for requests; `tools/check-css.py` catches arbitrary values. |
-| **R24** | **Single point of failure** — one person (A-track) holds all backend, admin, portal, deploy and data knowledge | Medium | **High** | `plan.md` is the source of truth and is committed; `ADMIN_GUIDE.md` + `RUNBOOK.md` are M14 deliverables; migrations are reversible; `deploy.sh`/`rollback.sh` are documented and rehearsed; no undocumented shell commands. Bus factor is explicitly acknowledged, not assumed away. |
+| **R19** | **Conversion rework** — the supplier's standalone HTML does not convert cleanly, so screens bounce back | **High** | Medium | The handoff kit (§10.6) plus the `[[TOKEN]]` convention and the eight rewrite rules used as a manual checklist (§10.7.1). **Build `tools/convert-design.py` once any §10.7 threshold is crossed** (>25 screens, same screen re-delivered twice, or a second programme reuses the codebase). |
+| **R20** | **Solo capacity** — 108 developer-days on one person is ~22 weeks best case, 24–27 realistic | **High** | **High** | Quantified in §24.1 and therefore chosen deliberately rather than discovered. Levers are **scope, not people** (§24.2). Staged launch (§24.3) protects the deadline-critical Stage 1. |
+| **R21** | **Contract drift** — C1–C4 change after the supplier has already built screens to them | Medium | Medium | Contracts frozen in M0; the `[[TOKEN]]` dictionary and route list are the single source of truth; unknown tokens and unknown URLs surface at conversion instead of silently shipping. |
+| **R22** | **Supplier pushes to `main`** and it auto-deploys | Low | High | Structurally mitigated: `design-src/**` is excluded from the deploy sync (§22.5), so their files cannot reach the server at all. Your own `app/**` changes are gated by the blocking `flask render-check --all` pre-deploy job (§22.7). |
+| **R23** | **Design drift** — the supplier invents components, colours or variants not in the system | Medium | Medium | The palette/radius/shadow namespaces are wiped, so invented colours **do not compile**; the "do not" list (§10.6.6); `kitchen-sink.html` as the shared vocabulary; `DESIGN-NOTES.md` as the sanctioned request channel. |
+| **R24** | **Bus factor of one** — a single person holds all backend, admin, portal, deployment and data knowledge | **High** | **High** | With a solo build this becomes the most significant non-schedule risk. Mitigations: `plan.md` is the committed source of truth; `ADMIN_GUIDE.md` + `RUNBOOK.md` are M15 deliverables; migrations are reversible; `deploy.sh` / `rollback.sh` are documented and rehearsed; **no undocumented shell commands**; secrets live in a password manager, not in chat history. Accept it consciously, or add a second maintainer before Stage 3. |
 
 ---
 
@@ -3879,9 +3902,10 @@ After that, one vertical slice per pull request, always green in CI.
 | **Design direction chosen** | ✅ **A + C hybrid — 「সুরমা প্রোটোকল」 (Surma Protocol)** |
 | **CSS approach chosen** | ✅ **Tailwind CSS v4** — CSS-first `@theme`, wiped default palette, committed compiled output, no Node on the server |
 | **Blocking questions answered** | ⏳ **to come later** — unblocked by the provisional defaults in §26.1, so progress is not gated on them |
-| **Team model agreed** | ✅ **Two-developer split (§10.5)** — collaborator: public site markup. A-track: backend + admin + portal + deploy |
-| **Capacity flagged** | ⚠️ **§24.1** — the split gives B ~12 days and leaves ~108 on the A-track (~21 weeks elapsed). Options to reach ~17 weeks are in **§24.2** |
-| **Provisionally-safe to start** | ✅ **M1a (the handoff kit)** — ~2 days, unblocks the collaborator, depends only on Q13 (typographic-wordmark fallback covers it) |
+| **Development model** | ✅ **Solo build with an external design supplier (§10.5)** — you develop everything; the collaborator supplies HTML/CSS for the public pages only |
+| **Capacity — read this** | ⚠️ **§24.1** — 108 developer-days on one person = **~22 weeks best case, 24–27 realistic**. Scope levers to reach ~17 weeks are in **§24.2** |
+| **Deadline-critical path** | ✅ **Stage 1 (public + apply) clears in ~7–8 weeks** on your own (§24.3) — before the supplier's screens are even needed |
+| **Highest-value next step** | ✅ **M1 — the handoff kit** — 2 days, unblocks the supplier, depends only on Q13 (typographic-wordmark fallback covers it) |
 
 ### Change log
 
@@ -3892,17 +3916,18 @@ After that, one vertical slice per pull request, always green in CI.
 | 2026-09-23 | **CSS layer switched from hand-written to Tailwind CSS v4.** Added §7.3 `@theme` tokens / §7.3.1 utility map / §7.6.1 enforced anti-slop / §7.9 Tailwind architecture & build pipeline. Updated the stack table, directory layout, performance budget, Bangla typography rules, local dev, `deploy.sh` (`--build-css`, `--check-css`, stale-CSS abort), CI (drift + anti-slop gates), test pyramid, milestones, risks (R16–R18) and the Definition of Done |
 | 2026-09-23 | **Provisional defaults added (§26.1)** so pending business questions do not block progress |
 | 2026-09-23 | **Two-developer model agreed (§10.5–§10.8).** Collaborator builds the public site only, as standalone HTML/Tailwind, no Jinja. Added: the file-level ownership map, the **C1–C4 frozen contracts**, the **design handoff kit** we owe them (kitchen sink, `[[TOKEN]]` dictionary, real Bangla copy, preview harness), the `tools/convert-design.py` conversion pipeline with hard-error guards, and the git/CI arrangement for two people. Added collaboration risks **R19–R24**. Restructured §24 into A-track / B-track with an honest capacity finding in §24.1 and four closing options in §24.2. `design-src/` added to the deploy exclusion list (which is what makes the collaborator's direct pushes to `main` structurally safe); the deploy workflow gained a blocking `render-check` pre-flight job |
+| 2026-09-23 | **Clarified and corrected to a SOLO model (§10.5–§10.8, §24).** There is one developer — you. The collaborator is a **supplier of HTML/CSS for the public pages only**, not a second engineer: no Python, no Jinja, no `app/` access. Removed the A-track/B-track framing, the `CODEOWNERS` file and the two-person conflict rules; reframed §10.5 as *one build with one external input*. §10.7 now gives an explicit build-or-hand-convert decision for `tools/convert-design.py` (hand-convert first; build it past a threshold) with the rewrite table doubling as a manual checklist. §24 rewritten with a track-free milestone table, the honest **solo** capacity finding (108 days ⇒ ~22 weeks best case, 24–27 realistic) and **scope levers** replacing staffing options. Risks R19–R24 rewritten; R24 (bus factor of one) raised to High/High |
 
-> **Next step:** the §26 business answers can arrive whenever. Two things are now unblocked and independent:
+> **Next step:** the §26 business answers can arrive whenever — they are not blocking (§26.1).
+> The open question is whether to start:
 >
-> **A-track:** say "go" and I build **M1a — the handoff kit** (`source.css` tokens,
-> `kitchen-sink.html`, `PLACEHOLDERS.md`, the real Bangla copy sheets, the preview harness and
-> `routes.md`). It is ~2 days of work, it is the deliverable the collaborator is blocked behind,
-> and it is the highest-leverage thing to build first.
+> **Say "go" and I build M1 — the supplier handoff kit** (`source.css` tokens, `kitchen-sink.html`,
+> `PLACEHOLDERS.md`, the real Bangla copy sheets, the preview harness and `routes.md`). It is
+> 2 days of work and it is the deliverable the design supplier is blocked behind.
 >
-> **Your decision:** accept ~21 weeks as the cost of the current boundary, or take **§24.2
-> options 2+3** — teach the collaborator six Jinja constructs (½ day) and hand over the
-> certificate / admit-card design — to reach **~17 weeks** with better-looking documents.
+> **Also worth deciding now, not in month 4:** §24.2. The solo arithmetic is ~22 weeks best case.
+> Choosing scope levers early (supplier takes the certificate design, drop the training layer,
+> portal read-only) brings that to ~17 weeks without touching the deadline-critical Stage 1.
 >
 > Nothing gets implemented until you say go.
 
