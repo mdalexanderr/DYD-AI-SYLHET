@@ -33,7 +33,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PLAN = REPO_ROOT / "plan.md"
 
-TOP_LEVEL_SECTIONS = 27
+TOP_LEVEL_SECTIONS = 28
 HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$")
 TOC_ROW_RE = re.compile(r"^(\s*)- \[(.+?)\]\(#(.+?)\)", re.M)
 TOC_ANCHOR_RE = re.compile(r"^(- \[(\d+)\. )", re.M)
@@ -218,8 +218,14 @@ def regenerate_toc(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
 
-    toc_idx = next(i for i, l in enumerate(lines) if l.strip() == "## Table of Contents")
     sec1_idx = next(i for i, l in enumerate(lines) if re.match(r"^## 1\. ", l))
+    try:
+        toc_idx = next(i for i, l in enumerate(lines) if l.strip() == "## Table of Contents")
+    except StopIteration:
+        # no TOC yet — insert one immediately before section 1
+        toc_idx = sec1_idx
+        lines = lines[:toc_idx] + ["## Table of Contents", "", "---", ""] + lines[toc_idx:]
+        sec1_idx = next(i for i, l in enumerate(lines) if re.match(r"^## 1\. ", l))
 
     seen: dict[str, int] = {}
     body: list[str] = []
