@@ -1,0 +1,83 @@
+# =============================================================================
+# DYD AI SYLHET — .gitignore
+# =============================================================================
+# Rule zero: this repository must NEVER contain secrets, citizen PII, uploads,
+# databases or build toolchain artifacts. See plan.md §14.5 and §22.5.
+
+# ── Secrets (plan.md §20.1 — .env is created on the server by hand) ──────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+Keys/
+PEM/
+!*.pub
+
+# ── Citizen PII + uploaded documents (plan.md §14.5) ────────────────────────
+# Photos, NID scans, signatures and generated certificates must never be committed.
+uploads/
+instance/
+var/generated/
+var/exports/
+*.sqlite
+*.sqlite3
+*.db
+
+# ── Backups + generated artifacts ──────────────────────────────────────────
+var/backups/
+var/logs/
+var/cache/
+var/releases/
+var/MAINTENANCE
+*.log
+*.sql.gz
+*.zip
+*.pdf
+!docs/**/*.pdf
+
+# ── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ── Tailwind / Node (dev-only toolchain — the compiled app.css IS committed) ─
+node_modules/
+package-lock.json
+!app/static/css/app.css
+app/static/css/*.map
+tools/tailwindcss
+tools/tailwindcss.exe
+*.css.map
+
+# ── Editors / OS ───────────────────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# ── Deployment scratch ─────────────────────────────────────────────────────
+.deploy-tmp/
+*.tar.gz
+release-*.tar.gz

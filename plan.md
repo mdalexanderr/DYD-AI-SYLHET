@@ -1,0 +1,3292 @@
+# AI Project Sylhet — Master Build Plan
+
+> **Working title:** `DYD AI Project — Sylhet Division` (short: **AI Sylhet**)
+> **Status:** 📋 **PLAN ONLY — no code written yet.** This document is the single source of truth for the build.
+> **Companion to:** the national site `https://www.dydaiproject.com`
+> **Prepared:** 2026-09-23
+
+---
+
+## Table of Contents
+
+| § | Section |
+|---|---------|
+| 1 | [Executive Summary](#1-executive-summary) |
+| 2 | [Reference Site Analysis (dydaiproject.com)](#2-reference-site-analysis-dydaiprojectcom) |
+| 3 | [Sylhet Site Scope & What Differ](#3-sylhet-site-scope--what-differs) |
+| 4 | [Roles, Permissions & Governance](#4-roles-permissions--governance) |
+| 5 | [End-to-End User Journeys](#5-end-to-end-user-journeys) |
+| 6 | [Functional Requirements (numbered)](#6-functional-requirements-numbered) |
+| 7 | [Design System & Visual Direction](#7-design-system--visual-direction) |
+| 8 | [Information Architecture & Full Route Map](#8-information-architecture--full-route-map) |
+| 9 | [Screen-by-Screen Specification](#9-screen-by-screen-specification) |
+| 10 | [Backend Architecture](#10-backend-architecture) |
+| 11 | [Database Schema (full)](#11-database-schema-full) |
+| 12 | [Service Layer](#12-service-layer) |
+| 13 | [Documents, PDF & Bangla Rendering](#13-documents-pdf--bangla-rendering) |
+| 14 | [Authentication & Security Design](#14-authentication--security-design) |
+| 15 | [Notifications (SMS + Email + PWA Push)](#15-notifications-sms--email--pwa-push) |
+| 16 | [Bangla Language, Fonts & Number Handling](#16-bangla-language-fonts--number-handling) |
+| 17 | [PWA, Performance & SEO](#17-pwa-performance--seo) |
+| 18 | [Admin Operations Runbook (how it is managed)](#18-admin-operations-runbook-how-it-is-managed) |
+| 19 | [Reports & Analytics](#19-reports--analytics) |
+| 20 | [Configuration & Environment Variables](#20-configuration--environment-variables) |
+| 21 | [Local Development Setup](#21-local-development-setup) |
+| 22 | [Deployment: cPanel/Passenger, deploy.sh, CI, Cron](#22-deployment-cpanelpassenger-deploysh-ci-cron) |
+| 23 | [Testing & QA Strategy](#23-testing--qa-strategy) |
+| 24 | [Milestones & Effort Estimate](#24-milestones--effort-estimate) |
+| 25 | [Risks & Mitigations](#25-risks--mitigations) |
+| 26 | [Decisions Needed From You (blocking)](#26-decisions-needed-from-you-blocking) |
+| 27 | [Appendices](#27-appendices) |
+
+---
+## 1. Executive Summary
+
+### 1.1 What we are building
+
+A complete, production-grade, **Bangla-first web platform** for the Sylhet Division roll-out of the
+Government of Bangladesh project *"তথ্যপ্রযুক্তি জ্ঞানসম্পন্ন যুবদের কৃত্রিম বুদ্ধিমত্তা (এআই) প্রযুক্তির
+মাধ্যমে দক্ষতা উন্নয়ন"* (Department of Youth Development, Ministry of Youth & Sports).
+
+It has **three products in one codebase**:
+
+| Product | Audience | Access |
+|---|---|---|
+| **Public site** | 4 districts × 41 upazilas of Sylhet Division | Open, no login |
+| **Applicant / Student portal** | Only candidates selected through the exam | Roll + Mobile **or** Email + password |
+| **Admin console** | DYD Sylhet officials, partner staff, exam controllers | Staff accounts, hardened |
+
+### 1.2 The core business rule that shapes everything
+
+> **Nobody can register an account.** The only way in is to *apply*. The admin controls
+> every application. Applicants sit a written exam + viva. **Only selected candidates are
+> granted portal accounts**, and they log in with **exam roll + registered mobile number**
+> *or* **email + password**.
+
+This is a **closed, admin-driven admission pipeline** — the opposite of a self-service SaaS signup.
+It means:
+
+- No public `/register` route exists anywhere in the app.
+- `users` rows for candidates are **created by the system at merit-publication time**, never by
+  the candidate.
+- The portal is a *privilege granted by selection*, not a right of application.
+- Every public-facing lookup (admit card, result, certificate) is **token/identity based, not
+  account based**, so the ~90% who are not selected never need an account and never call support.
+
+### 1.3 Stack decision (at a glance)
+
+Chosen to **exactly match your proven, already-live toolchain** (`favoniahobbies.com`) so that
+`deploy.sh`, Passenger, cPanel, cron and CI are copy-adapt rather than net-new risk:
+
+| Layer | Choice | Why |
+|---|---|---|
+| Language | **Python 3.12** | Same as your live app |
+| Framework | **Flask 3.1** (blueprints) | Proven on your host |
+| ORM | **Flask-SQLAlchemy 3.1** | Proven |
+| DB | **MySQL/MariaDB** in prod, **SQLite** for local dev | Concurrency for admin + applicants |
+| Auth | **Flask-Login + Flask-Bcrypt** | Proven |
+| Forms/CSRF | **Flask-WTF / WTForms** | Proven |
+| Images | **Pillow** | Re-encode uploads safely |
+| PDF | **HTML print views (guaranteed)** + WeasyPrint/Playwright if available | See §13 — biggest technical risk |
+| QR | **segno** (pure Python) | Zero native deps |
+| **CSS** | **Tailwind CSS v4** (CSS-first `@theme`, standalone CLI) | Utility velocity + a locked custom palette; **no Bootstrap** |
+| **CSS build** | Tailwind standalone CLI, output **committed to the repo** | Zero Node/Docker needed on cPanel — see §7.9 |
+| Host | **cPanel + Phusion Passenger** (same server) | Proven; VPS path documented |
+| CI | **GitHub Actions → push to `main` deploys** | Proven pattern |
+
+### 1.4 Deliverable phases
+
+Design → Foundation → Public + Apply → Admin → Exam/Selection → Portal → Certificates →
+Notifications/CMS → Reports → Hardening → Deploy.
+**~10–13 weeks** for one competent developer; ~7–8 weeks with two in parallel (§24).
+
+---
+
+## 2. Reference Site Analysis (dydaiproject.com)
+
+Everything below was **verified live** by inspecting response headers, raw HTML, form markup,
+inline JavaScript and route probing. It is not assumed.
+
+### 2.1 Technical fingerprint
+
+| Property | Finding |
+|---|---|
+| Backend | **PHP 8.3.33 + Laravel** (`X-Powered-By: PHP/8.3.33`) |
+| Web server | **LiteSpeed** |
+| Session | Cookie `dyd-ai-project-session`, `XSRF-TOKEN` encrypted payload, `Cache-Control: no-cache, private` |
+| Templating | Blade, server-rendered |
+| CSS | Bootstrap 5.3.3 (CDN) + Font Awesome 6 (CDN) + custom `frontend/css/brand-theme.css` |
+| Fonts | Google Fonts *Outfit + Roboto + Noto Sans Bengali*; self-hosted `Kalpurush.ttf` |
+| Locale | `<html lang="bn">` — **Bangla-first** |
+| Assets | `public/frontend/{css,images,fonts}/*`, notice PDF at `frontend/dyd-ai-notice.pdf` |
+| PWA | `/manifest.json` (name *DYD AI Learning Portal*, theme `#00854b`), `/sw.js`, `pwa-icon-192/512.png` |
+| robots.txt | `User-agent: *` / `Disallow:` — everything crawlable |
+
+### 2.2 Brand tokens used by the reference (to be deliberately evolved, not copied)
+
+```css
+--brand-primary: #009688;  --brand-primary-dark: #00796B;
+--brand-primary-light: #E0F2F1;  --brand-accent: #bbdfce;
+--brand-dark: #0f172a;  --brand-muted: #64748b;  --brand-light: #F4F9F8;
+theme-color: #00854b  (footer/flag green)
+```
+
+### 2.3 Verified route map
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/` | GET | Home: hero, benefits, why-AI, 5-step process, eligibility, packages, CTA |
+| `/project-overview` | GET | Full admission notice, eligibility, packages, FAQ, notice PDF download |
+| `/live-status` | GET | **Live project statistics dashboard** |
+| `/apply` | GET/POST | Application form (Batch-scoped) |
+| `/admit-card` | GET/POST | Lookup **by 11-digit registered mobile** → download admit card |
+| `/results` | GET/POST | Lookup **by roll number** → result / transcript |
+| `/certificate-verification` | GET/POST | Lookup **by roll number** → certificate authenticity |
+| `/login` | GET/POST | **Single unified login** for student *and* admin |
+| `/forgot-password` | GET/POST | Email/phone → **6-digit OTP** → reset |
+| `/privacy-policy` | GET | Privacy policy (documents collected PII in detail) |
+| `/dashboard` | GET | 🔒 Auth-guarded → 302 `/login`; role-routed landing |
+| `/profile` | GET | 🔒 Auth-guarded → 302 `/login` |
+| `/logout` | POST | 🔒 405 on GET → POST-only logout |
+| `/admin`, `/admin/*`, `/student`, `/portal` | — | **404 — no separate admin path** |
+| `/check-phone-number?phone=` | GET | AJAX duplicate check → `{"exists":bool,"message":str}` |
+| `/check-email-address?email=` | GET | AJAX duplicate check → `{"exists":bool,"message":str}` |
+
+**Two important architectural observations from the recon:**
+
+1. **Student and admin share one login form and are separated only by role after auth.**
+   This is a **weakness we will not copy** (§14) — staff and candidates should not be
+   attackable from the same surface.
+2. **Districts are not fetched by AJAX.** The full division→district JSON map is *embedded in
+   the page* and filtered client-side. We will expose a proper cached JSON endpoint instead
+   (§8), which is faster and keeps one source of truth.
+
+### 2.4 Application form — exact field inventory
+
+| # | Field name | Control | Validation / options |
+|---|---|---|---|
+| — | `_token` | hidden | CSRF |
+| 1 | `student_name` | text | required, "as per certificate" |
+| 2 | `gender` | select | `Male` / `Female` / `Other` |
+| 3 | `email` | email | required, **forced lowercase**, unique, AJAX-checked |
+| 4 | `phone` | text | `pattern="01\d{9}"`, maxlength 11, unique, AJAX-checked |
+| 5 | `dob` | date | required; `min`/`max` computed; enforced **18 → under 36** (35y+1d = rejected) |
+| — | `Age` (readonly) | text | live-computed `"X বছর Y মাস Z দিন"` |
+| 6 | `address` | text | required (গ্রাম/রাস্তা, ডাকঘর, উপজেলা) |
+| 7 | `division_id` | select | 8 divisions; `<option>` carries `data-package` + `data-institution` |
+| 8 | `district_id` | select | dependent, populated client-side from embedded JSON |
+| 9 | `education` | select | HSC / Diploma / Degree / Honours / Other |
+| 10 | `last_edu` | text | GPA/CGPA as free text (e.g. `৪.৫০`) |
+| 11 | `pass_year` | number | 2000–2026 |
+| 12 | `computer` | select | Basic / Medium / Expert |
+| 13 | `pc` | select | Yes / No (owns laptop or PC) |
+| 14 | `time` | select | Yes / No (can attend 2 months) |
+| 15 | `image` | file | passport size, **≤100 KB**, jpg/jpeg/png, live preview |
+
+**Post-submit:** the applicant is told to **download and keep the "Application Copy"**.
+**Client guards:** Bootstrap `.needs-validation` + hard `preventDefault()` if age invalid,
+phone duplicate, or email duplicate; `alert()` with Bangla messages.
+
+### 2.5 Programme facts (from the reference, usable as defaults)
+
+| Item | Value |
+|---|---|
+| Implementing agency | যুব উন্নয়ন অধিদপ্তর (DYD), যুব ও ক্রীড়া মন্ত্রণালয়, GoB |
+| Duration | 2 months · 50 days · **300 hours** · 6 hrs/day |
+| Batch-2 window | 1 Oct 2026 – 30 Nov 2026 |
+| Application deadline | 23 Sep 2026, 23:59 |
+| Written exam | 26 Sep 2026 (venue/time by SMS) |
+| Viva | 27 Sep 2026 |
+| Merit list published | 29 Sep 2026 |
+| Classes start | 1 Oct 2026 |
+| Cost | **Free** + government certificate + **৳200/day TA** + lunch |
+| Eligibility | Age **18–35**, minimum **HSC** or equivalent |
+| Modules | Prompt Engineering · AI Content Creation · Generative AI Tools · AI Productivity · Data Analysis · AI Freelancing |
+| Hotline | +88 02-8091188 \| 01550-666900 |
+| Email | info@e-laeltd.com |
+| HQ | খাজা আইটি পার্ক (২য়–৬ষ্ঠ তলা), ০৭ দক্ষিণ কল্যাণপুর, মিরপুর রোড, ঢাকা-১২০৭ |
+
+### 2.6 Package / partner structure
+
+| Package | Coverage | Districts | Training partner |
+|---|---|---|---|
+| ১ | Dhaka + Mymensingh | 17 | e-Learning & Earning Ltd. |
+| ২ | Rajshahi + Rangpur | 16 | SEO Expate, European IT, Kaizen IT (JV) |
+| ৩ | Barishal + Khulna | 16 | e-Learning & Earning Ltd. |
+| **৪** | **Chattogram + Sylhet** | **15** | **Service Engines Ltd., Dot Com Systems Ltd., Wizard Software Technology Bangladesh Ltd. (JV)** |
+
+**👉 Our site lives inside Package-৪.** Sylhet Division = **4 districts / 41 upazilas**.
+
+Reference district IDs for our 4 districts: `Sylhet 265`, `Moulvibazar 227`, `Habiganj 226`,
+`Sunamganj 266`. We will use our own internal codes but keep a mapping column for
+interoperability with the national system.
+
+### 2.7 Live-status page anatomy (we will build a Sylhet-scoped version)
+
+Observed KPI blocks: *total trainees · male % · female % · income in USD + BDT · employment
+count/rate · completed batches · running batch · running trainees · cumulative income*,
+plus **target-vs-achieved milestone cards** (training target 11,200; male target 60% vs
+current 65%; female target 40% vs current 35%; employment target 60% vs current 62%) and a
+"last updated" timestamp. Nationally: 1,605 trainees, ৳3,866,403 total income.
+
+### 2.8 What the reference does **not** have (our differentiation)
+
+- ❌ No Sylhet/district-scoped site — 64 districts are handled by one national page.
+- ❌ No training-centre directory with maps.
+- ❌ No per-candidate portal onboarding flow tied to *selection* (accounts aren't
+  selection-gated in the same explicit way).
+- ❌ No roll+mobile login. Only email-or-phone + password.
+- ❌ No seat/centre allocation tool, no attendance, no schedule, no materials.
+- ❌ No structured merit-list builder (no visible examiner workflow).
+- ❌ Student and admin share one login surface.
+- ❌ No visible audit log or role separation.
+
+Our site is therefore **not a clone** — it is a district-level operational upgrade.
+
+---
+
+## 3. Sylhet Site Scope & What Differs
+
+### 3.1 Geographic scope
+
+**Sylhet Division only** — 4 districts, 41 upazilas:
+
+| District | Code | Upazilas | Count |
+|---|---|---|---|
+| **Sylhet** | `SYL` | Balaganj, Beanibazar, Bishwanath, Companiganj, Fenchuganj, Golapganj, Gowainghat, Jaintiapur, Kanaighat, Osmani Nagar, Sylhet Sadar, Zakiganj, Dakshin Surma | 13 |
+| **Moulvibazar** | `MOU` | Barlekha, Juri, Kamalganj, Kulaura, Moulvibazar Sadar, Rajnagar, Sreemangal | 7 |
+| **Habiganj** | `HAB` | Ajmiriganj, Bahubal, Baniyachong, Chunarughat, Habiganj Sadar, Lakhai, Madhabpur, Nabiganj, Sayestaganj | 9 |
+| **Sunamganj** | `SUN` | Bishwamvarpur, Chhatak, Derai, Dharampasha, Dowarabazar, Jagannathpur, Jamalganj, Madhyanagar, Shantiganj, Sulla, Sunamganj Sadar, Tahirpur | 12 |
+| | | **Total** | **41** |
+
+A candidate **may only apply against a Sylhet Division district**; the district list is
+server-enforced, not just UI-limited.
+
+### 3.2 Difference matrix vs the national site
+
+| Capability | National site | **AI Sylhet (ours)** |
+|---|---|---|
+| Registration | none (apply only) | none (apply only) — **same rule, enforced harder** |
+| Coverage | 64 districts, 4 packages | 4 districts, 1 package, 41 upazilas |
+| Login | email-or-phone + password, shared with admin | **Roll + Mobile** *or* **Email + Password**, screens physically separated |
+| Account creation | password set on apply | **only on selection** (admin-provisioned) |
+| Exam centres | SMS only, no UI | **full centre CRUD + capacity + seat allocation UI** |
+| Merit list | published image/PDF | **built in admin from marks, published with search + rank** |
+| Student portal | minimal (profile) | **dashboard, admit card, result, merit, schedule, attendance, materials, certificate, support** |
+| Attendance | none | **class-wise + TA-eligible day count** |
+| Certificates | verify by roll | **verify by roll / cert. no / QR URL**, generated from template |
+| Audit | none visible | **every admin write logged with before/after** |
+| Roles | admin/student | **7 granular roles** (§4) |
+| Language | Bangla only | **Bangla primary + English toggle** |
+
+### 3.3 Explicit non-goals (v1)
+
+Out of scope for the first release, listed so they don't creep in:
+
+- Online exam / remote proctored testing (exams are **offline in a lab**, we only record results).
+- Online payment (the programme is free).
+- Live video classes / LMS content streaming (materials are links + PDFs only).
+- Mobile apps (PWA covers this).
+- Merging into the national database (a sync **export** is provided, §19.6).
+- Bengali handwriting OCR / auto-marksheet reading.
+
+---
+
+## 4. Roles, Permissions & Governance
+
+### 4.1 Roles
+
+| # | Role | Who | Scope |
+|---|---|---|---|
+| 1 | `super_admin` | One or two DYD Sylhet heads / lead developer | Everything, incl. users, settings, backups, exports |
+| 2 | `admin` | Project director / deputy | Everything operational; **cannot** manage `super_admin` or read system keys |
+| 3 | `exam_controller` | Exam in-charge | Exam centres, seat allocation, rolls, admit cards, attendance, marks, merit list |
+| 4 | `district_coordinator` | One per 4 districts | **Only their own district's** applications & students (row-level scoping) |
+| 5 | `centre_coordinator` | One per training/exam centre | Only their centre's candidates, attendance, schedule |
+| 6 | `data_entry` | Clerical staff | Create/edit applications, upload documents, mark attendance. **No delete. No export. No publish.** |
+| 7 | `viewer` | Ministry / audit visitors | Read-only aggregates + reports. PII masked. |
+| 8 | `student` | Selected candidates | Own record only |
+
+### 4.2 Permission model
+
+Implemented as a **declarative permission map in code** (fast, testable, no DB round-trips) plus a
+per-user `extra_permissions` JSON column for one-off grants:
+
+```python
+# app/security/permissions.py
+PERMISSIONS = {
+  "super_admin":         {"*"},
+  "admin":               {"app.*", "exam.*", "center.*", "batch.*", "student.*",
+                          "cert.*", "cms.*", "report.*", "notify.*", "settings.write",
+                          "audit.read", "support.*"},
+  "exam_controller":     {"app.read", "app.review", "exam.*", "roll.*", "admitcard.*",
+                          "marks.*", "merit.*", "notify.exam", "report.exam"},
+  "district_coordinator":{"app.read:district", "app.review:district", "student.read:district",
+                          "report.district", "notify.district"},
+  "centre_coordinator":  {"student.read:center", "attendance.write:center",
+                          "schedule.read:center", "materials.read"},
+  "data_entry":          {"app.create", "app.read", "app.update", "doc.upload",
+                          "attendance.write", "import.run"},
+  "viewer":              {"report.read", "stats.read"},
+}
+```
+
+- `district` / `center` suffixes are **row-level scope markers** enforced by a SQLAlchemy query
+  filter in a single `scoped_query()` helper — *never* by trusting a form field.
+- Decorators: `@require_permission("marks.write")`, `@require_role("exam_controller")`.
+- **Every** admin write (and every export) writes an `audit_logs` row.
+
+### 4.3 Governance rules (non-negotiable)
+
+1. **No self-registration code path exists.** A test asserts `/register`, `/signup`,
+   `/sign-up` return 404.
+2. **A candidate user row can only be created by** `roll_number_service.provision_portal_accounts()`
+   which asserts `application.status in ("selected", "waitlisted_promoted")`.
+3. **Marks cannot be published without a second person verifying** (4-eyes: `entered_by` ≠
+   `verified_by`) — toggleable in settings.
+4. **Exports are watermarked** with the requesting user, timestamp and row count, and logged.
+5. **PII fields (NID / birth-reg) are encrypted at rest** and **masked** in the UI as
+   `********1234` unless the viewer holds `pii.unmask`.
+6. **Deletes are soft** (`deleted_at`) for applications, students, marks and certificates.
+   Hard delete requires `super_admin` + typed confirmation.
+
+---
+
+## 5. End-to-End User Journeys
+
+### 5.1 Journey A — Applicant (no account, applies, never returns unless selected)
+
+```
+① Lands on home (Bangla, mobile-first, sticky deadline notice bar)
+② Reads /project-overview → eligibility, dates, partner, FAQ, notice PDF
+③ Clicks "আবেদন করুন" → /apply
+④ Fills form; live AJAX validates phone + email duplicates & age 18–35
+⑤ Uploads passport photo (client resize + preview, ≤100KB)
+⑥ Submits → server re-validates everything → generates application_no (REG2026XXXXXX)
+⑦ Confirmation screen → "আবেদন কপি ডাউনলোড করুন" (PDF or printable)
+   + SMS + Email: "আবেদন সফল হয়েছে। রোল/প্রবেশপত্র SMS-এ জানানো হবে।"
+⑧ Deadline passes → admin reviews → eligibility decided
+⑨ Admit card published → SMS with centre, date, time → candidate downloads from /admit-card
+   (lookup by the same 11-digit mobile, no login)
+⑩ Sits written exam + viva (offline)
+⑪ Result published → checks /results by roll number (no login)
+⑫ IF SELECTED → SMS + Email with roll number AND an email invite link
+   → account is auto-provisioned behind the scenes
+⑬ Sets a password via the invite link, OR simply logs in with Roll + Mobile
+⑭ Uses the student portal for schedule, attendance, materials, certificate
+```
+
+### 5.2 Journey B — New student logging in for the first time
+
+```
+/l  Student portal login page. Two clearly separated tabs:
+    [ পরীক্ষার রোল ও মোবাইল নম্বর ]  |  [ ইমেইল ও পাসওয়ার্ড ]
+
+PATH 1 (Roll + Mobile, mobile-first, no password to forget)
+  input: exam_roll_number + registered 11-digit mobile
+  server: lookup application WHERE roll=? AND phone=? AND portal_access_enabled=TRUE
+          + status IN (selected, enrolled, completed, certified)
+  → success: session created; if no password set yet → prompt (skippable)
+    "পাসওয়ার্ড সেট করুন (নির্বাচনমূলক)" for email login later
+  → failure: ONE generic Bangla error (never reveal which factor was wrong)
+  → 5 failures per 15 min → 15 min lock + audit log
+
+PATH 2 (Email + Password)
+  input: email + password (+ Remember me)
+  → success: session
+  → if the account has never had a password set → friendly redirect to the invite/setup flow
+```
+
+**Account-provisioning decision (documented):** on merit publication, the system creates a
+`users` row with `role='student'`, `must_set_password=TRUE`, and a **random 32-byte
+placeholder hash that no input can ever match** (so email login is impossible until the
+candidate deliberately sets a password). Login via Roll + Mobile works immediately.
+A 72-hour, single-use, hashed **invite token** is emailed for password setup. This is safer
+than emailing a plaintext temporary password.
+
+### 5.3 Journey C — Administrator (daily, weekly, deadline, exam, post-result)
+
+Covered in full in §18 (runbook). Summary:
+
+- **Daily:** review new applications, fix flagged ones, answer support tickets.
+- **Weekly:** export district-wise progress to the project director.
+- **Deadline day:** freeze the form, run eligibility screening, dedupe, publish admit cards.
+- **Exam days:** allocate seats, print attendance sheets, mark attendance, enter marks.
+- **Selection:** generate merit list, publish, provision accounts, blast SMS.
+- **Training:** schedule, attendance, TA day-counts, materials, completion.
+- **Certification:** generate, sign, issue, monitor verification lookups.
+
+### 5.4 Journey D — Verifier (employer / university checking a certificate)
+
+```
+Scans the QR on a certificate → https://<domain>/verify/<code>
+→ Mobile-first page: candidate name (partially masked), roll, batch, centre,
+  training period, certificate no, issue date, status = VALID ✔
+→ Shows "যাচাই করা হয়েছে" count + timestamp; logs the lookup.
+OR types the roll / certificate number on /certificate-verification
+```
+
+---
+
+## 6. Functional Requirements (numbered)
+
+Requirement IDs are referenced later by tests and by the milestone plan.
+
+### 6.1 Public site
+
+| ID | Requirement |
+|---|---|
+| FR-1.1 | Home page with hero, key facts, benefits, eligibility summary, 5-step process, module list, district coverage, live stats teaser, FAQ teaser, CTA |
+| FR-1.2 | Sticky top notice bar with deadline countdown + scrolling important notices (admin-editable) |
+| FR-1.3 | `/project-overview` — full notice, eligibility, package/partner info, downloadable official notice PDF, FAQ accordion |
+| FR-1.4 | `/centers` — training + exam centre directory for Sylhet, grouped by district, with address, map link, capacity, contact |
+| FR-1.5 | `/live-status` — Sylhet-scoped KPI dashboard + target-vs-achieved blocks + last-updated timestamp |
+| FR-1.6 | Notices archive `/notices` with individual pages `/notices/<slug>` |
+| FR-1.7 | `/faq` — searchable, categorised |
+| FR-1.8 | `/contact` — form (Turnstile-protected) → `contact_messages` + notification to admin |
+| FR-1.9 | `/privacy-policy`, `/terms` — CMS-managed Bangla legal pages |
+| FR-1.10 | All public pages: Bangla-first with EN toggle, mobile-first responsive, ≤2s LCP on 3G |
+| FR-1.11 | `sitemap.xml`, `robots.txt`, Open Graph + Twitter card meta, JSON-LD `Course`/`Event` schema |
+| FR-1.12 | 404/500 pages in Bangla with helpful links |
+
+### 6.2 Application
+
+| ID | Requirement |
+|---|---|
+| FR-2.1 | `GET /apply` renders the form for the **currently open batch**; if none open, show a Bangla "আবেদনের সময় শেষ" state with next-batch info |
+| FR-2.2 | Server-side validation mirrors every client rule; **never trust the client** |
+| FR-2.3 | Age 18 → under 36 enforced **server-side from `dob`** at submit time in Asia/Dhaka |
+| FR-2.4 | `phone` unique per batch (11 digits, `01[3-9]\d{8}`); `email` unique per batch, lowercased |
+| FR-2.5 | AJAX `GET /api/check-phone` and `/api/check-email` → `{"exists":bool,"message":"বাংলা"}` (rate-limited) |
+| FR-2.6 | District select restricted to the 4 Sylhet districts; upazila select added (the reference lacks it) |
+| FR-2.7 | Photo upload: ≤100 KB, JPG/JPEG/PNG; server **sniffs magic bytes**, re-encodes via Pillow, strips EXIF, randomises filename, stores outside webroot |
+| FR-2.8 | Optional fields captured for parity with the national privacy policy: father's name, mother's name, guardian, NID/birth-reg (encrypted), blood group, alternate phone, occupation |
+| FR-2.9 | Draft autosave to `localStorage` (no server-side drafts) so a refresh doesn't lose the form |
+| FR-2.10 | On success: `application_no` + printable/downloadable **Application Copy** + SMS + email |
+| FR-2.11 | Duplicate-submission guard: 1 per (phone, batch); max 3 submissions per IP per 24h; honeypot + min-time-on-form + Cloudflare Turnstile |
+| FR-2.12 | If a district's seats are full, the district is disabled in the select with a Bangla note |
+| FR-2.13 | Admin can reopen an application for correction via a one-time signed link (no login needed) |
+
+### 6.3 Admit card, result, certificate (public lookups)
+
+| ID | Requirement |
+|---|---|
+| FR-3.1 | `/admit-card` lookup by 11-digit mobile **or** roll number (the reference only supports mobile) |
+| FR-3.2 | Admit card document: photo, name, roll, reg. no, exam centre + address + map link, date/time, seat no, instructions in Bangla |
+| FR-3.3 | `/results` lookup by roll number → written + viva marks, total, merit position, status |
+| FR-3.4 | `/certificate-verification` lookup by roll / certificate no / verification code |
+| FR-3.5 | `/verify/<code>` QR landing — public, mobile-first, no login |
+| FR-3.6 | Result/certificate lookups are rate-limited (roll enumeration defence) and logged |
+| FR-3.7 | Results only visible after the admin **publishes** them; before that a Bangla "এখনো প্রকাশিত হয়নি" state |
+
+### 6.4 Student portal
+
+| ID | Requirement |
+|---|---|
+| FR-4.1 | Login with **Roll + Mobile** or **Email + Password** on separated, clearly-labelled tabs |
+| FR-4.2 | Dashboards shows: roll, batch, centre, exam status, result, merit position, next class, attendance %, certificate status |
+| FR-4.3 | Profile view; candidate may edit only phone (via OTP), address and photo. Name/dob/district require an admin-approved correction request |
+| FR-4.4 | Password set / change / reset via emailed one-time link or email OTP |
+| FR-4.5 | Download admit card, application copy, result transcript, certificate |
+| FR-4.6 | Class schedule (date, module, topic, time, instructor, room) |
+| FR-4.7 | Attendance history + attendance % + TA-eligible day count |
+| FR-4.8 | Learning materials per module (PDF, link, video URL) |
+| FR-4.9 | Notices feed + read/unread state |
+| FR-4.10 | Support tickets: create, reply, view status, attach files |
+| FR-4.11 | Session security: idle timeout 60 min, absolute 12 h, "log out everywhere", last login shown |
+| FR-4.12 | Students can **never** see another student's data — enforced by an owner filter on every query, with a test that tries to |
+
+### 6.5 Admin console
+
+| ID | Requirement |
+|---|---|
+| FR-5.1 | KPI dashboard: today's applications, total, pending review, exam-ready, selected, enrolled, certified + trend charts |
+| FR-5.2 | Applications list: full-text search, filters (status/district/upazila/gender/education/batch/date/centre), sortable columns, saved views, pagination, bulk select |
+| FR-5.3 | Application detail: all fields, photo zoom, documents, status timeline, internal notes, edit, print |
+| FR-5.4 | Bulk actions: approve, reject (with reason), flag for correction, allocate exam centre, issue admit cards, assign roll numbers, export, SMS |
+| FR-5.5 | Import applications/marks from CSV/Excel with a column-mapping preview + dry-run + error report |
+| FR-5.6 | Export CSV/XLSX/PDF respecting current filters, watermarked & audited |
+| FR-5.7 | Batch CRUD with lifecycle status and all key dates; only one batch may be `application_open` |
+| FR-5.8 | Centre CRUD (training + exam) with capacity, lab PC count, geo coords |
+| FR-5.9 | Exam CRUD (written / viva) with date, duration, total & pass marks |
+| FR-5.10 | Seat allocation: manual per-candidate **and** auto round-robin by district respecting capacity, with an overflow warning |
+| FR-5.11 | Roll number auto-generation with district prefix + gap-free sequence and a uniqueness constraint |
+| FR-5.12 | Admit card bulk generation (PDF or print batch) + bulk SMS |
+| FR-5.13 | Attendance entry: fast keyboard-first grid per exam/class, offline-tolerant |
+| FR-5.14 | Marks entry: single + bulk grid; per-subject JSON; auto-total; validation ranges; 4-eyes verify |
+| FR-5.15 | Merit list builder: auto-rank from total marks with documented tie-breakers, manual re-order, cutoff by seat count, category quotas, preview, publish |
+| FR-5.16 | Student account provisioning on publish; resend invite; force reset; enable/disable portal access; "log out everywhere" |
+| FR-5.17 | Class schedule builder (recurring patterns + single classes) |
+| FR-5.18 | Certificate issuance: single + bulk, template picker, issue date, auto cert. no, QR, revoke with reason |
+| FR-5.19 | Notice/announcement CRUD + SMS/Email blast composer with segment filters (e.g. "all selected in Sunamganj who did not attend viva") |
+| FR-5.20 | Notification template editor (Bangla variables: `{{name}}`, `{{roll}}`, `{{center}}`, `{{date}}`) |
+| FR-5.21 | CMS: pages, FAQ, sliders, gallery, about, footer content, hotlines |
+| FR-5.22 | Live-status stats editor + target-vs-achieved configuration |
+| FR-5.23 | Reports (§19) |
+| FR-5.24 | Staff user management + role assignment + permission overrides |
+| FR-5.25 | Audit log viewer with filters and diff view |
+| FR-5.26 | Settings: site identity, dates, limits, feature toggles, SMS/email credentials (write-only display) |
+| FR-5.27 | Backup list + on-demand backup + restore request |
+| FR-5.28 | Support ticket inbox with assignment and canned replies |
+
+### 6.6 Cross-cutting
+
+| ID | Requirement |
+|---|---|
+| FR-6.1 | Every write action audited (`user`, `action`, `entity`, `before`, `after`, `ip`, `ua`) |
+| FR-6.2 | Every outbound SMS/email logged with provider id, status, cost |
+| FR-6.3 | All timestamps stored UTC, rendered in Asia/Dhaka |
+| FR-6.4 | Every list view paginates; no unbounded query ships |
+| FR-6.5 | Bangla numerals toggle; Bangla date formatting (`২৩ সেপ্টেম্বর ২০২৬`) |
+| FR-6.6 | Full keyboard operability + WCAG 2.1 AA on public + student surfaces |
+| FR-6.7 | Every error message user-facing in Bangla; technical detail only in server logs |
+| FR-6.8 | `/health` endpoint for uptime monitoring |
+| FR-6.9 | Nightly automated backup with 7-day retention + optional off-site copy |
+| FR-6.10 | Data-retention job: anonymise rejected applicants' PII after N months (configurable) |
+
+---
+
+## 7. Design System & Visual Direction
+
+> ✅ **DECIDED (2026-09-23): Direction A + C hybrid — codename 「সুরমা প্রোটোকল」 (Surma Protocol),
+> implemented with Tailwind CSS v4.**
+>
+> Direction B was evaluated and **rejected** — see §7.1. The three directions are retained below
+> as the design rationale/record, not as open options.
+>
+> **Phase-1 gate still applies:** I build HTML + Tailwind prototypes of 6 key screens (M1)
+> **before** writing any backend code, and wait for your approval.
+
+### 7.1 Three directions (A + C chosen, B rejected)
+
+#### Direction A — 「সিলেটের সবুজ」 *Sylhet Green / Tea Estate*
+
+- **Palette:** deep tea-garden green `#06301F` → leaf `#14805A`, young-shoot accent `#8FBF4D`,
+  warm cream paper `#F7F5EF`, ink `#111C17`.
+- **Type:** *Noto Serif Bengali* headings (authoritative, document-like) + *Noto Sans Bengali* body
+  + *IBM Plex Sans* tabular numerals.
+- **Motif:** subtle topographic contour lines of the Surma valley as a barely-there background
+  band; thin 1px hairline rules echoing Bangladeshi government forms.
+- **Reads as:** calm, regional, stately, trustworthy.
+- **Risk:** can tip into "eco brand" if the green is too saturated.
+
+#### Direction B — 「ডিজিটাল সিলেট」 *Digital Sylhet / Signal*
+
+- **Palette:** near-black `#0A0F14`, electric cyan `#00E5C7`, amber CTA `#FFB020`, slate greys. Dark-first.
+- **Type:** *Space Grotesk* / *Outfit* display + *Noto Sans Bengali* body; monospace stats.
+- **Motif:** dot-matrix data grid, animated counters, terminal-flavoured live-status panel.
+- **Reads as:** modern AI lab — strong with the 18–35 target audience.
+- **Risk:** **fails the trust test for a government programme.** Parents, union offices and
+  ministry reviewers expect an official register, not a startup landing page. Also ages fast.
+
+#### Direction C — 「সরকারি প্রোটোকল」 *Official Protocol / Document-led*
+
+- **Palette:** Bangladesh flag green `#006A4E` primary, flag red `#F42A41` as a **single
+  restrained accent** (deadlines & alerts only, <5% of surface), off-white `#FAFAF8`, near-black `#0B0B0B`.
+- **Type:** tight *Noto Serif Bengali* display headings + *Noto Sans Bengali* 17px/1.75 body +
+  tabular numerals everywhere numbers appear.
+- **Motif:** printed-document grid, numbered section markers, a **roundel/seal**, hairline borders,
+  generous margins, real ruled tables.
+- **Reads as:** institutional authority — a government circular, executed properly online.
+- **Risk:** can feel dry; needs the regional warmth of Direction A to not read as a PDF.
+
+### 7.2 ✅ CHOSEN — **A + C hybrid: 「সুরমা প্রোটোকল」 (Surma Protocol)**
+
+**Status: locked and approved by the project owner on 2026-09-23.**
+
+Direction C's **document ethos and institutional trust** (green ground, flag-red used sparingly,
+serif Bengali headings, ruled tables) fused with Direction A's **regional warmth**
+(cream paper, deep tea-green depth, a faint Surma contour band).
+
+Why: this is a **government programme for a specific division**. It must read as official to a
+deputy commissioner *and* as credible to an 18-year-old in Sunamganj on a 4-inch phone.
+Direction B is seductive but wrong for this brief. Direction A alone is pleasant but unserious;
+Direction C alone is correct but cold. The hybrid is the honest answer.
+
+**How the two are blended — concrete allocation:**
+
+| Taken from | Element |
+|---|---|
+| **C (Official Protocol)** | Green as the institutional ground · flag-red accent used under 5% of surface · Noto Serif Bengali display headings · the roundel/seal · ruler-straight numbering · ruled data tables · generous margins |
+| **A (Sylhet Green)** | Warm cream paper instead of white · deep tea-green depth (`green-900`) for the footer and dark bands · the Surma contour band · the calm, unhurried vertical rhythm |
+
+**Explicitly not carried over from either:** C's pure `#FAFAF8` white-out (A's cream wins) and
+C's near-black `#0B0B0B` (A's warmer `#0B1410` wins); A's `#8FBF4D` lime accent (too "eco brand" —
+dropped entirely, flag-red takes that role).
+
+### 7.3 Design tokens — Tailwind v4 `@theme` (CSS-first config)
+
+Tokens live in **one file**, `assets/tailwind/source.css`, as a Tailwind v4 `@theme` block.
+No `tailwind.config.js` (v4 is CSS-first) and **no JavaScript theme indirection** — the token
+names below become real utility classes (`bg-paper-2`, `text-ink-700`, `border-line-strong`).
+
+```css
+/* assets/tailwind/source.css */
+@import "tailwindcss";
+
+/* ── Jinja template + JS scanning (v4 needs explicit @source) ───────────── */
+@source "../../app/templates";
+@source "../../app/static/js";
+
+@theme {
+  /* ── THE ANTI-SLOP LEVER: wipe Tailwind's default palette entirely.
+     After this line `bg-indigo-500`, `text-purple-600`, `bg-red-500`
+     DO NOT EXIST. Only the Surma palette below compiles. ─────────────── */
+  --color-*: initial;
+
+  /* ── Surfaces ─────────────────────────────── */
+  --color-paper:      #FAF9F4;   /* page background — warm off-white, not #fff */
+  --color-paper-2:    #F1EFE6;   /* alt sections, table header */
+  --color-paper-3:    #E7E4D8;   /* inset / well */
+  --color-surface:    #FFFFFF;   /* cards, only where lift is needed */
+
+  /* ── Ink ──────────────────────────────────── */
+  --color-ink-900:    #0B1410;   /* headings */
+  --color-ink-700:    #24382F;   /* body */
+  --color-ink-500:    #4F6A5E;   /* secondary / meta */
+  --color-ink-300:    #8C9E96;   /* disabled, placeholders */
+
+  /* ── Green (primary) ──────────────────────── */
+  --color-green-900:  #06301F;   /* footer, dark bands */
+  --color-green-800:  #083A26;
+  --color-green-700:  #0B4A32;   /* primary brand */
+  --color-green-600:  #0E6245;   /* hover */
+  --color-green-500:  #14805A;   /* links, primary buttons */
+  --color-green-100:  #E3F0E9;   /* tints, badges, table stripe */
+  --color-green-50:   #F2F8F4;
+
+  /* ── Accents (used sparingly — this is the discipline) ── */
+  --color-flag-red:     #D8342F;  /* deadline chips, destructive, "closed" */
+  --color-flag-red-100: #FBE9E8;
+  --color-gold:         #B98B2E;  /* merit honours, certificate only */
+  --color-gold-100:     #F7F0DF;
+  --color-info:         #2A6F97;
+  --color-warn:         #B26B00;
+  --color-ok:           #0E6245;
+
+  /* ── Lines ────────────────────────────────── */
+  --color-line:        rgba(11,20,16,.10);
+  --color-line-strong: rgba(11,20,16,.22);
+  --color-line-green:  rgba(11,74,50,.28);
+
+  /* ── Radius — override the defaults so `rounded-3xl`/`rounded-full`
+     on a card is simply not expressible. This is a form, not a toy. ─── */
+  --radius-*: initial;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* ── Elevation — three steps only, all very quiet ───────────── */
+  --shadow-*: initial;
+  --shadow-1: 0 1px 2px rgba(11,20,16,.05), 0 1px 1px rgba(11,20,16,.04);
+  --shadow-2: 0 6px 20px -14px rgba(11,20,16,.22);
+  --shadow-3: 0 20px 44px -24px rgba(11,20,16,.28);
+
+  /* ── Space: keep Tailwind's 4px base rhythm but cap the loud end ── */
+  --spacing: 0.25rem;
+
+  /* ── Fonts (self-hosted, no CDN) ─────────────────────────── */
+  --font-display: "Noto Serif Bengali", "Nikosh", Georgia, serif;
+  --font-sans:    "Noto Sans Bengali", "Kalpurush", system-ui, sans-serif;
+  --font-num:     "IBM Plex Sans", "Noto Sans Bengali", ui-monospace, monospace;
+
+  /* ── Layout ──────────────────────────────── */
+  --container-prose: 68ch;
+  --container-site:  1200px;
+  --container-wide:  1360px;
+  --spacing-header:  68px;
+  --spacing-noticebar: 40px;
+
+  /* ── Breakpoints: add the small-phone guard the brief needs ── */
+  --breakpoint-xs: 22.5rem;   /* 360px — mobile-first baseline */
+}
+
+/* ── Type scale: Bangla needs air, so line-heights are elevated vs Tailwind
+   defaults and the floor is 15px (never 12px). ─────────────────────────── */
+@theme {
+  --text-xs:   0.8125rem;  /* 13px */
+  --text-sm:   0.9375rem;  /* 15px */
+  --text-base: 1.0625rem;  /* 17px */
+  --text-lg:   1.25rem;    /* 20px */
+  --text-xl:   1.5rem;     /* 24px */
+  --text-2xl:  1.875rem;   /* 30px */
+  --text-3xl:  2.375rem;   /* 38px */
+  --text-4xl:  3rem;       /* 48px */
+  --text-5xl:  3.75rem;    /* 60px */
+  --text-base--line-height: 1.75;
+  --text-sm--line-height:   1.7;
+  --text-xs--line-height:   1.5;
+  --text-lg--line-height:   1.5;
+  --text-2xl--line-height:  1.25;
+  --text-3xl--line-height:  1.25;
+  --text-4xl--line-height:  1.18;
+  --text-5xl--line-height:  1.15;
+}
+```
+
+**Why Tailwind v4 with a wiped default palette is the right call here** — it is not just
+convenience. `--color-*: initial` makes the generic-AI blue/violet/indigo gradient family
+**structurally impossible to write**. The anti-slop rules in §7.6 stop being a code-review
+convention and become a build-time guarantee. Same trick for radius and shadow: a 24px-radius
+card with a giant shadow cannot be composed from this theme.
+
+### 7.3.1 Utility mapping cheat-sheet
+
+| Token | Class | Use |
+|---|---|---|
+| `--color-paper` | `bg-paper` | Page background |
+| `--color-paper-2` | `bg-paper-2`, `odd:bg-paper-2` | Alt bands, table zebra |
+| `--color-ink-900` | `text-ink-900` | Headings |
+| `--color-ink-700` | `text-ink-700` | Body |
+| `--color-green-700` | `bg-green-700`, `text-green-700` | Primary brand |
+| `--color-green-500` | `ring-green-500` | Focus ring |
+| `--color-flag-red` | `bg-flag-red`, `text-flag-red` | Deadline chip, destructive only |
+| `--radius-md` | `rounded-md` | The default card/input radius |
+| `--shadow-1` | `shadow-1` | The only card shadow in the app |
+| `--font-display` | `font-display` | Hero + section headings |
+| `--font-num` | `font-num tabular-nums` | Rolls, marks, stats, tables |
+| `--container-site` | `max-w-site` | Page container |
+| `--container-prose` | `max-w-prose` | Bangla reading measure |
+
+### 7.4 Typography
+
+| Role | Family | Size / weight / tracking | Line-height |
+|---|---|---|---|
+| Display XL (hero) | Noto Serif Bengali | 44–60px / 700 / -0.015em | 1.18 |
+| Display L (section) | Noto Serif Bengali | 30–38px / 700 / -0.01em | 1.25 |
+| Heading M | Noto Sans Bengali | 20–24px / 600 | 1.35 |
+| Heading S | Noto Sans Bengali | 17px / 600 | 1.4 |
+| **Body** | Noto Sans Bengali | **17px / 400** | **1.75** |
+| Body S | Noto Sans Bengali | 15px / 400 | 1.7 |
+| Caption / meta | Noto Sans Bengali | 13px / 400 / +0.01em | 1.5 |
+| Numerals, stats, tables, rolls | IBM Plex Sans | tabular-nums, 1 tabular unit | — |
+| Small-caps label | Noto Sans Bengali | 11–12px / 600 / +0.08em, uppercase where Latin | 1.4 |
+
+Rules: **Bangla needs air** — never below 15px, never below 1.6 line-height. Max measure 68ch.
+Latin numerals stay Latin in data (rolls, marks, IDs) for scanability; Bangla numerals for prose.
+
+**Tailwind implementation of the scale:** the `--text-*` overrides in §7.3 mean `text-base`
+**is** 17px/1.75 and `text-sm` **is** 15px/1.7 — so the safe Bangla defaults are the *defaults*,
+and a developer has to actively reach for something smaller to get it wrong. Only these
+families are used for type: `font-display`, `font-sans`, `font-num`. No others exist.
+
+**Component classes** (via Tailwind v4 `@utility`, defined once in `source.css`) carry the
+repeated typographic intent so templates stay readable:
+
+```css
+@utility heading-display { font-family: var(--font-display); font-weight: 700;
+  letter-spacing: -0.015em; line-height: 1.18; text-wrap: balance; }
+@utility heading-section { font-family: var(--font-display); font-weight: 700;
+  letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; }
+@utility label-caps     { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; }
+@utility num            { font-family: var(--font-num); font-variant-numeric: tabular-nums;
+  letter-spacing: 0; }
+@utility bn-body        { letter-spacing: normal; line-height: 1.75;
+  overflow-wrap: anywhere; text-decoration-thickness: from-font; }
+```
+
+### 7.5 Signature elements (the deliberate, non-generic moves)
+
+1. **The document rule** — a 1px hairline with a 6×6px square tick at the left, used as section
+   dividers, list markers and table edges. Echoes government form typography.
+2. **The roundel** — a circular seal (`DYD · AI · সিলেট · ২০২৬`) used in the header mark, on
+   documents, in the footer, and as the loading state. One recognisable institutional symbol.
+3. **Surma contour band** — a low-contrast SVG contour pattern (real terrain-inspired, not a
+   generic "wave") on the hero and footer only.
+4. **Numbered step spine** — the 5 admission steps rendered as a vertical ruled timeline with
+   **large Bangla numerals** and hairline connectors, not five pastel rounded cards.
+5. **Ruled data tables** — merit lists, live stats and district coverage use real tables with
+   aligned tabular numerals and zebra striping, not floating stat cards.
+6. **Deadline chip** — a `--flag-red` chip with live countdown, pinned in the notice bar. The red
+   is the *only* loud colour on the page, which is what makes it work.
+7. **Roll-number slab** — the roll number is always rendered in a bordered monospace slab,
+   because it is the candidate's identity for the whole programme.
+
+### 7.6 Explicit anti-slop rules for this project
+
+**Banned:** purple/violet/indigo gradients · emoji as iconography · everything centred ·
+three identical rounded pastel cards in a row · glassmorphism · drop-shadow on every element ·
+generic "Lorem" hero with a floating fake dashboard · stock "diverse team at laptops" photography ·
+100vh hero with a scroll-mouse icon · autoplaying carousels · `border-radius: 24px` everywhere ·
+"AI-powered" as a headline · the words *seamless*, *revolutionise*, *unlock*, *elevate*.
+
+**Required:** real content (actual dates, actual upazila names, actual partner names) ·
+one loud colour used once · visible rules and alignment instead of shadows · left-aligned prose ·
+tabular numerals · self-hosted fonts · mobile-first at 360px before desktop at 1440px ·
+real DYD/training photographs or an editorial illustration — **no AI-generated hero art**.
+
+#### 7.6.1 Enforced by the Tailwind theme, not by discipline
+
+| Banned pattern | How Tailwind v4 makes it impossible |
+|---|---|
+| Purple/violet/indigo/blue gradients | `--color-*: initial` wipes the palette; those classes do not compile |
+| `border-radius: 24px` everywhere | `--radius-*: initial` + only `xs/sm/md/lg/pill` exist — no `rounded-3xl` |
+| Drop-shadow on every element | `--shadow-*: initial` + only `shadow-1/2/3`, all very quiet |
+| Glassmorphism | No `backdrop-blur` token is exposed; blur utilities are excluded from the build |
+| Emoji iconography | Icon set is a single inlined SVG sprite; no emoji font stack is registered |
+| Generic pastel card triplets | `paper-2` / `green-100` are the only tints available — no pink/yellow/blue siblings |
+| Oversized gaps and 100vh hero | `--spacing-header` / `--spacing-noticebar` tokens exist so the shell height is tokenised |
+
+**Build-time guard (CI):** a script `tools/check-css.py` fails the build if the compiled
+`app.css` contains any of: `linear-gradient` with more than one hue, a `border-radius` above
+`12px` outside `--radius-pill`, a `box-shadow` with a blur over `32px`, or the string
+`backdrop-filter`. The rules become testable facts. `tools/check-css.py` also asserts the
+committed `app.css` is **byte-identical to a fresh build** (drift detector, see §7.9).
+
+### 7.7 Component inventory (built once, reused)
+
+`NoticeBar` `SiteHeader` `SiteFooter` `Breadcrumb` `Hero` `FactStrip` `StepSpine`
+`EligibilityList` `DistrictCard` `CenterCard` `ModuleGrid` `StatsTable` `TargetBar`
+`FaqAccordion` `NoticeCard` `DeadlineChip` `CTA` `FormField` `FormSection` `FileUpload+Preview`
+`ValidationSummary` `ApplicationCopyCard` `LookupPanel` `RollSlab` `StatusTimeline`
+`AdmitCardDoc` `ResultTable` `MeritTable` `CertificateDoc` `VerificationResult` `EmptyState`
+`Pagination` `Toast` `Modal` `Drawer` `DataTable` `FilterBar` `KpiCard` `Sparkline`
+
+**Admin dashboard** is a deliberately different skin from the public site — denser, 13px base,
+`DataTable`-first, optional dark mode — borrowing Direction B's data-density without its aesthetics.
+
+### 7.8 Accessibility targets (WCAG 2.1 AA)
+
+Contrast ≥ 4.5:1 body / 3:1 large (`#0B1410` on `#FAF9F4` = 15.8:1 ✔).
+Visible 2px `--green-500` focus ring with 2px offset, never removed. Full keyboard paths
+(including the marks-entry grid and file upload). Skip-to-content. `lang="bn"` on Bangla runs,
+`lang="en"` on English strings inside them. Form errors linked via `aria-describedby`,
+errors summarised at the top and focus moved there. Bangla screen-reader labels on every icon-only
+button. No colour-only meaning. 44×44px minimum touch targets. `prefers-reduced-motion` honoured.
+
+### 7.9 Tailwind architecture & build pipeline
+
+> **Design goal:** Tailwind's convenience **without** adding Node.js as a runtime or deploy
+dependency on cPanel shared hosting. The compiled CSS is a **build artifact that is committed**.
+
+#### 7.9.1 Files
+
+```
+assets/tailwind/
+  source.css            ← the ONLY hand-written CSS (tokens + @utility + @layer)
+  components.css        ← optional; only if a @utility needs many declarations
+package.json            ← devDependencies: tailwindcss@^4, @tailwindcss/cli@^4   (dev only)
+app/static/css/
+  app.css               ← COMPILED, MINIFIED, COMMITTED  ← what Flask actually serves
+  app.css.map           ← debug map (git-ignored, not deployed)
+```
+
+#### 7.9.2 Why the standalone CLI + committed output
+
+| Option | Verdict |
+|---|---|
+| `npx @tailwindcss/cli` on the server during deploy | ❌ Needs Node + npm install on cPanel; slow, fails on locked-down hosts |
+| PostCSS pipeline in the Flask app | ❌ Adds a build step to every request or a fragile watcher |
+| **Standalone CLI locally/CI → commit `app.css`** | ✅ **Chosen.** Server needs **zero** Node. Deploy is a file copy. Rollback restores CSS with the code. |
+| Tailwind Play CDN | ❌ Never — it ships the whole engine (~120 KB JS) to the user and inlines styles |
+
+The standalone binary means a developer **without Node installed** can still build:
+`tools/tailwindcss.exe -i assets/tailwind/source.css -o app/static/css/app.css --minify`.
+
+#### 7.9.3 The three build commands (in `package.json`)
+
+```json
+{
+  "name": "dyd-ai-sylhet-css", "private": true,
+  "scripts": {
+    "css:build":  "tailwindcss -i assets/tailwind/source.css -o app/static/css/app.css --minify",
+    "css:watch":  "tailwindcss -i assets/tailwind/source.css -o app/static/css/app.css --watch",
+    "css:check":  "python tools/check-css.py"
+  },
+  "devDependencies": { "tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0" }
+}
+```
+
+#### 7.9.4 Rules of engagement
+
+1. **`assets/tailwind/source.css` is the single source of truth for anything reused twice.**
+   A one-off layout tweak is inline utility classes; anything repeated becomes a `@utility`
+   or a Jinja macro.
+2. **No `@apply` in templates, and no `<style>` blocks in Jinja.** All CSS lives in `source.css`.
+3. **`app.css` is committed and CI-verified.** `ci.yml` runs `npm run css:build` then
+   `git diff --exit-code app/static/css/app.css`. If a developer edits templates and forgets to
+   rebuild, **CI fails and names the file**. This is the drift detector that keeps this approach
+   from rotting.
+4. **Cache-busting:** the asset URL helper appends `?v=<sha256(app.css)[:8]>` so a CSS change
+   can never be served stale from a 1-year `immutable` cache.
+5. **Pay-for-what-you-use:** v4 scans the templates, so unused utilities never ship. Budget
+   check in CI: fail if `app.css` exceeds **45 KB gzipped**.
+6. **Print styles** (`@media print`) and **document styles** live in the same `source.css`
+   under `@layer print` — so admit cards, certificates and transcripts stay inside the design
+   system instead of drifting into orphan CSS files.
+7. **Admin skin** is a second `@theme` scope (`.admin-scope`) overriding `--text-base` to 13px
+   and tightening spacing — one stylesheet, two densities, no duplicated component CSS.
+
+#### 7.9.5 Jinja component macros (not a Python UI library)
+
+Reusable markup lives in `app/templates/components/*.html` as Jinja macros, so a `<Button>` is a
+macro call with variant/size args, and the Tailwind classes for each variant exist in exactly one
+place:
+
+```jinja
+{% macro button(label, variant='primary', size='md', href=None, icon=None) %}
+  {% set base = 'inline-flex items-center justify-center gap-2 rounded-md
+                transition-colors focus-visible:outline-none focus-visible:ring-2
+                focus-visible:ring-green-500 focus-visible:ring-offset-2
+                focus-visible:ring-offset-paper' %}
+  {% set variants = {
+      'primary': 'bg-green-700 text-paper hover:bg-green-600',
+      'ghost':   'border border-line-strong text-ink-900 hover:bg-paper-2',
+      'danger':  'bg-flag-red text-white hover:brightness-95' } %}
+  {% set sizes = { 'sm': 'h-9 px-3 text-sm',
+                   'md': 'h-11 px-5 text-base',
+                   'lg': 'h-12 px-6 text-base' } %}
+  <a href="{{ href }}" class="{{ base }} {{ variants[variant] }} {{ sizes[size] }}">
+    {% if icon %}{{ icon_svg(icon) }}{% endif %}{{ label }}
+  </a>
+{% endmacro %}
+```
+
+Every component in §7.7 gets this treatment. **Consequence:** a variant that violates the design
+system (e.g. a purple button) cannot be added without inventing a colour that does not exist.
+
+#### 7.9.6 Accessibility mechanics in Tailwind
+
+- A single global focus style in `source.css`:
+  `@utility focus-ring { @apply focus-visible:outline-none focus-visible:ring-2
+  focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-paper; }`
+  — 2px ring, 2px offset, `--color-green-500`. Applied to every interactive component macro.
+- Touch targets: the `sizes` map in §7.9.5 floors at `h-9` (36px) for dense admin tables and
+  `h-11` (44px) everywhere a student could tap. Public + portal never go below 44px.
+- `prefers-reduced-motion` handled once in `source.css`:
+  `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms
+  !important; transition-duration: 0.01ms !important; } }`
+- Bangla guards are global rules, not per-component discipline:
+  `[lang="bn"] { letter-spacing: normal; text-transform: none; }` and
+  `[lang="bn"] a:not(.btn) { text-decoration: none; border-bottom: 1px solid currentColor; }`
+  — so links in Bangla prose never strike through matras.
+
+---
+## 8. Information Architecture & Full Route Map
+
+### 8.1 Sitemap
+
+```
+/                                   হোম
+├── /project-overview               প্রকল্প পরিচিতি (notice, eligibility, FAQ, PDF)
+├── /centers                        কেন্দ্র তালিকা (4 districts, 41 upazilas)
+├── /live-status                    প্রকল্পের অগ্রগতি (Sylhet-scoped KPIs)
+├── /notices                        নোটিশ / ঘোষণা
+│   └── /notices/<slug>
+├── /faq                            সচরাচর জিজ্ঞাসিত প্রশ্ন
+├── /contact                        যোগাযোগ
+├── /privacy-policy  /terms         প্রাইভেসি পলিসি / ব্যবহারের শর্তাবলী
+│
+├── PUBLIC LOOKUPS (no account)
+│   ├── /apply                      আবেদন ফরম
+│   │   └── /apply/success/<app_no>
+│   ├── /admit-card                 প্রবেশপত্র (by mobile OR roll)
+│   ├── /results                    পরীক্ষার ফলাফল (by roll)
+│   ├── /certificate-verification   সনদপত্র যাচাই (by roll / cert no / code)
+│   └── /verify/<code>              QR landing (public, mobile-first)
+│
+├── AUTH
+│   ├── /login                      → 302 to /portal/login (kept for the national site's URI habit)
+│   ├── /portal/login               দুটি স্পষ্ট ট্যাব: Roll+Mobile | Email+Password
+│   ├── /portal/set-password/<tok>  invite link from the selection email
+│   ├── /portal/forgot-password     → email OTP
+│   ├── /portal/reset-password
+│   ├── /portal/logout              POST only
+│   └── /<ADMIN_PREFIX>/login       SEPARATE staff login surface
+│
+├── STUDENT PORTAL  /portal/*
+│   ├── /portal/dashboard
+│   ├── /portal/profile              (+ photo / phone / address edit)
+│   ├── /portal/application          own application + copy download
+│   ├── /portal/admit-card
+│   ├── /portal/result
+│   ├── /portal/merit-list
+│   ├── /portal/enrollment           batch, roll, centre
+│   ├── /portal/schedule
+│   ├── /portal/attendance
+│   ├── /portal/materials
+│   ├── /portal/certificate
+│   ├── /portal/notices
+│   ├── /portal/notifications        SMS/email history sent to them
+│   ├── /portal/support              tickets
+│   ├── /portal/security             password, sessions, log out everywhere
+│   └── /portal/change-password
+│
+├── ADMIN  /<ADMIN_PREFIX>/*   (default "ops-sylhet"; env-overridable)
+│   ├── /dashboard
+│   ├── /applications  /applications/<id>  /applications/new  /applications/import  /applications/export
+│   ├── /applicants
+│   ├── /batches  /batches/<id>
+│   ├── /centers  (training)  /exam-centers
+│   ├── /allocations                 seat/centre allocation
+│   ├── /rolls                       roll number assignment
+│   ├── /exams  /exams/<id>/{attendance,marks,publish}
+│   ├── /admit-cards                 generate, batch print, bulk SMS
+│   ├── /merit-lists  /merit-lists/<id>
+│   ├── /enrollments
+│   ├── /students  /students/<id>
+│   ├── /schedules
+│   ├── /attendance
+│   ├── /materials
+│   ├── /certificates  /certificates/templates  /certificates/issue  /certificates/revoke
+│   ├── /notices  /announcements     + SMS/Email blast composer
+│   ├── /templates                   notification templates
+│   ├── /cms/{pages,faq,sliders,gallery}
+│   ├── /stats                       live-status editor
+│   ├── /reports/*                   (see §19)
+│   ├── /users  /roles
+│   ├── /audit
+│   ├── /support
+│   ├── /settings  /backups
+│   └── /logout  (POST)
+│
+├── API (JSON, rate-limited)
+│   ├── GET /api/divisions
+│   ├── GET /api/districts?division_id=
+│   ├── GET /api/upazilas?district_id=
+│   ├── GET /api/centers?district_id=&type=training|exam
+│   ├── GET /api/check-phone?phone=
+│   ├── GET /api/check-email?email=
+│   ├── GET /api/notices/latest
+│   ├── GET /api/stats/live
+│   └── GET /api/health
+│
+└── SYSTEM
+    ├── /robots.txt  /sitemap.xml  /manifest.json  /sw.js
+    ├── /media/<path:filename>       signed-URL media (uploads, never executed)
+    └── /health                      uptime probe (200 + JSON)
+```
+
+### 8.2 Complete route table
+
+| # | Method | Path | Auth | Permission | Notes |
+|---|---|---|---|---|---|
+| 1 | GET | `/` | – | – | Home; cached 60s |
+| 2 | GET | `/project-overview` | – | – | CMS-driven |
+| 3 | GET | `/centers` | – | – | Optional `?district=` |
+| 4 | GET | `/live-status` | – | – | Cached 300s |
+| 5 | GET | `/notices` `/notices/<slug>` | – | – | Paginated |
+| 6 | GET | `/faq` | – | – | Filters by category |
+| 7 | GET/POST | `/contact` | – | – | Turnstile, rate-limited |
+| 8 | GET | `/privacy-policy` `/terms` | – | – | CMS |
+| 9 | GET | `/apply` | – | – | Open batch only |
+| 10 | POST | `/apply` | – | – | Full server validation |
+| 11 | GET | `/apply/success/<app_no>` | – | – | Signed-cookie guard so app_no isn't enumerable |
+| 12 | GET | `/apply/copy/<token>` | – | – | Signed URL, 30-day expiry → print/PDF |
+| 13 | GET/POST | `/apply/correct/<token>` | – | – | Admin-requested correction link |
+| 14 | GET/POST | `/admit-card` | – | – | Lookup panel |
+| 15 | GET | `/admit-card/<token>` | – | – | Signed download |
+| 16 | GET/POST | `/results` | – | – | Lookup by roll |
+| 17 | GET/POST | `/certificate-verification` | – | – | Lookup |
+| 18 | GET | `/verify/<code>` | – | – | QR landing |
+| 19 | GET | `/login` | – | – | 302 → `/portal/login` |
+| 20 | GET | `/portal/login` | – | – | Two tabs |
+| 21 | POST | `/portal/login` | – | – | `login_mode` = `roll` \| `email` |
+| 22 | POST | `/portal/logout` | ✔ | – | POST only |
+| 23 | GET/POST | `/portal/set-password/<token>` | – | – | Invite link |
+| 24 | GET/POST | `/portal/forgot-password` | – | – | Email OTP |
+| 25 | GET/POST | `/portal/reset-password` | – | – | OTP + new password |
+| 26 | GET | `/portal/dashboard` | ✔ | `portal.access` | |
+| 27 | GET/POST | `/portal/profile` | ✔ | `portal.access` | Editable whitelist |
+| 28 | GET/POST | `/portal/change-password` | ✔ | `portal.access` | |
+| 29 | GET | `/portal/application` | ✔ | `portal.access` | Owner only |
+| 30 | GET | `/portal/admit-card` | ✔ | `portal.access` | |
+| 31 | GET | `/portal/result` | ✔ | `portal.access` | |
+| 32 | GET | `/portal/merit-list` | ✔ | `portal.access` | |
+| 33 | GET | `/portal/enrollment` | ✔ | `portal.access` | |
+| 34 | GET | `/portal/schedule` | ✔ | `portal.access` | |
+| 35 | GET | `/portal/attendance` | ✔ | `portal.access` | |
+| 36 | GET | `/portal/materials` | ✔ | `portal.access` | |
+| 37 | GET | `/portal/certificate` | ✔ | `portal.access` | |
+| 38 | GET | `/portal/notices` | ✔ | `portal.access` | |
+| 39 | GET | `/portal/notifications` | ✔ | `portal.access` | |
+| 40 | GET/POST | `/portal/support` `/portal/support/<id>` | ✔ | `portal.access` | |
+| 41 | GET/POST | `/portal/security` | ✔ | `portal.access` | Sessions, logout-all |
+| 42 | GET/POST | `/<PREFIX>/login` | – | – | Staff login, own rate limit |
+| 43 | GET | `/<PREFIX>/dashboard` | ✔ | `admin.access` | |
+| 44 | GET | `/<PREFIX>/applications` | ✔ | `app.read` | Scoped |
+| 45 | GET | `/<PREFIX>/applications/<id>` | ✔ | `app.read` | |
+| 46 | GET/POST | `/<PREFIX>/applications/new` | ✔ | `app.create` | |
+| 47 | POST | `/<PREFIX>/applications/<id>/edit` | ✔ | `app.update` | |
+| 48 | POST | `/<PREFIX>/applications/<id>/review` | ✔ | `app.review` | approve/reject/flag |
+| 49 | POST | `/<PREFIX>/applications/bulk` | ✔ | `app.review` | bulk action |
+| 50 | POST | `/<PREFIX>/applications/<id>/note` | ✔ | `app.read` | internal note |
+| 51 | GET | `/<PREFIX>/applications/import` | ✔ | `import.run` | mapping UI |
+| 52 | POST | `/<PREFIX>/applications/import` | ✔ | `import.run` | dry-run then commit |
+| 53 | GET | `/<PREFIX>/applications/export` | ✔ | `export.run` | watermarked |
+| 54 | GET | `/<PREFIX>/applicants` `/<id>` | ✔ | `app.read` | |
+| 55 | GET/POST | `/<PREFIX>/batches` `/<id>` | ✔ | `batch.write` | |
+| 56 | POST | `/<PREFIX>/batches/<id>/status` | ✔ | `batch.publish` | lifecycle |
+| 57 | GET/POST | `/<PREFIX>/centers` | ✔ | `center.write` | |
+| 58 | GET/POST | `/<PREFIX>/exam-centers` | ✔ | `center.write` | |
+| 59 | GET/POST | `/<PREFIX>/allocations` | ✔ | `exam.allocate` | manual + auto |
+| 60 | POST | `/<PREFIX>/rolls/generate` | ✔ | `roll.write` | batch-wide |
+| 61 | GET/POST | `/<PREFIX>/exams` `/<id>` | ✔ | `exam.write` | |
+| 62 | GET/POST | `/<PREFIX>/exams/<id>/attendance` | ✔ | `attendance.write` | |
+| 63 | GET/POST | `/<PREFIX>/exams/<id>/marks` | ✔ | `marks.write` | |
+| 64 | POST | `/<PREFIX>/exams/<id>/marks/verify` | ✔ | `marks.verify` | 4-eyes |
+| 65 | POST | `/<PREFIX>/exams/<id>/publish` | ✔ | `marks.publish` | |
+| 66 | GET/POST | `/<PREFIX>/admit-cards` | ✔ | `admitcard.write` | |
+| 67 | POST | `/<PREFIX>/admit-cards/sms` | ✔ | `notify.exam` | bulk |
+| 68 | GET/POST | `/<PREFIX>/merit-lists` `/<id>` | ✔ | `merit.write` | |
+| 69 | POST | `/<PREFIX>/merit-lists/<id>/publish` | ✔ | `merit.publish` | provisions accounts |
+| 70 | GET | `/<PREFIX>/enrollments` | ✔ | `student.read` | |
+| 71 | GET | `/<PREFIX>/students` `/<id>` | ✔ | `student.read` | |
+| 72 | POST | `/<PREFIX>/students/<id>/portal` | ✔ | `student.manage` | enable/disable/resend |
+| 73 | GET/POST | `/<PREFIX>/schedules` | ✔ | `schedule.write` | |
+| 74 | GET/POST | `/<PREFIX>/attendance` | ✔ | `attendance.write` | |
+| 75 | GET/POST | `/<PREFIX>/materials` | ✔ | `materials.write` | |
+| 76 | GET/POST | `/<PREFIX>/certificates` `/issue` | ✔ | `cert.write` | |
+| 77 | POST | `/<PREFIX>/certificates/<id>/revoke` | ✔ | `cert.revoke` | reason required |
+| 78 | GET/POST | `/<PREFIX>/certificates/templates` | ✔ | `cert.template` | |
+| 79 | GET/POST | `/<PREFIX>/notices` | ✔ | `cms.notice` | |
+| 80 | GET/POST | `/<PREFIX>/announcements` | ✔ | `notify.send` | SMS/email blast |
+| 81 | GET/POST | `/<PREFIX>/templates` | ✔ | `notify.template` | |
+| 82 | GET/POST | `/<PREFIX>/cms/<type>` | ✔ | `cms.write` | pages/faq/sliders/gallery |
+| 83 | GET/POST | `/<PREFIX>/stats` | ✔ | `stats.write` | live-status editor |
+| 84 | GET | `/<PREFIX>/reports/<name>` | ✔ | `report.read` | §19 |
+| 85 | GET/POST | `/<PREFIX>/users` | ✔ | `user.manage` | super_admin for super_admin |
+| 86 | GET | `/<PREFIX>/audit` | ✔ | `audit.read` | |
+| 87 | GET/POST | `/<PREFIX>/support` | ✔ | `support.manage` | |
+| 88 | GET/POST | `/<PREFIX>/settings` | ✔ | `settings.write` | secrets write-only |
+| 89 | GET/POST | `/<PREFIX>/backups` | ✔ | `system.backup` | |
+| 90 | POST | `/<PREFIX>/logout` | ✔ | – | POST only |
+| 91 | GET | `/api/*` | – | – | `@rate_limit` per route |
+| 92 | GET | `/media/<path>` | – | – | signed URL check |
+| 93 | GET | `/health` | – | – | JSON, no DB write |
+
+**Total: ~93 routes across 8 blueprints.**
+
+### 8.3 URL naming and Bangla labels policy
+
+URLs stay **Latin, lowercase, hyphenated, stable forever** (`/admit-card`, not `/প্রবেশপত্র`).
+Bangla lives in the visible label only. Rationale: shareable links, SMS-safe, no percent-encoding
+in the notice bar, and printable on a paper circular.
+
+---
+
+## 9. Screen-by-Screen Specification
+
+### 9.1 Public pages
+
+#### 9.1.1 Home `/`
+
+| Zone | Content | Design notes |
+|---|---|---|
+| Notice bar (sticky) | Scrolling Bangla admission notice + **deadline chip with countdown** | RED chip is the only loud element |
+| Header | Roundel mark + "যুব উন্নয়ন অধিদপ্তর" / "AI Sylhet" + nav (প্রকল্প পরিচিতি, কেন্দ্র, অগ্রগতি, নোটিশ, FAQ) + `বাং/EN` + "লগইন" | 68px, hairlines top/bottom, no shadow |
+| Hero | H1: *"কৃত্রিম বুদ্ধিমত্তা প্রযুক্তির মাধ্যমে দক্ষতা উন্নয়ন — সিলেট বিভাগ"*. Sub: 2 months · 300 hours · free · govt certificate · ৳200/day TA. CTAs: **আবেদন করুন** (solid green) + **প্রকল্প পরিচিতি** (ghost). Faint Surma contour band. | **Left-aligned**, asymmetric 7/5 grid. No floating dashboard mockup. |
+| FactStrip | `৪ জেলা` · `৪১ উপজেলা` · `৩০০ ঘণ্টা` · `১০০% বিনামূল্যে` · `৳২০০/দিন ভাতা` | Ruled cells with tabular numerals |
+| Why AI | 4 benefit blocks | Document-rule markers, not pastel cards |
+| Eligibility | Age 18–35, min HSC, 2-month availability, district must be in Sylhet Div. | Real ruled list, ✗/✓ with text labels |
+| Step spine | 5 steps: অনলাইন আবেদন → লিখিত পরীক্ষা → মৌখিক পরীক্ষা → চূড়ান্ত মেধা তালিকা → ক্লাস শুরু (with real dates) | Vertical spine, large Bangla numerals |
+| Modules | 6 modules w/ hours | Grid, hairline separators |
+| District coverage | 4 district cards: name, upazila count, centre count, centre names | Links to `/centers` |
+| Live stats teaser | 4 KPIs + "সর্বশেষ আপডেট" timestamp | Ruled table, links to `/live-status` |
+| FAQ teaser | Top 4 FAQs | Accordion |
+| CTA band | dark green-900, notice PDF + apply | |
+| Footer | Roundel, agency identity, all links, hotline, address, PWA install prompt, copyright | Matches the reference's official footer structure |
+
+#### 9.1.2 `/apply`
+
+Single page, **4 numbered sections** using the document-rule motif:
+
+```
+ব্যক্তিগত বিবরণ (১)   → name, gender, email, phone, dob(+live age), father, mother,
+                        guardian, NID/birth-reg, blood group, alternate phone, occupation
+ঠিকানা ও এলাকা (২)   → full address, district*, upazila*, (division fixed = সিলেট বিভাগ)
+শিক্ষাগত যোগ্যতা (৩)  → education, GPA/CGPA, pass year
+দক্ষতা ও সময় (৪)     → computer skill, owns PC, 2-month availability
+ছবি আপলোড (৫)        → passport photo, ≤100KB, live preview + crop-free guidance
+[ আবেদন সম্পন্ন করুন ]
+```
+
+- Sticky right rail on desktop: **"আপনার প্যাকেজ"** card showing `প্যাকেজ-৪ (চট্টগ্রাম ও
+  সিলেট বিভাগ)` + partner `Service Engines Ltd., Dot Com Systems Ltd. ও Wizard Software
+  Technology Bangladesh Ltd. (Joint Venture)` — mirroring the reference's division→package reveal,
+  but static because we are always Package-4.
+- Inline validation with Bangla messages under each field; `aria-describedby` wired.
+- Error summary at top on submit failure; focus moved there.
+- `localStorage` draft autosave + "আপনার তথ্য এই ব্রাউজারে সেভ আছে" restore banner.
+- Turnstile widget + hidden honeypot + min-3-seconds-on-form guard.
+- Mobile: single column, 44px targets, numeric keypads for phone/year.
+
+#### 9.1.3 `/apply/success/<app_no>`
+
+Green-tick confirmation, the **application number in a RollSlab**, a checklist of next steps with
+dates, "আবেদন কপি ডাউনলোড করুন" + "প্রিন্ট করুন", and a warning that the copy is required at
+the exam hall.
+
+#### 9.1.4 `/admit-card`, `/results`, `/certificate-verification`
+
+Shared `LookupPanel` component: one large labelled input, a primary button, a Bangla tip line,
+and an `EmptyState` for not-found / not-yet-published. Results render as a ruled `ResultTable`
+with a print button.
+
+#### 9.1.5 `/verify/<code>`
+
+Mobile-first card: status banner (`বৈধ ✓` green / `বাতিল ✗` red), certificate number, name
+(partially masked for privacy), roll, batch, centre, training period, issue date, and
+"এই সনদটি N বার যাচাই করা হয়েছে" + verification timestamp. Print-friendly.
+
+#### 9.1.6 `/live-status`
+
+Sylhet-scoped version of the reference page: KPI table, target-vs-achieved blocks with
+progress bars (rounded to whole %), district-wise breakdown table, batch timeline, and a
+prominent "সর্বশেষ আপডেট" timestamp. No vanity charts — a real ruled table beats fake data viz.
+
+### 9.2 Student portal
+
+Consistent shell: left sidebar (collapsible to a bottom bar on mobile), top bar with **RollSlab**,
+photo, batch/centre, notification bell, profile menu.
+
+| Screen | Key content |
+|---|---|
+| **Dashboard** | Status timeline (Applied → Exam → Selected → Enrolled → Certified) with the current step lit; next class card; attendance % ring; quick actions (admit card, result, certificate); latest notices |
+| **Profile** | Read-only core fields (edit requires a correction request) + editable phone (OTP-verified), address, photo. Clear Bangla explanation of *why* core fields are locked |
+| **Application** | Full submitted data + Application Copy download |
+| **Admit Card** | Document preview + download/print, centre map link, exam instructions |
+| **Result** | Written + viva marks, total, pass/fail, merit position, published date |
+| **Merit List** | Own row highlighted, paginated list, download PDF |
+| **Enrollment** | Batch, roll, reg. no, centre, address, coordinator contact, training calendar |
+| **Schedule** | Filterable class list (upcoming/past), module, topic, instructor, room |
+| **Attendance** | Calendar heat strip + table; present/absent/late; attendance %; **TA-eligible days**; exported as a signed PDF on request |
+| **Materials** | Cards per module: PDF / link / video |
+| **Certificate** | Preview, download, verification code + QR, share link |
+| **Notices** | Feed, unread badges, detail view |
+| **Notifications** | History of every SMS/email sent to them (transparency = fewer support calls) |
+| **Support** | New ticket, thread view, attachments, status |
+| **Security** | Change password, active sessions, log out everywhere, last login |
+
+### 9.3 Admin console
+
+Admin uses a **different visual system** from the public site: 12-column data layout, 13px base
+type, sticky filter bars, dense ruled `DataTable`, keyboard shortcuts
+(`/` = search, `g a` = applications, `g d` = dashboard, `j/k` = row nav, `x` = select,
+`e` = edit), and an optional dark mode.
+
+**Key screens**
+
+| Screen | Behaviour |
+|---|---|
+| **Dashboard** | KPI row (আজকের আবেদন / মোট / অপেক্ষমাণ / পরীক্ষার উপযুক্ত / নির্বাচিত / ভর্তি / সনদপ্রাপ্ত), 30-day submissions sparkline, district-wise bar table, funnel, recent activity feed, deadline countdown |
+| **Applications list** | Sticky filter bar: batch, status, district, upazila, gender, education, centre, date range, has-photo; free-text search across name/phone/email/roll/app-no; column chooser; 25/50/100/250 per page; bulk actions bar appears on selection; CSV/XLSX export of the **current filtered set** |
+| **Application detail** | Two-column: data left, photo + docs + status timeline + notes right. Actions: approve, reject (reason required), flag for correction (message → SMS link), edit, allocate centre, print, audit trail |
+| **Import** | Upload → detect encoding/header → map columns → **dry-run preview with row-level errors** → commit in a transaction → downloadable error report |
+| **Allocation** | Left: unallocated candidates grouped by district. Right: centres with live capacity bars. Buttons: auto-allocate (district-matched, round-robin, capacity-aware), manual drag/select, clear. Blocks over-allocation |
+| **Rolls** | Preview the generated sequence per district before committing; re-run is idempotent; gaps never reused |
+| **Marks entry** | Grid: roll, name, per-component inputs, live total, pass/fail badge. Paste from Excel (clipboard) supported. Autosave per row. **Verify** step requires a different user |
+| **Merit list builder** | Auto-rank from verified totals with visible tie-breaker rules, seat-count cutoff, quota handling, manual drag-reorder with reason, publish gate (checks: all marks verified, all attendance done, no unresolved corrections) |
+| **Publish** | Confirm dialog lists exactly what will happen: *N accounts provisioned · N SMS · N emails*. Requires typed confirmation |
+| **Certificates** | Batch generate → progress bar (queued job) → download ZIP; template editor with field-position preview on a real background image |
+| **Blast composer** | Segment builder → recipient count preview → Bangla template → send test to self → send → live delivery log |
+| **Settings** | Grouped: site identity · dates · limits · toggles · SMS provider · email provider · security · retention. Secret fields display as `•••••••• (set on 2026-09-23)` and are write-only |
+
+---
+
+## 10. Backend Architecture
+
+### 10.1 Directory layout (mirrors your proven Favonia pattern)
+
+```
+DYD AI SYLHET/
+├── app/
+│   ├── __init__.py                 app factory, blueprint registration, error handlers, CLI
+│   ├── config.py                   Base/Dev/Test/Prod config classes
+│   ├── extensions.py               db, migrate, login_manager, csrf, bcrypt, limiter, mail, cache
+│   ├── cli.py                      flask seed / flask create-admin / flask stats-snapshot
+│   ├── constants.py                enums: statuses, roles, batches, doc types, channels
+│   ├── decorators.py               @require_permission, @require_role, @scoped, @audit
+│   ├── validators.py               age, bd_phone, nid, gpa, year, file, password policy
+│   ├── security/
+│   │   ├── permissions.py          declarative PERMISSIONS map
+│   │   ├── scope.py                scoped_query() row-level enforcement
+│   │   ├── tokens.py               itsdangerous signed URLs (copy, admit card, invite)
+│   │   ├── crypto.py               Fernet field encryption for NID/birth-reg
+│   │   └── passwords.py            policy + strength meter
+│   ├── models/
+│   │   ├── __init__.py  base.py  mixins.py        (TimestampMixin, SoftDeleteMixin, AuditMixin)
+│   │   ├── user.py  role.py  auth.py              (login_attempt, reset_token, session)
+│   │   ├── geo.py                                 (division, district, upazila)
+│   │   ├── batch.py  center.py  package.py  partner.py  exam_center.py
+│   │   ├── applicant.py  application.py  document.py  correction.py  status_history.py
+│   │   ├── exam.py  exam_attendance.py  exam_marks.py  merit_list.py
+│   │   ├── enrollment.py  schedule.py  attendance.py  assessment.py
+│   │   ├── certificate.py  certificate_template.py
+│   │   ├── cms.py                                 (page, faq, slider, notice, gallery, setting)
+│   │   ├── stats.py  report.py
+│   │   └── notification.py                        (template, queue, sms_log, email_log, push)
+│   ├── routes/
+│   │   ├── public.py            /, project-overview, centers, live-status, notices, faq, contact
+│   │   ├── apply.py             application form + success + copy + correction
+│   │   ├── lookups.py           admit-card, results, certificate-verification, verify
+│   │   ├── auth.py              portal login (dual mode), forgot/set/reset password, logout
+│   │   ├── portal.py            student portal (14 views)
+│   │   ├── admin/
+│   │   │   ├── __init__.py  auth.py  dashboard.py  applications.py  batches.py
+│   │   │   ├── centers.py  allocations.py  rolls.py  exams.py  admit_cards.py
+│   │   │   ├── merit.py  students.py  schedules.py  attendance.py  materials.py
+│   │   │   ├── certificates.py  notices.py  announcements.py  cms.py  stats.py
+│   │   │   ├── reports.py  users.py  audit.py  support.py  settings.py  backups.py
+│   │   └── api.py               JSON endpoints under /api
+│   ├── services/
+│   │   ├── application_service.py  roll_number_service.py  allocation_service.py
+│   │   ├── admission_service.py    exam_service.py         merit_service.py
+│   │   ├── enrollment_service.py   attendance_service.py   certificate_service.py
+│   │   ├── document_service.py     pdf_service.py          qr_service.py
+│   │   ├── sms_service.py          email_service.py        otp_service.py
+│   │   ├── notification_service.py upload_service.py       stats_service.py
+│   │   ├── import_export_service.py audit_service.py       backup_service.py
+│   │   └── providers/              sms providers, email providers, pdf engines
+│   ├── templates/
+│   │   ├── layouts/  public/  apply/  lookups/  portal/  admin/  documents/  errors/  email/
+│   │   ├── components/   Jinja macros: button.html form_field.html data_table.html
+│   │   │                 kpi_card.html notice_bar.html roll_slab.html …
+│   │   └── documents/    admit_card.html  application_copy.html  certificate.html
+│   │                     transcript.html  attendance_report.html  merit_list.html
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── app.css   ← COMPILED + MINIFIED + COMMITTED  (the only stylesheet served)
+│   │   │                 built from assets/tailwind/source.css — never edited by hand
+│   │   ├── js/     app.js  apply.js  lookup.js  portal.js  admin/…  sw.js
+│   │   ├── fonts/  NotoSansBengali-*.woff2  NotoSerifBengali-*.woff2  IBMPlexSans-*.woff2
+│   │   │           kalpurush.ttf  nikosh.ttf
+│   │   ├── img/    roundel.svg  favicon set  ai-logo.svg  dyd-logo.png  gov-logo.png
+│   │   │           contour-band.svg  sprite.svg  og-default.jpg
+│   │   └── templates/certificate/…        certificate background images
+│   └── seeds/      districts.json  upazilas.json  centers.json  settings.json
+│                   faqs.json  modules.json  templates.json
+├── assets/tailwind/
+│   ├── source.css                  ← THE ONLY HAND-WRITTEN CSS (@theme + @utility + layers)
+│   └── components.css              ← extra @utility blocks when source.css gets long
+├── migrations/                     Flask-Migrate (Alembic)
+├── tests/                          pytest: unit / integration / e2e / fixtures
+├── tools/                          check-css.py  tailwindcss(.exe)  one-off maintenance scripts
+├── instance/                       SQLite dev db + local uploads (git-ignored)
+├── uploads/                        production upload root — OUTSIDE the webroot
+├── var/                            logs, caches, generated pdfs, backups
+├── .env.example   .env(server only, never committed)
+├── .gitignore   .htaccess   passenger_wsgi.py   wsgi.py   run.py
+├── requirements.txt   requirements-dev.txt
+├── package.json   package-lock.json         ← dev-only: Tailwind CLI (never on the server)
+├── tailwind-css.md                          ← how to edit styles, for future devs
+├── deploy.sh   rollback.sh   cron_backup.sh   cron_queue.sh   cron_deadline.sh
+├── README.md   plan.md   DEPLOY.md   RUNBOOK.md   ADMIN_GUIDE.md
+└── .github/workflows/deploy.yml   ci.yml
+```
+
+> **Deploy note:** `assets/`, `package.json`, `node_modules/` and `tools/tailwindcss` are
+> **excluded from the deploy sync** — the server only ever receives the compiled `app.css`.
+> `assets/` stays in git (it is the source of truth) but is not needed at runtime.
+
+### 10.2 App factory essentials
+
+- `create_app(config_name)` builds the app, loads `.env` via `python-dotenv`, configures logging
+  (rotating file + stderr + optional Sentry), registers **8 blueprints**, installs error handlers
+  (404/403/419/429/500 all rendering Bangla pages, JSON for `/api/*`), and registers
+  `before_request` hooks for locale selection, user-activity tracking and maintenance mode.
+- **Security headers** added in `after_request`: CSP, `X-Content-Type-Options`, `X-Frame-Options:
+  DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS in prod.
+- **Jinja globals/filters** registered at startup: `bn_num`, `bn_date`, `bn_currency`,
+  `mask_pii`, `roll_slab`, `status_badge`, `seconds_to_human_bn`, and the component macros
+  from `templates/components/`.
+- **Asset helper** `asset('css/app.css')` appends `?v=<sha256[:8]>` of the compiled CSS
+  (hash computed once at boot, cached in memory) so a Tailwind rebuild instantly invalidates the
+  1-year immutable cache. Same helper for JS and fonts. A boot-time warning is logged if
+  `app/static/css/app.css` is missing — the single most likely result of a forgotten
+  `npm run css:build`.
+- **Blueprints** are registered with `url_prefix` read from config, so the admin prefix is
+  environment-controlled (`ADMIN_URL_PREFIX=ops-sylhet`).
+
+### 10.3 Database strategy
+
+| Env | Engine | Rationale |
+|---|---|---|
+| local dev | SQLite (`instance/dyd_sylhet.db`) | zero setup, matches your Favonia habit |
+| prod (default) | **MySQL 8 / MariaDB 10.6** | concurrent admin + applicant writes, real indexes, better row locking for roll-number sequences |
+| prod (fallback) | SQLite + WAL | if the cPanel MySQL limit is a problem |
+
+All code goes through SQLAlchemy with engine-agnostic types. Two places need care and are
+abstracted: **`SELECT … FOR UPDATE`** (roll sequences) and **`FULLTEXT`/LIKE search**
+(search uses `LIKE` + normalized `search_blob` column so it works on both).
+
+**Charset:** `utf8mb4` / `utf8mb4_unicode_ci` — mandatory for Bangla. This must be verified at
+deploy time; a `latin1` database will silently mangle every Bangla string.
+
+### 10.4 Background work on shared hosting
+
+No Celery/Redis on cPanel. Instead:
+
+| Job class | Mechanism |
+|---|---|
+| Fast (<2s) side effects: SMS, email | **Synchronous with a queue table** — enqueue row, try send, on failure leave `pending` |
+| Bulk (100–5000 recipients) | **Queue table + cron drain** every 2 minutes (`cron_queue.sh`) with a batch size and per-run cap |
+| Bulk PDF generation | **Queue table + cron** writing to `var/generated/`, then a ZIP appears in admin |
+| Bulk CSV import | Run inline with a row cap (e.g. 2000), else chunked via cron |
+| Nightly backups / snapshots / retention | **cron** (`cron_backup.sh`) |
+| Deadline auto-close | **cron** (`cron_deadline.sh`) every 5 minutes |
+
+A tiny `worker_lock` table row (`SELECT … FOR UPDATE`) prevents two cron runs from
+double-processing the same queue batch.
+
+---
+
+## 11. Database Schema (full)
+
+Conventions: `id BIGINT PK AUTO_INCREMENT`; every business table has
+`created_at`, `updated_at` (UTC); soft-deletable tables add `deleted_at`;
+`created_by`/`updated_by` FK → `users.id` on admin-written tables.
+All Bangla text columns are `VARCHAR`/`TEXT` with `utf8mb4`.
+
+### 11.1 Identity & access
+
+#### `users`
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT PK | |
+| email | VARCHAR(160) NULL UNIQUE | NULL allowed for staff who use phone login |
+| phone | VARCHAR(11) NULL | 11-digit BD |
+| password_hash | VARCHAR(255) | bcrypt cost 12; **unmatchable placeholder** until set |
+| role | ENUM | `super_admin, admin, exam_controller, district_coordinator, centre_coordinator, data_entry, viewer, student` |
+| full_name_bn | VARCHAR(160) | |
+| full_name_en | VARCHAR(160) NULL | |
+| district_id | FK districts NULL | row-level scope for district coordinators |
+| center_id | FK centers NULL | row-level scope for centre coordinators |
+| is_active | BOOL default 1 | |
+| is_email_verified | BOOL default 0 | |
+| must_set_password | BOOL default 0 | TRUE for freshly provisioned students |
+| portal_access_enabled | BOOL default 1 | student switch |
+| twofa_enabled | BOOL default 0 | TOTP |
+| twofa_secret | VARBINARY(255) NULL | **encrypted** |
+| extra_permissions | JSON NULL | per-user grants |
+| last_login_at / last_login_ip / last_login_ua | DATETIME / VARCHAR(45) / VARCHAR(255) | |
+| failed_attempts | INT default 0 | |
+| locked_until | DATETIME NULL | |
+| password_changed_at | DATETIME NULL | |
+| must_change_password | BOOL default 0 | |
+| deleted_at | DATETIME NULL | |
+
+Indexes: `UNIQUE(email)`, `INDEX(phone)`, `INDEX(role, is_active)`, `INDEX(district_id)`, `INDEX(center_id)`.
+
+#### `login_attempts`
+`id, identifier(160) [email|phone|roll], identifier_type ENUM(email,phone,roll), user_id NULL, ip VARCHAR(45), user_agent(255), was_successful BOOL, failure_reason VARCHAR(64), created_at`
+Index: `(identifier, created_at)`, `(ip, created_at)`.
+
+#### `password_reset_tokens`
+`id, user_id FK, token_hash CHAR(64) [unique], otp_hash CHAR(64) NULL, purpose ENUM(reset,invite,email_verify,phone_change), expires_at, used_at NULL, ip, created_at`
+Index: `(user_id, purpose, used_at)`.
+
+#### `user_sessions`
+`id, user_id FK, session_token_hash CHAR(64), ip, user_agent, device_label, created_at, last_seen_at, revoked_at NULL`
+Purpose: "active devices" + log out everywhere.
+
+#### `audit_logs`
+`id, user_id NULL, user_role(32), action VARCHAR(64) [application.review, marks.publish…], entity_type VARCHAR(48), entity_id BIGINT NULL, before_json JSON NULL, after_json JSON NULL, ip, user_agent, request_id CHAR(36), created_at`
+Index: `(entity_type, entity_id)`, `(user_id, created_at)`, `(action, created_at)`.
+`before_json`/`after_json` are **PII-redacted** before writing.
+
+### 11.2 Geography & reference data
+
+#### `divisions`
+`id, code VARCHAR(8) UNIQUE, name_bn, name_en, sort_order, is_active`
+Seed: 8 divisions (only সিলেট is exposed on this site).
+
+#### `districts`
+`id, division_id FK, code VARCHAR(8) UNIQUE [SYL,MOU,HAB,SUN], name_bn, name_en, national_ref_id INT NULL (265/227/226/266), total_upazilas SMALLINT, seat_capacity INT NULL, is_active, sort_order`
+Index: `(division_id, is_active)`.
+
+#### `upazilas`
+`id, district_id FK, code VARCHAR(12), name_bn, name_en, is_active`
+Index: `(district_id)`. Seed: 41 rows.
+
+#### `unions` *(optional, seeded later)*
+`id, upazila_id FK, name_bn, name_en`
+
+#### `training_partners`
+`id, name_bn, name_en, legal_name, contact_person, contact_phone, contact_email, address, logo_path, is_jv BOOL, jv_members JSON NULL, is_active`
+
+#### `packages`
+`id, code VARCHAR(16) UNIQUE, name_bn, name_en, coverage_note_bn, partner_id FK, duration_hours INT, is_active`
+
+#### `package_districts`
+`id, package_id FK, district_id FK` — UNIQUE(package_id, district_id)
+
+#### `centers` (training centres)
+| Column | Type |
+|---|---|
+| id | BIGINT PK |
+| code | VARCHAR(16) UNIQUE |
+| name_bn / name_en | VARCHAR |
+| type | ENUM(training, exam, both) |
+| partner_id | FK nullable |
+| district_id / upazila_id | FK |
+| address_bn | VARCHAR(255) |
+| map_url | VARCHAR(500) NULL |
+| lat / lng | DECIMAL(10,7) NULL |
+| lab_pc_count | SMALLINT |
+| capacity | SMALLINT |
+| contact_person / contact_phone / contact_email | VARCHAR |
+| facilities | JSON NULL (ac, projector, internet, generator) |
+| is_active | BOOL |
+| sort_order | SMALLINT |
+
+#### `batches`
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT PK | |
+| code | VARCHAR(16) UNIQUE | `SYL-B1`, `SYL-B2` |
+| name_bn / name_en | VARCHAR | ব্যাচ-১ |
+| package_id | FK | |
+| district_id | FK NULL | NULL = all Sylhet |
+| status | ENUM | `draft, upcoming, application_open, application_closed, under_review, exam_scheduled, exam_done, selection, training, completed, archived` |
+| application_open_at / application_close_at | DATETIME | deadline enforced server-side |
+| written_exam_date / viva_date / merit_publish_date / class_start_date / class_end_date | DATE | |
+| duration_days / duration_hours / hours_per_day | SMALLINT | 50 / 300 / 6 |
+| seat_capacity | INT | |
+| allow_apply | BOOL | master switch |
+| is_active / is_current | BOOL | only one `is_current` |
+| timezone | VARCHAR(32) | Asia/Dhaka |
+| notes_bn | TEXT NULL | |
+
+#### `batch_centers`
+`id, batch_id FK, center_id FK, allocated_capacity SMALLINT, allocated_count SMALLINT default 0` — UNIQUE(batch_id, center_id)
+
+#### `settings`
+`id, key VARCHAR(80) UNIQUE, value TEXT, value_type ENUM(string,int,float,bool,json,secret), group VARCHAR(40), label_bn, help_bn, is_secret BOOL, updated_by, updated_at`
+Groups: `site, admission, exam, notification, security, storage, retention, integrations, display`.
+
+#### `courses_modules`
+`id, batch_id FK NULL, code VARCHAR(24), title_bn, title_en, description_bn TEXT, hours SMALLINT, sort_order, icon_slug, is_active`
+
+### 11.3 Applicants & applications
+
+#### `applicants`
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT PK | |
+| full_name_bn | VARCHAR(160) | from `student_name` |
+| full_name_en | VARCHAR(160) NULL | |
+| gender | ENUM(Male,Female,Other) | |
+| email | VARCHAR(160) | lowercased |
+| phone | VARCHAR(11) | 11-digit |
+| alternate_phone | VARCHAR(11) NULL | |
+| dob | DATE | |
+| father_name_bn / mother_name_bn / guardian_name_bn | VARCHAR(160) NULL | |
+| nid_or_birth_reg_encrypted | VARBINARY(512) NULL | **Fernet** |
+| nid_last4 | CHAR(4) NULL | for masked display + search |
+| blood_group | VARCHAR(8) NULL | |
+| occupation | VARCHAR(80) NULL | |
+| address_bn | VARCHAR(255) | |
+| division_id / district_id / upazila_id | FK | |
+| postcode | VARCHAR(8) NULL | |
+| education | ENUM(HSC,Diploma,Degree,Honours,Other) | |
+| last_edu_gpa | VARCHAR(16) | as entered (Bangla or Latin) |
+| pass_year | SMALLINT | 2000–2026 |
+| computer_skill | ENUM(Basic,Medium,Expert) | |
+| has_pc | ENUM(Yes,No) | |
+| time_commitment | ENUM(Yes,No) | |
+| photo_path | VARCHAR(255) | relative to uploads root |
+| photo_thumb_path | VARCHAR(255) NULL | 160×200 |
+| signature_path | VARCHAR(255) NULL | |
+| is_anonymized | BOOL | retention job |
+| search_blob | VARCHAR(512) | normalized `name+phone+email` for LIKE search |
+| created_at / updated_at / deleted_at | DATETIME | |
+
+Indexes: `UNIQUE(email)`, `UNIQUE(phone)`, `INDEX(district_id)`, `INDEX(upazila_id)`, `INDEX(search_blob)`.
+
+> **Note:** `email`/`phone` are globally unique on `applicants` (as in the reference), while
+> `applications` allows historic duplicates per batch via a different identity path.
+
+#### `applications`
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT PK | |
+| application_no | VARCHAR(24) UNIQUE | `REG2026000123` |
+| applicant_id | FK | |
+| batch_id | FK | |
+| division_id / district_id / upazila_id | FK | copied for fast scoping |
+| package_id | FK | |
+| preferred_center_id | FK centers NULL | |
+| assigned_center_id | FK centers NULL | set by admin |
+| status | ENUM | see §11.3.1 |
+| exam_roll_number | VARCHAR(12) UNIQUE NULL | e.g. `100001` |
+| exam_center_id | FK centers NULL | |
+| exam_room_no | VARCHAR(16) NULL | |
+| exam_seat_no | VARCHAR(16) NULL | |
+| reg_number | VARCHAR(24) UNIQUE NULL | `SYL26R000123` |
+| written_marks / viva_marks / total_marks | DECIMAL(7,2) NULL | denormalised for cheap lists |
+| written_result / viva_result | ENUM(pass,fail,absent,NULL) | |
+| final_status | ENUM(selected,waitlisted,not_selected,NULL) | |
+| merit_position | INT NULL | |
+| category | ENUM(general,quota,ff,disability,NULL) | |
+| is_eligible | BOOL NULL | reviewer decision |
+| portal_access_enabled | BOOL default 0 | flipped at publish |
+| student_user_id | FK users NULL | set at provisioning |
+| submitted_at | DATETIME | |
+| application_ip / application_ua | VARCHAR | abuse forensics |
+| submission_source | ENUM(online,import,admin) | |
+| reviewed_by / reviewed_at / review_notes | | |
+| correction_state | ENUM(none,requested,resubmitted,expired) | |
+| correction_message_bn / correction_token | | |
+| admit_card_generated_at / admit_card_sent_at | DATETIME NULL | |
+| result_published_at | DATETIME NULL | |
+| sms_sent_count / email_sent_count | SMALLINT | |
+| created_at / updated_at / deleted_at | | |
+
+Indexes: `UNIQUE(application_no)`, `UNIQUE(exam_roll_number)`, `UNIQUE(reg_number)`,
+`UNIQUE(batch_id, applicant_id)`, `INDEX(status)`, `INDEX(district_id, status)`,
+`INDEX(exam_center_id)`, `INDEX(submitted_at)`.
+
+##### 11.3.1 Canonical status machine
+
+```
+submitted ──► under_review ──┬──► flagged ──► (correction) ──► under_review
+                             ├──► rejected            [terminal]
+                             └──► eligible ──► admit_card_issued
+                                                    │
+                                          ┌─────────┴──────────┐
+                                     exam_absent          exam_attended
+                                          [terminal]            │
+                                                    ┌───────────┴────────────┐
+                                            written_failed            written_passed
+                                                [terminal]                   │
+                                                                    ┌────────┴────────┐
+                                                              viva_absent        viva_attended
+                                                               [terminal]             │
+                                                                    ┌─────────────────┼──────────────┐
+                                                              selected         waitlisted      not_selected
+                                                                   │           (may be           [terminal]
+                                                          enrolled │         promoted later)
+                                                                   │◄──────────────┘
+                                                              in_training ──► completed ──► certified
+                                                                   │
+                                                              dropped [terminal]
+```
+
+Transitions are validated in `admission_service.transition()` against an explicit allowed-map;
+any illegal transition raises and is logged. **History is append-only** in
+`application_status_history`.
+
+#### `application_status_history`
+`id, application_id FK, from_status, to_status, note_bn TEXT NULL, changed_by FK NULL, changed_by_system BOOL, created_at`
+Index: `(application_id, created_at)`.
+
+#### `application_documents`
+`id, application_id FK, doc_type ENUM(photo,signature,nid,education_certificate,other), file_path, original_name, mime, size_bytes, sha256 CHAR(64), width, height, uploaded_by, created_at`
+
+#### `application_corrections`
+`id, application_id FK, requested_by FK, request_note_bn TEXT, token_hash CHAR(64), expires_at, resubmitted_at NULL, applicant_note_bn TEXT NULL, resolved_at NULL, resolved_by NULL, created_at`
+
+#### `applications_notes`
+`id, application_id FK, author_id FK, body_bn TEXT, is_internal BOOL default 1, created_at`
+
+### 11.4 Exam & selection
+
+#### `exams`
+`id, batch_id FK, type ENUM(written,viva), title_bn, exam_date DATE, start_time TIME, end_time TIME, duration_minutes SMALLINT, total_marks DECIMAL(6,2), pass_marks DECIMAL(6,2), marks_components JSON (e.g. [{"key":"gk","label_bn":"সাধারণ জ্ঞান","max":40},…]), pass_rule ENUM(total,each_component), status ENUM(draft,scheduled,ongoing,completed,marks_entry,marks_verified,published), published_at NULL, published_by NULL, created_at, updated_at`
+
+#### `exam_center_allocations`
+`id, exam_id FK, center_id FK, room_count SMALLINT, seat_capacity SMALLINT, allocated_count SMALLINT`
+
+#### `exam_attendance`
+`id, exam_id FK, application_id FK, is_present BOOL, marked_by FK, marked_at, remark VARCHAR(120) NULL` — UNIQUE(exam_id, application_id)
+
+#### `exam_marks`
+`id, exam_id FK, application_id FK, components JSON ({gk:32,english:18,…}), raw_total DECIMAL(7,2), normalized_total DECIMAL(7,2), is_pass BOOL NULL, entered_by FK, entered_at, verified_by FK NULL, verified_at NULL, is_locked BOOL default 0, remark_bn VARCHAR(255) NULL` — UNIQUE(exam_id, application_id)
+
+#### `merit_lists`
+`id, batch_id FK, code VARCHAR(24) UNIQUE, title_bn, type ENUM(selected,waiting,rejected,provisional,final), seat_count INT, published_at NULL, published_by NULL, is_published BOOL, tie_breaker_note_bn TEXT, notes_bn TEXT, created_at, updated_at`
+
+#### `merit_list_entries`
+`id, merit_list_id FK, application_id FK, rank_no INT, total_marks DECIMAL(7,2), category, is_waitlisted BOOL default 0, remarks_bn VARCHAR(255) NULL` — UNIQUE(merit_list_id, application_id), UNIQUE(merit_list_id, rank_no)
+
+#### `result_publications`
+`id, batch_id FK, exam_id FK NULL, merit_list_id FK NULL, kind ENUM(exam_result,merit_list,certificate_list), is_published BOOL, published_at, published_by, channels JSON (["web","sms","email"]), rows_count INT`
+
+#### `document_templates`
+`id, kind ENUM(admit_card,application_copy,certificate,transcript,attendance_report,merit_list,id_card), name_bn, background_image_path NULL, layout JSON (field → {x,y,w,h,font,size,align}), is_active, is_default BOOL, created_by, updated_at`
+
+### 11.5 Enrollment, training, certification
+
+#### `enrollments`
+`id, application_id FK UNIQUE, batch_id FK, center_id FK, roll_number VARCHAR(12) UNIQUE, student_user_id FK users UNIQUE NULL, enrolled_at, status ENUM(enrolled,active,completed,dropped,certified,withheld), completion_percentage SMALLINT, attendance_percentage DECIMAL(5,2), ta_eligible_days SMALLINT, dropped_reason_bn TEXT NULL, completed_at NULL, created_at, updated_at`
+
+#### `class_schedules`
+`id, batch_id FK, center_id FK, module_id FK courses_modules NULL, class_date DATE, start_time TIME, end_time TIME, topic_bn VARCHAR(255), instructor_name VARCHAR(120), room VARCHAR(32) NULL, is_cancelled BOOL default 0, cancel_reason_bn VARCHAR(255) NULL, notes_bn TEXT NULL`
+Index: `(batch_id, class_date)`, `(center_id, class_date)`.
+
+#### `attendances`
+`id, enrollment_id FK, schedule_id FK NULL, class_date DATE, status ENUM(present,absent,late,excused), marked_by FK NULL, marked_by_system BOOL, marked_at, remark_bn VARCHAR(160) NULL, counts_for_ta BOOL default 1` — UNIQUE(enrollment_id, class_date)
+
+#### `assessments`
+`id, enrollment_id FK, type ENUM(assignment,quiz,practical,final), title_bn, marks DECIMAL(6,2), max_marks DECIMAL(6,2), weight_percent SMALLINT, remarks_bn TEXT NULL, assessed_by FK, assessed_at`
+
+#### `certificates`
+`id, enrollment_id FK UNIQUE, certificate_no VARCHAR(32) UNIQUE, verification_code VARCHAR(20) UNIQUE, issue_date DATE, template_id FK document_templates NULL, pdf_path VARCHAR(255) NULL, qr_path VARCHAR(255) NULL, grade VARCHAR(8) NULL, is_revoked BOOL default 0, revoked_at NULL, revoke_reason_bn TEXT NULL, issued_by FK, printed_count SMALLINT default 0, created_at, updated_at`
+Index: `UNIQUE(certificate_no)`, `UNIQUE(verification_code)`.
+
+#### `certificate_verifications`
+`id, certificate_id FK NULL, lookup_type ENUM(roll,certificate_no,code), lookup_value VARCHAR(64), result ENUM(found,not_found,revoked,not_issued), ip VARCHAR(45), user_agent VARCHAR(255), created_at`
+Index: `(certificate_id, created_at)`, `(ip, created_at)`.
+
+### 11.6 Content & CMS
+
+| Table | Key columns |
+|---|---|
+| `pages` | `slug UNIQUE, title_bn, title_en, body_bn LONGTEXT, body_en LONGTEXT, meta_description, is_published, updated_by, updated_at` |
+| `notices` | `slug UNIQUE, title_bn, title_en, excerpt_bn, body_bn LONGTEXT, category ENUM(admission,exam,result,certificate,general), audience ENUM(all,applicants,selected,students,public), attachment_path, is_pinned, show_in_ticker, is_published, publish_at, expire_at, priority, view_count` |
+| `faqs` | `category, question_bn, question_en, answer_bn TEXT, answer_en TEXT, sort_order, is_active` |
+| `sliders` | `image_path, title_bn, subtitle_bn, cta_text_bn, cta_url, sort_order, is_active` |
+| `gallery_items` | `image_path, caption_bn, category, taken_on, sort_order` |
+| `testimonials` | `name_bn, district, photo_path, quote_bn TEXT, is_published, sort_order` |
+| `contact_messages` | `name, email, phone, subject, message_bn TEXT, ip, user_agent, status ENUM(new,read,replied,closed), replied_by NULL, replied_at NULL, reply_note_bn` |
+| `support_tickets` | `ticket_no UNIQUE, user_id FK NULL, application_id FK NULL, subject_bn, category ENUM(application,exam,result,certificate,portal,other), priority ENUM(low,normal,high,urgent), status ENUM(open,pending,resolved,closed), assigned_to FK NULL, created_at, updated_at, resolved_at` |
+| `support_ticket_replies` | `ticket_id FK, author_id FK NULL, author_type ENUM(staff,student), body_bn TEXT, attachment_path NULL, created_at` |
+| `materials` | `batch_id FK, module_id FK NULL, title_bn, type ENUM(pdf,link,video,image), file_path NULL, external_url NULL, description_bn TEXT, sort_order, visible_to ENUM(all,selected,enrolled), is_published` |
+| `seo_meta` | `route, title_bn, description_bn, og_image_path` |
+
+### 11.7 Live stats
+
+#### `stats_snapshots`
+`id, snapshot_at DATETIME, batch_id FK NULL, district_id FK NULL, metrics JSON, created_at`
+Index: `(snapshot_at)`, `(batch_id, snapshot_at)`.
+
+#### `stats_targets`
+`id, key VARCHAR(48) UNIQUE, label_bn, target_value DECIMAL(12,2), unit VARCHAR(16), direction ENUM(at_least,at_most), display_order, is_active`
+
+Live values are **computed on request from the source tables and cached 300 s**; snapshots exist
+only for the trend chart.
+
+### 11.8 Notifications
+
+| Table | Key columns |
+|---|---|
+| `notification_templates` | `key VARCHAR(48) UNIQUE, channel ENUM(sms,email,push), name_bn, subject_bn NULL, body_bn TEXT, body_en TEXT NULL, variables JSON, is_active, updated_by` |
+| `notification_queue` | `id, channel, recipient VARCHAR(160), template_key, payload JSON, related_type, related_id, scheduled_at, priority TINYINT, attempts TINYINT, max_attempts TINYINT, status ENUM(pending,sending,sent,failed,cancelled,skipped), last_error TEXT NULL, provider_message_id VARCHAR(96) NULL, locked_by VARCHAR(64) NULL, locked_at NULL, sent_at NULL, created_at` |
+| `sms_logs` | `id, queue_id NULL, to_phone, template_key, body_bn TEXT(1000), provider VARCHAR(32), provider_message_id, status ENUM(queued,sent,delivered,failed,rejected,unknown), error_code, cost DECIMAL(8,4), segments TINYINT, sent_at, delivered_at NULL, ip NULL` |
+| `email_logs` | `id, queue_id NULL, to_email, template_key, subject_bn, body_html MEDIUMTEXT NULL, provider, provider_message_id, status ENUM(queued,sent,delivered,bounced,opened,failed), error, opened_at NULL, sent_at` |
+| `push_subscriptions` | `id, user_id FK, endpoint VARCHAR(500) UNIQUE, p256dh VARCHAR(255), auth VARCHAR(255), user_agent, created_at, last_used_at` |
+| `notification_reads` | `id, user_id FK, notice_id FK, read_at` — UNIQUE(user_id, notice_id) |
+| `sms_credits_cache` | `id, provider, balance DECIMAL(12,2), checked_at` |
+
+### 11.9 System
+
+| Table | Key columns |
+|---|---|
+| `imports` | `id, kind ENUM(applications,marks,attendance,students), file_path, original_name, total_rows, success_rows, failed_rows, error_report_path NULL, status, is_dry_run BOOL, mapping JSON, created_by, created_at, finished_at NULL` |
+| `exports` | `id, kind, filters JSON, file_path, rows_count, is_watermarked BOOL, created_by, created_at, expires_at, downloaded_count` |
+| `backups` | `id, kind ENUM(database,uploads,full), filename, size_bytes BIGINT, checksum CHAR(64), location ENUM(local,offsite), status ENUM(running,done,failed), created_at, expires_at, restored_at NULL` |
+| `worker_locks` | `name VARCHAR(64) PK, locked_by VARCHAR(64), locked_at, expires_at` |
+| `system_events` | `id, level ENUM(info,warn,error,critical), event VARCHAR(64), message TEXT, context JSON, ip, created_at` |
+| `email_verifications` | `id, email, token_hash, purpose, expires_at, used_at, created_at` |
+| `rate_limit_counters` | optional DB-backed fallback if Flask-Limiter storage is file-based |
+
+### 11.10 Schema totals & seed data
+
+**≈ 52 tables.** Seed scripts (`flask seed`) populate:
+8 divisions · 4 districts · 41 upazilas · 1 package-4 record with the JV partner ·
+4–8 training centres + 4–8 exam centres (from your list, §26 Q4) ·
+1 open batch with real dates · 6 modules · ~12 FAQs · ~6 notification templates ·
+~40 settings rows · ~8 CMS pages · a `super_admin`.
+
+---
+
+## 12. Service Layer
+
+Business logic lives here — routes stay thin (validate → call service → render).
+
+| Service | Responsibilities | Key methods |
+|---|---|---|
+| `application_service` | Validation orchestration, uniqueness, photo pipeline, `application_no` generation, status machine, correction flow | `submit(payload, files, ip, ua)`, `generate_application_no(batch)`, `transition(app, to_status, actor, note)`, `request_correction(app, note, actor)`, `resubmit(token, payload)` |
+| `roll_number_service` | District-prefixed gap-free sequences under a DB lock; account provisioning | `allocate_rolls(batch, district_id, only_eligible=True)`, `regenerate_preview(...)`, `provision_portal_accounts(merit_list, actor)`, `resend_invite(app)` |
+| `allocation_service` | Exam centre + room + seat allocation | `auto_allocate(batch, strategy, respect_district=True)`, `manual_assign(app_ids, center_id)`, `clear(app_ids)`, `capacity_report(batch)` |
+| `admission_service` | Eligibility screening, dedupe detection, bulk review | `screen(batch, rules)`, `find_duplicates(batch, strategy)` , `bulk_review(ids, action, actor)` |
+| `exam_service` | Attendance + marks entry, totals, verification, publication | `mark_attendance(exam, rows, actor)`, `save_marks(exam, rows, actor)`, `recompute_totals(exam)`, `verify(exam, actor)`, `publish(exam, actor)` |
+| `merit_service` | Ranking, tie-breakers, quotas, waitlist promotion | `build(batch, seat_count, tie_breakers, quotas)`, `reorder(merit_list, ordered_ids, reason, actor)`, `promote_from_waitlist(merit_list, n, actor)`, `publish(merit_list, channels, actor)` |
+| `enrollment_service` | Enrollment creation, completion, dropout | `enroll_from_merit(merit_list, center_map, actor)`, `recompute_progress(enrollment)`, `mark_complete(enrollment)`, `drop(enrollment, reason)` |
+| `attendance_service` | Bulk attendance, percentages, TA day counting | `bulk_mark(schedule_id \| date, rows, actor)`, `recompute(enrollment, batch)`, `ta_report(batch, month)`, `export_sheet(schedule_id)` |
+| `certificate_service` | Issue, revoke, bulk generate, verify | `issue(enrollment, template, actor)`, `bulk_issue(batch, template, actor)` (queued), `revoke(cert, reason, actor)`, `verify(lookup_type, value, ip, ua)`, `generate_pdf(cert)` |
+| `document_service` | Render every printable document | `admit_card(app)`, `application_copy(app)`, `transcript(app)`, `merit_list_pdf(ml)`, `attendance_report(enrollment, range)`, `id_card(enrollment)` |
+| `pdf_service` | Engine abstraction + Bangla text safety | `render(html, base_url, out_path)` with engine detection (§13) |
+| `qr_service` | QR generation (segno) + inline SVG/PNG + verification URLs | `make_png(data, size)`, `make_svg(data)`, `verification_url(code)` |
+| `upload_service` | Magic-byte sniffing, size limits, Pillow re-encode, EXIF strip, random names, thumbs, storage outside webroot | `save_photo(file_storage, app_id)`, `save_document(...)`, `delete(path)`, `signed_url(path, expires)` |
+| `sms_service` | Provider-agnostic send, Bangla length/segment budgeting, cost logging, dry-run | `send(phone, body, template_key=None)`, `bulk(recipients, body, template_key)`, `balance()`, `normalize_phone(p)` |
+| `email_service` | SMTP/provider send, template render, attachments, bounce tracking | `send(to, template_key, ctx, attachments=None)`, `bulk(...)` |
+| `otp_service` | OTP generation/storage/verification, throttling | `issue(user_or_email, purpose, channel)`, `verify(...)` |
+| `notification_service` | Queue management, cron drain, template rendering, segmentation | `enqueue(channel, recipient, template_key, payload)`, `drain(limit, batch_size)`, `segment(name, filters)`, `preview_count(segment)` |
+| `stats_service` | Live KPI computation + caching + snapshots | `live_metrics(batch=None)`, `district_breakdown(batch)`, `funnel(batch)`, `snapshot()` |
+| `import_export_service` | CSV/XLSX in & out with dry-run, mapping, error reports, watermarking | `preview(file, kind, mapping)`, `commit(preview_id, actor)`, `export(kind, filters, actor, fmt)`, `error_report(preview_id)` |
+| `audit_service` | Write + diff + redact | `log(actor, action, entity, before, after)`, `diff(before, after)` |
+| `backup_service` | DB + uploads archive, rotation, restore | `create(kind)`, `prune(days)`, `restore(backup_id)` (super_admin + typed confirm) |
+| `retention_service` | Anonymise expired PII, purge expired exports/tokens | `anonymize_rejected(before_date)`, `purge_exports()`, `purge_tokens()` |
+| `providers/` | Adapters | `sms/{bulksmsbd,greenweb,sslwireless,mimsms,dryrun}.py`, `email/{smtp,sendgrid,brevo,dryrun}.py`, `pdf/{weasyprint,playwright,html}.py` |
+
+---
+
+## 13. Documents, PDF & Bangla Rendering
+
+> ⚠️ **This is the single highest technical risk in the project.** Bangla is a complex-script
+> language with conjuncts, matras and reordering. `reportlab` and `fpdf2` do **not** perform
+> complex-script shaping — they will render broken Bangla (detached matras, wrong conjunct
+> order). Any plan that says "just use reportlab" is wrong.
+
+### 13.1 Documents to produce
+
+| Document | Trigger | Contents |
+|---|---|---|
+| **Application Copy** | On submit (+ any time via signed link) | Photo, app no, reg no, all submitted data, submitted timestamp, instructions |
+| **Admit Card** | On publication | Photo, roll, reg no, name, district, exam centre + address + map QR, exam date/time, room & seat, seat-serial, Bangla instructions, signature line |
+| **Merit List** | On publish | Ranked ruled table, seat count, tie-breaker note, seal |
+| **Result Transcript** | On result publish | Roll, name, per-component marks, total, result, merit position |
+| **Attendance Report** | On demand (student/admin) | Date-wise status, totals, %, TA-eligible days |
+| **Certificate** | On issue | Template background, name, father/mother, roll, reg, centre, batch, training period, hours, grade, certificate no, issue date, **QR → `/verify/<code>`**, signature/seal blocks, verification code in text |
+| **Student ID Card** | Optional | Photo, roll, batch, centre, blood group, contact |
+| **Exam Attendance Sheet** | On demand | Roll-sorted printable sheet with signature column |
+| **Seat Plan** | On demand | Room-wise seating chart |
+
+### 13.2 Engine strategy — layered fallback (the safe answer)
+
+```
+def render_pdf(html, out_path):
+    if weasyprint_available():     # best Bangla shaping (Pango/HarfBuzz)
+        return weasyprint_render(html, out_path)
+    if playwright_available():     # perfect rendering, heavier
+        return playwright_render(html, out_path)
+    return None                    # caller falls back to the print view
+```
+
+| Layer | Engine | Bangla quality | Deploy cost |
+|---|---|---|---|
+| 1 | **WeasyPrint** | ★★★★★ (real shaping via Pango) | needs `libpango`, `libcairo`, `libgdk-pixbuf`, `libffi` on the server |
+| 2 | **Playwright + Chromium** | ★★★★★ | ~300 MB binary; runs from `~/.cache/ms-playwright`; usually fine on cPanel but slow first run |
+| 3 | **HTML print view** | ★★★★★ (browser does the shaping) | zero deps, always works |
+
+**Every document therefore ships as a clean, print-optimised HTML page** with `@media print`
+rules, a "প্রিন্ট / PDF সেভ করুন" button, and — where a real PDF exists — a "PDF ডাউনলোড" button.
+This guarantees the site is **never blocked** by a PDF engine, and upgrading to true server-side
+PDF later is a config change, not a refactor.
+
+**Fonts embedded:** `kalpurush.ttf` / `nikosh.ttf` / `NotoSansBengali-Regular.woff2` are
+`@font-face`-declared with **absolute URLs** in document templates so headless engines can
+resolve them. WeasyPrint is configured with a `base_url` pointing at the static folder.
+
+**Bulk generation** (e.g. 2,000 admit cards) is **never done in a request**: the admin triggers a
+job, rows go into `notification_queue`-style processing via cron, PDFs land in `var/generated/`,
+and a ZIP + progress bar appear in the admin. If only Layer 3 is available, the admin gets a
+print-optimised multi-page sheet (N per page) which is what a real exam hall actually wants anyway.
+
+### 13.3 QR codes
+
+`segno` (pure Python, no Pillow required for SVG) generates:
+- admit card QR → `https://<domain>/a/<signed_code>` → resolves to the admit card lookup
+- certificate QR → `https://<domain>/verify/<verification_code>`
+- Inline as **SVG in HTML** (crisp print, no image request) and as PNG for PDF engines.
+
+### 13.4 Signatures, seals and security printing
+
+- Signature images (DG / Director) stored as transparent PNGs in `static/img/signatures/`,
+  uploadable by `super_admin` only.
+- A subtle **guilloche-style background pattern** (SVG) behind the certificate to make
+  photocopying obvious.
+- The **roundel seal** is drawn as inline SVG so it prints at any DPI.
+- Every issued certificate records `printed_count`; the verification page shows
+  "যাচাই করা হয়েছে N বার — সর্বশেষ <timestamp>".
+
+---
+## 14. Authentication & Security Design
+
+### 14.1 The three identity types
+
+| Type | Credential | Account exists when | Session |
+|---|---|---|---|
+| **Applicant** | *none* | never | no session — public lookups use signed URLs |
+| **Student** | Roll + Mobile **OR** Email + Password | **only at merit publication** | 60 min idle / 12 h absolute |
+| **Staff** | Email + Password (+ optional TOTP) | created by `super_admin` | 30 min idle / 8 h absolute |
+
+### 14.2 Student login — exact mechanics
+
+**TAB 1 — 「পরীক্ষার রোল ও মোবাইল নম্বর」 (primary, BD-friendly, no password to forget)**
+
+```
+POST /portal/login
+  login_mode = roll
+  exam_roll_number = "100001"
+  phone           = "01712345678"
+```
+Server:
+1. Normalise the roll (trim, uppercase, strip non-alphanumerics) and the phone
+   (strip `+88` / `88`, leading zeros → exactly 11 digits).
+2. `SELECT … FROM applications WHERE exam_roll_number = ? AND portal_access_enabled = 1
+   AND status IN ('selected','enrolled','in_training','completed','certified')`
+3. Compare `application.applicant.phone` to the supplied phone in **constant time**.
+4. On success: `login_user(user, remember=form.remember)`, log `login_attempts(success)`,
+   update `last_login_*`, rotate the session id.
+5. On failure: **the same generic message** for "roll not found", "roll not selected" and
+   "phone mismatch" → `"রোল নম্বর অথবা মোবাইল নম্বর সঠিক নয়।"` — except for the one case where
+   we deliberately help: roll exists, is a valid candidate, but is **not yet selected** →
+   `"আপনি এখনো চূড়ান্তভাবে নির্বাচিত হননি। মেধা তালিকা প্রকাশের পর SMS-এ জানানো হবে।"`
+   (This is a deliberate trade-off: it prevents an enumeration oracle for the selected set
+   while still being kind to the 80% who are waiting.)
+
+**Rate limiting / anti-enumeration**
+- 5 failed attempts per (roll) per 15 min → 15 min lock, `login_attempts` row, admin alert email.
+- 20 failed attempts per IP per 15 min → 1 h IP throttle.
+- After 3 failures on an IP, the form gains **Cloudflare Turnstile**.
+- Every attempt (success *and* failure) is logged with IP + UA; a dashboard panel shows
+  "suspicious login attempts in the last 24 h".
+- The roll space is 4 districts × 5 digits — small enough to enumerate, which is exactly why
+  the **mobile factor is mandatory** and rate limiting is aggressive.
+
+**Optional hardening (settings flag `ROLL_LOGIN_REQUIRE_OTP`, default `false`)**
+When on: Roll + Mobile succeeds only to the point of sending a 6-digit OTP to the **registered**
+mobile; the session begins after OTP entry. Costs one SMS per login — recommended **on for the
+first login only**, then this device is remembered for 90 days via a signed cookie. Default
+recommendation: **first-login OTP = ON**, subsequent logins = Roll + Mobile only.
+
+**TAB 2 — 「ইমেইল ও পাসওয়ার্ড」**
+
+```
+POST /portal/login
+  login_mode = email
+  email    = "user@example.com"
+  password = "••••••••"
+  remember = on/off
+```
+- Only succeeds if `must_set_password = 0`. Freshly provisioned students have an
+  **unmatchable placeholder hash** so this path is closed until they deliberately set a password.
+- Password set via the **selection email invite link** (72 h, single-use, hashed token) or via
+  `/portal/forgot-password` (email OTP).
+- Password policy: min 8 chars, at least one letter + one digit, rejected against a common-password
+  list, bcrypt cost 12.
+
+### 14.3 Account provisioning (the selection gate)
+
+```
+merit_service.publish(merit_list, channels, actor)
+  ├─ guard: every mark verified; no unresolved corrections; attendance complete
+  ├─ tx: for each entry with final_status='selected'
+  │     ├─ users row: role='student', full_name_bn, email (from applicant),
+  │     │             password_hash = UNMATCHABLE,  must_set_password = TRUE
+  │     ├─ token   : itsdangerous signed, 72 h, single-use, hashed in password_reset_tokens
+  │     ├─ applications.student_user_id = user.id
+  │     ├─ applications.portal_access_enabled = TRUE
+  │     └─ enrollments row
+  ├─ audit_logs: 'merit.publish' with counts
+  ├─ queue: SMS  "অভিনন্দন! আপনি নির্বাচিত হয়েছেন। রোল: {roll} …"
+  ├─ queue: EMAIL invitation with set-password link
+  └─ result_publications.is_published = TRUE   ← only now do public lookups reveal results
+```
+
+**There is no other code path that creates a student user.** A test asserts this.
+
+### 14.4 Admin console hardening (vs the reference site's shared login)
+
+| Control | Implementation |
+|---|---|
+| Separate URL | `ADMIN_URL_PREFIX` env (default `ops-sylhet`), so `/admin` stays a 404 |
+| Separate cookie | Admin session cookie name + path scoped to the prefix |
+| Separate rate limit | 3 attempts / 10 min, then 30 min lock, then TOTP challenge |
+| TOTP 2FA | Required for `super_admin`, optional for others; QR enrollment; 10 single-use recovery codes |
+| IP allowlist | Optional `ADMIN_IP_ALLOWLIST` (CIDR list); off by default, recommended on for `super_admin` |
+| Session binding | Session invalidated if the UA hash changes materially |
+| Idle timeout | 30 min with a warning modal at 28 min |
+| No directory listing | `/admin`, `/ops`, `/backend`, `/manage` all 404 |
+| Every write audited | with before/after diff |
+
+### 14.5 Application-layer protections
+
+| Threat | Control |
+|---|---|
+| CSRF | `Flask-WTF` `CSRFProtect` globally; every POST form carries a token; AJAX sends `X-CSRFToken` |
+| XSS | Jinja autoescape on; **no `|safe` on user content**; CMS bodies sanitised through `bleach` on save; strict CSP |
+| SQL injection | SQLAlchemy parameterised queries only; zero raw string SQL except reviewed reporting queries |
+| File upload RCE | Store **outside the webroot** (`~/uploads`, not `~/public_html`); magic-byte sniff; Pillow re-encode; random names; `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff` on the `/media/` route; **no execution permissions** on the upload dir (documented chmod) |
+| Path traversal | `werkzeug.utils.secure_filename` + explicit whitelist + `os.path.realpath` containment check |
+| Brute force | Flask-Limiter per route + per identifier; lockouts; Turnstile |
+| Enumeration | Generic errors; rate limits on all lookups; signed `/media/` URLs; `robots.txt` disallow |
+| Spam applications | Honeypot + min-time-on-form + Turnstile + 1-per-phone + 3-per-IP-per-day |
+| PII leakage | Fernet-encrypted NID/birth-reg; masked display; `pii.unmask` permission; encrypted fields excluded from exports unless permitted; audit redaction |
+| Session theft | `Secure` + `HttpOnly` + `SameSite=Lax`; session id rotation on login; idle + absolute timeouts; "log out everywhere" |
+| CSV injection | Prefix `=`, `+`, `-`, `@` with `'` in every cell of every export |
+| Clickjacking | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
+| Transport | HSTS 1 year; force HTTPS in `.htaccess`; secure cookies |
+| Dependency risk | `pip-audit` in CI; pinned `requirements.txt` with hashes |
+| Secrets | Only in `.env` on the server, `chmod 600`, **never** in git, **never** uploaded by `deploy.sh`; secret settings are write-only in the UI |
+| Deletion safety | Soft delete everywhere; hard delete requires `super_admin` + typed entity name |
+| Backup safety | Backups stored outside the webroot; filenames non-guessable; restore is super_admin-only with typed confirmation |
+
+### 14.6 Security response headers (`.htaccess` + `after_request`)
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';
+  script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;
+  font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none';
+  object-src 'none'; upgrade-insecure-requests
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()
+Cross-Origin-Opener-Policy: same-origin
+```
+`'unsafe-inline'` for styles is required by the print/CMS path; scripts have **no** inline
+exception — all JS is in files, with nonce-based exceptions only where genuinely unavoidable.
+
+### 14.7 Privacy & legal compliance
+
+- Bangla **privacy policy** (mirroring and extending the national one) and **terms of use**,
+  CMS-editable, with a stated retention period.
+- Explicit consent checkbox on the application form with a link to the policy.
+- Data-collection notice listing every field and its purpose (the national policy already does
+  this well — we mirror it).
+- `retention_service` anonymises rejected applicants' PII after `RETENTION_MONTHS_REJECTED`
+  (default 24) — name → `আবেদনকারী #<id>`, phone/email/NID hashed, photo deleted.
+- Data-subject request flow: an admin action "Export my data" / "Erase my data" with an audit
+  trail and a legal-hold flag.
+- Cookie notice for the single functional session cookie (no third-party tracking, no analytics
+  by default — if analytics are wanted, self-hosted Plausible/Umami, never GA).
+
+---
+
+## 15. Notifications (SMS + Email + PWA Push)
+
+### 15.1 Channels
+
+| Channel | Provider strategy | Fallback |
+|---|---|---|
+| **SMS** | Pluggable adapter: `bulksmsbd`, `greenweb`, `sslwireless`, `mimsms`, `alpha`, `dryrun` | `dryrun` logs to DB in dev; queue retries 3× with backoff |
+| **Email** | cPanel SMTP first (free, on the same host), then Brevo/SendGrid/Resend adapter | queue + retry; bounced addresses flagged in admin |
+| **PWA Push** | Web Push via VAPID (optional, phase 2) | in-app notification bell always works |
+
+### 15.2 Bangla SMS reality check (important, affects budget)
+
+Bangla SMS is **UCS-2**, not GSM-7. That means **70 characters per segment**, not 160.
+A typical notification is 2–3 segments. Practical implications:
+
+- Every template has a **character counter in the admin editor** with a live segment count and a
+  cost estimate per recipient.
+- Templates are written to fit **≤140 characters** (2 segments) wherever possible.
+- `sms_service` normalises Bangla digits and strips zero-width characters that inflate lengths.
+- Bulk sends show a **confirmation dialog with recipient count × segments × rate = ৳ total**.
+- `sms_logs.cost` and `sms_logs.segments` are populated per message so the department can see
+  actual spend; a monthly cost report is available in Reports.
+
+### 15.3 Message catalogue (all Bangla, all editable)
+
+| Template key | Channel | Trigger | Draft (≈ chars) |
+|---|---|---|---|
+| `app.submitted` | SMS+Email | On application submit | `আবেদন সফল হয়েছে। আবেদন নম্বর: {app_no}। প্রবেশপত্র পরবর্তীতে SMS-এ জানানো হবে। —যুব উন্নয়ন অধিদপ্তর` |
+| `app.correction_needed` | SMS | Admin flags | `আপনার আবেদনে সংশোধন প্রয়োজন: {reason}। লিংক: {link}` |
+| `app.rejected` | SMS+Email | Rejection | `দুঃখিত, আপনার আবেদন {app_no} যাচাইয়ের পর গৃহীত হয়নি। —যুব উন্নয়ন অধিদপ্তর` |
+| `admit.published` | SMS+Email | Admit card published | `প্রবেশপত্র প্রকাশিত! রোল: {roll}। পরীক্ষা: {date} {time}। কেন্দ্র: {center}। ডাউনলোড: {link}` |
+| `exam.reminder_3d` | SMS | 3 days before | `মনে করিয়ে দিচ্ছি—{date} তারিখে আপনার AI প্রকল্পের লিখিত পরীক্ষা। প্রবেশপত্র সাথে আনুন।` |
+| `exam.reminder_1d` | SMS | 1 day before | `আগামীকাল {date} আপনার পরীক্ষা, কেন্দ্র {center}। সময় {time}। প্রবেশপত্র ও ছবি সাথে আনুন।` |
+| `result.published` | SMS+Email | Result publish | `ফলাফল প্রকাশিত! রোল {roll}। মেধাস্থান: {rank}। বিস্তারিত: {link}` |
+| `merit.selected` | SMS+Email | Selection | `🎉 অভিনন্দন {name}! আপনি চূড়ান্তভাবে নির্বাচিত। রোল {roll}। পাসওয়ার্ড সেট করুন: {link}` |
+| `merit.waitlisted` | SMS | Waitlist | `আপনি অপেক্ষমাণ তালিকায় আছেন (মেধাস্থান {rank})। আসন খালি হলে জানানো হবে।` |
+| `merit.not_selected` | SMS | Not selected | `দুঃখিত, এবারের মেধা তালিকায় আপনি নির্বাচিত হননি। পরবর্তী ব্যাচে আবার আবেদন করতে পারবেন।` |
+| `portal.invite` | Email | Provisioning | HTML email with the set-password button |
+| `portal.password_set` | Email | Password change | Security confirmation |
+| `train.class_reminder` | SMS | Daily 7 pm before class | `আগামীকাল {date} {time}-এ আপনার ক্লাস {room}। উপস্থিতি বাধ্যতামূলক।` |
+| `train.attendance_warning` | SMS | Attendance < 80% | `আপনার উপস্থিতি {percent}%। ৮০% এর নিচে হলে ভাতা ও সনদ ঝুঁকিতে পড়বে।` |
+| `train.completed` | SMS+Email | Completion | `অভিনন্দন! আপনার ৩০০ ঘণ্টার প্রশিক্ষণ সম্পন্ন হয়েছে। সনদ শীঘ্রই ইস্যু হবে।` |
+| `cert.issued` | SMS+Email | Certificate issued | `আপনার সনদ ইস্যু হয়েছে। সনদ নম্বর {cert_no}। ডাউনলোড: {link}` |
+| `otp.send` | Email | Forgot password | 6-digit OTP, 15 min expiry |
+| `admin.daily_digest` | Email | Cron 9 pm | Yesterday's applications, pending reviews, queue health |
+| `admin.error_alert` | Email | Critical error | Exception summary + request id |
+
+### 15.4 Queue mechanics
+
+```
+enqueue → notification_queue (status=pending, priority, scheduled_at)
+cron_queue.sh (every 2 min, flock-guarded)
+   └─ drain(limit=200, batch_size=25)
+        ├─ claim rows with UPDATE … SET status='sending', locked_by=<runner>
+        ├─ render template with payload → channel service
+        ├─ success → sent + sms_logs/email_logs row
+        └─ failure → attempts+1, exponential backoff (1m, 5m, 30m), max 3 → failed
+```
+- `worker_locks` row prevents concurrent cron runs.
+- A **"Notification Queue"** admin screen shows pending / sent / failed counts with a
+  **Retry failed** button and per-message error detail.
+- **Dedupe:** the same `(recipient, template_key, related_id)` is never queued twice within 24 h.
+- **Quiet hours:** reminders are scheduled 9 am–8 pm Asia/Dhaka only (configurable).
+
+---
+
+## 16. Bangla Language, Fonts & Number Handling
+
+### 16.1 Locale architecture
+
+- **Bangla is primary.** `BABEL_DEFAULT_LOCALE = 'bn'`. English is a secondary toggle.
+- Storage is **locale-neutral**: DB prose columns are `*_bn` / `*_en` pairs; UI strings live in
+  `translations/bn/LC_MESSAGES/messages.po` and `.../en/...`.
+- Locale selection order: `?lang=` → cookie `lang` → `Accept-Language` → default `bn`.
+- `url_for` is locale-agnostic (no `/bn/` prefixes) to keep links short for SMS — locale is a
+  cookie, not a path segment.
+- **Numbers, dates and currency are formatted at render time**, never stored formatted.
+- Numbers stay **Latin in data contexts** (roll, marks, certificate no, phone) for unambiguous
+  phone-keypad entry, and become **Bangla numerals in prose** via the `bn_num` filter.
+  A user-facing toggle switches data numerals too (some officials prefer Bangla numerals).
+- Dates: `bn_date` → `২৩ সেপ্টেম্বর ২০২৬`; in tables → `২৩/০৯/২০২৬`. Months in Bangla names,
+  Bangla weekday names. Time as `সকাল ১০:০০` / `দুপুর ২:৩০` / `বিকাল ৪:০০` (Bangla
+  time-of-day prefixes — a detail that instantly reads as authentically Bangla, not translated).
+- Currency: `৳ ১,২৮২,১৭৯` (Bangla lakh/crore grouping option for reports).
+
+### 16.2 Fonts (self-hosted — no CDN on a government site)
+
+| Font | Use | Weights | Format |
+|---|---|---|---|
+| **Noto Serif Bengali** | Display headings, hero, certificate | 600, 700 | woff2 (subset) |
+| **Noto Sans Bengali** | Body, UI, forms | 400, 500, 600 | woff2 (subset + full) |
+| **Kalpurush** | Fallback, documents, print | 400 | ttf |
+| **Nikosh** | Certificate body (the classic Bangladeshi certificate face) | 400 | ttf |
+| **IBM Plex Sans** | Numerals, stats, tables, admin UI | 400, 500, 600 | woff2 |
+
+- `@font-face` with `font-display: swap`, `unicode-range` for the Bengali block so Latin-only
+  pages don't download Bengali fonts and vice-versa.
+- Preload only the two fonts needed for above-the-fold text.
+- Total font budget: **≤ 220 KB** for the critical path (measured with `fonttools` subsetting).
+
+### 16.3 Bangla typography rules enforced in CSS
+
+- No `letter-spacing` on Bangla text (it breaks conjuncts visually) — enforced by a
+  `.bn { letter-spacing: normal }` rule applied to `lang="bn"` elements.
+- No `text-transform: uppercase` on Bangla.
+- Line-height **≥ 1.7** for Bangla body (matras and descenders need vertical room).
+- No `text-decoration: underline` on Bangla body text (it collides with matras) — use colour
+  and weight for links in prose, underline only in nav/buttons.
+- Word-break: `break-word` + `overflow-wrap: anywhere` on long Bangla compound words and
+  roll strings; never `hyphens: auto` (no Bangla hyphenation dictionary).
+- Numerals inside Bangla sentences get `font-feature-settings: "tnum"` and a Latin font stack
+  so they don't render as Bangla digits inside a roll number.
+
+**Where these live in `source.css`** — they are global rules, not per-component discipline:
+
+```css
+[lang="bn"]                     { letter-spacing: normal; text-transform: none; }
+[lang="bn"] h1, [lang="bn"] h2  { font-family: var(--font-display); text-wrap: balance; }
+.prose-bn                        { max-width: var(--container-prose); line-height: 1.75;
+                                   overflow-wrap: anywhere; }
+.prose-bn a:not(.btn)            { text-decoration: none; border-bottom: 1px solid currentColor; }
+.num, .font-num                  { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+```
+
+This matters more with Tailwind than it did with hand-written CSS: `tailwindcss-typography` and
+people's muscle memory both reach for `tracking-wide` and `uppercase`. Because the Bangla guards
+are attribute-scoped global rules, **`<h2 lang="bn" class="tracking-wide uppercase">` still
+renders correctly** — the guard wins on specificity regardless of what a developer types.
+
+### 16.4 Input handling
+
+- Every text input normalises Unicode **NFC** on the server (`unicodedata.normalize`).
+- Zero-width joiner/non-joiner (`U+200D`, `U+200C`) preserved in Bangla (needed for correct
+  conjunct rendering) but stripped from search-normalised fields.
+- Names are stored in Bangla *and* optionally in English (certificates often need both);
+  a "transliterate" helper is offered but **never auto-applied** — mis-transliterated names on a
+  government certificate are worse than no English name.
+- Phone input accepts Bangla digits (`০১৭…`) and converts to Latin on save — a small touch that
+  removes a real friction point on Bangla keyboards.
+
+---
+
+## 17. PWA, Performance & SEO
+
+### 17.1 PWA
+
+| Item | Implementation |
+|---|---|
+| Manifest | `name: "AI সিলেট — যুব উন্নয়ন অধিদপ্তর"`, `short_name: "AI Sylhet"`, `display: standalone`, `theme_color: #0B4A32`, `background_color: #FAF9F4`, `orientation: portrait-primary`, `lang: bn`, `dir: ltr`, icons 192/512 + maskable |
+| Service worker | Cache-first for `static/**` (versioned), stale-while-revalidate for public pages, **network-only for `/portal/*`, `/ops-sylhet/*`, `/api/*`, and all POSTs** (never cache authenticated data) |
+| Offline page | Bangla "আপনি অফলাইনে আছেন" with cached hotline + centre list (genuinely useful) |
+| Install prompt | Custom Bangla button in the footer; hidden until `beforeinstallprompt` |
+| Push | Optional (phase 2) via `push_subscriptions`; used only for class reminders and result publication |
+| Scope | Public + portal. **Admin console is explicitly excluded** from the service worker |
+
+### 17.2 Performance budget
+
+| Metric | Target |
+|---|---|
+| LCP (3G, mid-tier Android) | **< 2.5 s** on public pages |
+| CLS | < 0.05 |
+| INP | < 200 ms |
+| First-load JS (public) | **< 40 KB gzipped** |
+| CSS (public, all of it) | **< 45 KB gzipped** (CI-enforced) |
+| Fonts (critical) | < 220 KB |
+| Images | AVIF/WebP with `<picture>`, explicit `width`/`height`, `loading="lazy"` below fold |
+| Total home page weight | **< 700 KB** |
+
+Techniques: **one compiled Tailwind stylesheet** (no Bootstrap, no component library, no CSS
+framework CDN), Tailwind v4 template scanning so unused utilities never ship, no jQuery,
+ES modules with `defer`, inline critical CSS for the header/hero only (a 2 KB block extracted
+by `tools/extract-critical.py`), `Cache-Control: immutable` on hash-versioned assets, Brotli on
+the server where supported, `fetchpriority="high"` on the hero image, DB query count per page
+monitored with a dev toolbar and a test that asserts the home page runs **≤ 8 queries**.
+
+**Tailwind-specific budget guard:** the wiped default palette (§7.3) removes roughly a third of
+Tailwind's possible output before we start. CI fails the build if `app.css` exceeds
+**45 KB gzipped** — which is generous for a two-density, 40-component system and stops
+utility sprawl from creeping in unnoticed.
+
+### 17.3 SEO
+
+- Server-rendered HTML (no JS-dependent content).
+- Per-route `<title>` and meta description in Bangla, editable via `seo_meta`.
+- JSON-LD: `Organization` (DYD), `Course` (the AI course), `Event` (the batch), `FAQPage`,
+  `BreadcrumbList`.
+- `sitemap.xml` generated from the route registry + published notices (cached 1 h).
+- `robots.txt`: allow public, **disallow `/portal/`, `/<prefix>/`, `/api/`, `/media/`,
+  `/apply/success/`, `/results?`, `/admit-card?`**.
+- Canonical URLs; `hreflang` not needed (single locale primary).
+- Open Graph + Twitter card with a proper Bangla OG image.
+- Lookup result pages are **`noindex`** (results contain personal data; must never appear in
+  search) — enforced by a header set in the lookup blueprint.
+
+---
+
+## 18. Admin Operations Runbook (how it is managed)
+
+### 18.1 Who does what
+
+| Role | Daily | Periodically |
+|---|---|---|
+| `data_entry` | Enter walk-in applications, upload documents, fix flagged records | — |
+| `district_coordinator` | Review own district's applications, mark flags, handle local queries | Weekly district progress report |
+| `exam_controller` | — | Centre setup, allocation, roll generation, admit cards, attendance sheets, marks |
+| `centre_coordinator` | Mark attendance, upload materials | Completion recommendations |
+| `admin` | Dashboard check, support inbox, approve/reject queue | Batch lifecycle, merit publish, blast approvals, reports to HQ |
+| `super_admin` | Health + queue + failed notifications check | Users, settings, backups, restore, retention, audit review |
+| `viewer` | — | Read reports only |
+
+### 18.2 Daily checklist (10 minutes, on the admin dashboard)
+
+1. **Queue health** widget — anything `failed`? Retry and read the error.
+2. **New applications** count vs yesterday — a sudden drop means a broken form; check immediately.
+3. **Suspicious logins** panel — > 20 failures in 24 h from one IP → block.
+4. **Support inbox** — nothing `urgent` unassigned.
+5. **Backup status** — last night's backup `done`, size sane, off-site copy present.
+6. **`/health`** green, error count in `system_events` at zero.
+
+### 18.3 The full admission cycle as an operator workflow
+
+```
+① BATCH SETUP        batches → create (SYL-B2) → set all dates → status = application_open
+                     verify /apply renders and the deadline countdown is correct
+② APPLICATION PERIOD monitor daily counts; export weekly to HQ
+③ DEADLINE           cron_deadline.sh flips status → application_closed at 23:59:59 Asia/Dhaka
+                     admin freezes edits, takes a manual DB backup (Backups → Create)
+④ SCREENING          applications → filter status=submitted
+                     → bulk action: "Run eligibility screen" (age, district, education, photo)
+                     → duplicates report → merge/reject duplicates
+                     → bulk approve to `eligible` or flag/reject individually
+⑤ ALLOCATION         exam-centers → create venues with capacity
+                     allocations → auto-allocate (district-matched, capacity-aware)
+                     → review overflow → manual fix → lock
+⑥ ROLLS              rolls → preview per district → generate → verify no gaps/dupes
+⑦ ADMIT CARDS        admit-cards → generate → review a sample PDF/print → PDF not available?
+                     use the print batch instead → bulk SMS
+⑧ EXAM DAY 1         exams → attendance grid (30-second-per-candidate keyboard flow)
+                     → mark present/absent → lock
+⑨ MARKS              exams → marks → entry grid (or paste from Excel)
+                     → another user runs Verify → 4-eyes applied
+⑩ PUBLISH RESULTS    exams → publish (checks: all verified)
+                     → SMS blast to all attendees
+⑪ VIVA               repeat ⑧–⑩ for the viva exam
+⑫ MERIT LIST         merit-lists → build (seat count, tie-breakers)
+                     → review ranking → manual reorder with reasons if needed
+                     → waitlist size set → publish
+⑬ PROVISIONING       publishing auto-creates accounts + sends invite emails + selection SMS
+                     students → spot-check 5 accounts (roll login works, email invite works)
+⑭ ENROLLMENT         enrollments → assign training centres (district-matched)
+                     → print centre-wise student lists for coordinators
+⑮ TRAINING           schedules → build recurring pattern
+                     attendance → daily marking by centre coordinators
+                     materials → upload per module
+                     weekly: attendance % watchlist → SMS warning to < 80%
+⑯ COMPLETION         enrollments → mark complete → recompute attendance/TA days
+⑰ CERTIFICATES       certificates → bulk issue → review samples → download ZIP → print
+                     → bulk SMS "সনদ ইস্যু হয়েছে"
+⑱ ARCHIVE            batch → status completed; open the next batch
+```
+
+Estimated operator time for a 2,500-application batch: screening ~2 days, allocation ~2 hours,
+marks for 2,500 candidates ~3 days of grid entry (or 4 hours with Excel paste), certificates
+~1 hour including printing.
+
+### 18.4 Escalation & incident runbook
+
+| Symptom | First action | Deep fix |
+|---|---|---|
+| Site 500 | Check `var/logs/app.log` + `/health` → restart the Passenger app (touch `tmp/restart.txt`) | Roll back with `./rollback.sh` |
+| Applications not saving | Check disk quota, DB connection, upload dir permissions | Read `system_events` |
+| SMS not delivering | Check provider balance on the dashboard widget | Fail over to the backup provider via Settings |
+| Emails landing in spam | Check SPF/DKIM/DMARC records | Switch to Brevo/SendGrid |
+| Slow admin lists | Check MySQL slow log, missing index | Add index via migration |
+| Wrong roll numbers published | **Do not delete.** Use "revoke rolls" to return them to the pool, then regenerate; audit-log everything | Corrective SMS |
+| Certificate printed with a typo | Revoke + reissue with a new certificate number | Keep the revoked record for audit |
+| Data loss | Restore last night's backup to a staging DB, verify, then promote | Post-mortem in `system_events` |
+
+### 18.5 Handover documentation to produce
+
+- `ADMIN_GUIDE.md` — Bangla step-by-step with annotated screenshots for each of the 18 steps above.
+- `RUNBOOK.md` — the daily checklist, escalation table, deploy and rollback commands.
+- `DEPLOY.md` — server setup, DNS, SSL, cron, env vars.
+- A 90-minute recorded Bangla training session for the DYD Sylhet team, plus two live sessions
+  (pre-exam and pre-certificate).
+
+---
+
+## 19. Reports & Analytics
+
+| Report | Filters | Output | Purpose |
+|---|---|---|---|
+| **Application Summary** | batch, date range, district, upazila, gender, education | on-screen + CSV/XLSX/PDF | Daily/weekly HQ reporting |
+| **District-wise Progress** | batch | table + bar chart | Which districts are under-applying (**the most-used report**) |
+| **Upazila Heat List** | batch, district | ranked table | Targeted outreach — upazila-level gaps are invisible in national dashboards |
+| **Gender & Inclusion** | batch | % split vs 60/40 target, quota breakdown | Government gender target compliance |
+| **Education Profile** | batch | distribution | Cohort quality for the partner |
+| **Funnel** | batch | applied → eligible → attended → passed → selected → enrolled → certified, with drop-off % | Where the pipeline leaks |
+| **Exam Performance** | exam, district, centre | pass rate, mark distribution (histogram), per-component averages, top/bottom | Question-paper difficulty and centre quality |
+| **Attendance & TA** | batch, month, centre | present days, %, TA-eligible days, **total ৳ payable** | The finance-critical report |
+| **Completion & Certification** | batch | completed / dropped / certified, dropout reasons | Programme outcome |
+| **Certificate Register** | batch, date range | certificate no, roll, name, issue date, revocations, **verification lookup count** | Anti-forgery monitoring |
+| **Notification Cost** | month | SMS count, segments, ৳ cost per template, delivery rate | Budget control |
+| **SMS/Email Delivery** | date range, channel, status | sent/delivered/failed/bounced | Provider health |
+| **Application Source** | batch | online vs import vs admin; by hour of day | Peak-load planning |
+| **Audit Trail** | user, action, entity, date | full diff table | Accountability |
+| **Retention Review** | — | records eligible for anonymisation | Privacy compliance |
+
+**Export handling:** all exports are generated asynchronously for > 5,000 rows, are watermarked
+with `requested_by · timestamp · row_count · filters`, expire after 7 days, and are audit-logged
+with the filter set. CSV cells are injection-escaped.
+
+**HQ sync export (§3.3 non-goal replacement):** a `national_sync` export produces a CSV in the
+national schema (`national_ref_id` mapped) so Sylhet data can be merged into `dydaiproject.com`.
+
+### 19.1 Dashboard KPIs (admin home)
+
+```
+আজকের আবেদন      মোট আবেদন        পরীক্ষার উপযুক্ত    প্রবেশপত্র ইস্যু
+নির্বাচিত        ভর্তি             সনদপ্রাপ্ত           অপেক্ষমাণ রিভিউ
++ 30-day submissions sparkline   + district-wise bar table
++ live funnel                    + recent activity feed (from audit_logs)
++ deadline countdown             + queue/backup/health status strip
+```
+
+### 19.2 Public live-status metrics (Sylhet scope)
+
+Computed live, cached 300 s:
+`মোট আবেদন · নির্বাচিত প্রশিক্ষণার্থী · পুরুষ % · নারী % · ৪ জেলার পরিব্যাপ্তি ·
+উপজেলা কভারেজ (x/41) · সম্পন্ন ব্যাচ · চলমান ব্যাচ · চলমান প্রশিক্ষণার্থী ·
+কর্মসংস্থান হার · সনদ ইস্যু · সনদ যাচাই সংখ্যা` + target-vs-achieved vs
+`stats_targets` (seat target, gender targets, employment target).
+
+---
+
+## 20. Configuration & Environment Variables
+
+### 20.1 `.env.example` (complete)
+
+```ini
+# ── Core ────────────────────────────────────────────────
+APP_NAME="AI Sylhet"
+APP_ENV=production                 # development | testing | production
+APP_DEBUG=false
+SECRET_KEY=<64-byte random hex>            # flask secret; rotate = all sessions die
+APP_TIMEZONE=Asia/Dhaka
+APP_URL=https://sylhet.dydaiproject.com
+PREFERRED_URL_SCHEME=https
+SITE_LOCALES=bn,en
+SITE_DEFAULT_LOCALE=bn
+MAINTENANCE_MODE=false
+
+# ── Database ────────────────────────────────────────────
+# dev:  sqlite:///instance/dyd_sylhet.db
+DATABASE_URL=mysql+pymysql://USER:PASS@localhost/DBNAME?charset=utf8mb4
+DB_POOL_SIZE=5
+DB_POOL_RECYCLE=280
+DB_ECHO=false
+SQLITE_PATH=instance/dyd_sylhet.db        # used when DATABASE_URL is a sqlite://
+
+# ── Session / Security ──────────────────────────────────
+SESSION_COOKIE_NAME=sylhet_ai_session
+SESSION_COOKIE_SECURE=true
+SESSION_COOKIE_HTTPONLY=true
+SESSION_COOKIE_SAMESITE=Lax
+PERMANENT_SESSION_LIFETIME_SECONDS=43200   # 12h absolute
+IDLE_TIMEOUT_SECONDS=3600                  # student
+ADMIN_IDLE_TIMEOUT_SECONDS=1800
+ADMIN_URL_PREFIX=ops-sylhet                # admin lives here; /admin stays 404
+ADMIN_IP_ALLOWLIST=                        # e.g. 103.1.2.3/32,10.0.0.0/8 (empty = off)
+BCRYPT_LOG_ROUNDS=12
+PII_ENCRYPTION_KEY=<fernet key>            # generate: python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"
+ALLOWED_HOSTS=sylhet.dydaiproject.com,localhost,127.0.0.1
+
+# ── Login policy ────────────────────────────────────────
+ROLL_LOGIN_ENABLED=true
+ROLL_LOGIN_REQUIRE_OTP=false               # true = OTP on first login only
+ROLL_LOGIN_TRUST_DEVICE_DAYS=90
+LOGIN_MAX_ATTEMPTS=5
+LOGIN_LOCKOUT_MINUTES=15
+LOGIN_IP_MAX_ATTEMPTS=20
+TURNSTILE_ENABLED=true
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+
+# ── Uploads & storage ───────────────────────────────────
+UPLOAD_ROOT=/home/<user>/sylhet_uploads     # OUTSIDE the webroot
+MAX_CONTENT_LENGTH_MB=6
+PHOTO_MAX_KB=100
+PHOTO_MAX_DIMENSION=1200
+ALLOWED_UPLOAD_EXTENSIONS=jpg,jpeg,png,pdf
+GENERATED_ROOT=var/generated
+BACKUP_ROOT=var/backups
+BACKUP_OFFSITE_ENABLED=false
+BACKUP_OFFSITE_CMD=                          # e.g. rclone copy {src} remote:dyd-backups
+
+# ── Email (cPanel SMTP first) ───────────────────────────
+MAIL_PROVIDER=smtp                           # smtp | brevo | sendgrid | dryrun
+MAIL_SERVER=mail.<domain>
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=noreply@<domain>
+MAIL_PASSWORD=
+MAIL_DEFAULT_SENDER="AI Sylhet <noreply@<domain>>"
+MAIL_REPLY_TO=info@<domain>
+
+# ── SMS ─────────────────────────────────────────────────
+SMS_PROVIDER=dryrun                          # bulksmsbd | greenweb | sslwireless | mimsms | dryrun
+SMS_API_KEY=
+SMS_API_SECRET=
+SMS_SENDER_ID=
+SMS_BULK_RATE_BDT=0.35                       # cost per segment, for the cost report
+SMS_DAILY_CAP=5000                           # safety valve against a runaway blast
+SMS_DRY_RUN=true                             # MUST be false only after a live test send
+
+# ── PDF engine ──────────────────────────────────────────
+PDF_ENGINE=auto                              # auto | weasyprint | playwright | html
+PDF_PAGE_SIZE=A4
+PDF_MARGIN_MM=12
+
+# ── Rate limiting / cache ───────────────────────────────
+RATELIMIT_STORAGE_URI=memory://              # or file:///…/var/ratelimit
+CACHE_TYPE=FileCache
+CACHE_DIR=var/cache
+CACHE_DEFAULT_TIMEOUT=300
+
+# ── Retention & privacy ─────────────────────────────────
+RETENTION_MONTHS_REJECTED=24
+RETENTION_MONTHS_LOGS=36
+EXPORT_EXPIRY_DAYS=7
+INVITE_TOKEN_EXPIRY_HOURS=72
+
+# ── Monitoring ──────────────────────────────────────────
+SENTRY_DSN=
+LOG_LEVEL=INFO
+LOG_DIR=var/logs
+ADMIN_ALERT_EMAIL=admin@<domain>
+```
+
+### 20.2 Settings that live in the DB (editable without a redeploy)
+
+`site.title_bn` · `site.tagline_bn` · `site.hotline` · `site.email` · `site.address_bn` ·
+`site.facebook_url` · `admission.deadline_note_bn` · `admission.max_per_ip_per_day` ·
+`admission.require_turnstile` · `exam.default_total_marks` · `exam.default_pass_marks` ·
+`merit.tie_breakers` · `merit.quota_percent` · `training.attendance_min_percent` (80) ·
+`training.ta_amount_bdt` (200) · `notification.quiet_hours` · `display.show_bangla_numerals` ·
+`display.notice_ticker_enabled` · `display.apply_open` · `display.result_published` ·
+`display.certificate_published` · **`security.roll_login_require_otp`** ·
+**`security.2fa_required_for_super_admin`** · `retention.months_rejected`.
+
+Secrets (`SMS_API_KEY`, `MAIL_PASSWORD`, `TURNSTILE_SECRET_KEY`) are shown write-only and are
+stored in `.env`, not in the DB — the Settings UI writes to `.env` via a guarded helper and
+shows `•••••••• (set 2026-09-23)`.
+
+### 20.3 Feature flags (kill switches)
+
+`apply_open` · `results_published` · `merit_published` · `portal_open` · `certificate_verification_open` ·
+`roll_login_enabled` · `sms_enabled` · `email_enabled` · `push_enabled` · `maintenance_mode`.
+Every one of them is checked server-side **and** reflected in the UI (a closed feature renders a
+Bangla "সাময়িকভাবে বন্ধ" state instead of a broken form). This is how you survive exam day.
+
+---
+
+## 21. Local Development Setup
+
+```bash
+# 1. Clone / create the project folder, then:
+python -m venv .venv
+.venv\Scripts\activate                 # Windows
+# source .venv/bin/activate            # Linux/macOS
+
+# 2. Python dependencies
+pip install -r requirements.txt -r requirements-dev.txt
+
+# 3. CSS toolchain  (dev-only; the server never needs Node)
+npm install                            # tailwindcss v4 + @tailwindcss/cli
+npx tailwindcss -i assets/tailwind/source.css -o app/static/css/app.css --minify
+#   ...or, with no Node at all:  tools/tailwindcss.exe -i assets/tailwind/source.css \
+#                                    -o app/static/css/app.css --minify
+
+# 4. Environment
+copy .env.example .env                 # then edit
+#   APP_ENV=development
+#   DATABASE_URL=sqlite:///instance/dyd_sylhet.db
+#   SMS_DRY_RUN=true  MAIL_PROVIDER=dryrun  TURNSTILE_ENABLED=false
+#   PDF_ENGINE=auto
+
+# 5. Database + seed
+flask db upgrade
+flask seed                             # geo, batch, modules, faqs, settings, templates
+flask create-admin --email you@example.com --role super_admin
+flask create-demo-data --applications 200 --districts 4   # dev-only fixtures
+
+# 6. Run  (use TWO terminals)
+npm run css:watch                      # terminal 1 — rebuilds app.css on template changes
+flask run --debug                      # terminal 2 — http://127.0.0.1:5000
+# or: python run.py
+
+# 7. Quality gates (all must pass before a commit)
+npm run css:build && npm run css:check  # rebuild + anti-slop & drift guard
+ruff check app tests
+ruff format --check app tests
+mypy app --ignore-missing-imports
+pytest -q --cov=app --cov-report=term-missing
+pip-audit
+```
+
+> ⚠️ **The one workflow trap with Tailwind in a server-rendered app:** editing a Jinja template
+> and forgetting to rebuild. `css:watch` removes the friction in dev, and CI's
+> `git diff --exit-code app/static/css/app.css` catches it if you forget anyway (§22.7).
+> Nothing breaks silently — Tailwind v4's scanner detects classes in `.html`/`.py` files, so
+> the failure mode is a missing style, never a corrupted stylesheet.
+
+**Dev conveniences**
+
+| Command | Purpose |
+|---|---|
+| `npm run css:watch` | Rebuild `app.css` on every template/class change (keep it running) |
+| `npm run css:build` | One-shot minified production build |
+| `npm run css:check` | Runs `tools/check-css.py` — anti-slop rules + drift detection |
+| `flask seed` | Idempotent reference data |
+| `flask seed --reset` | Drop + recreate reference data (never touches real applications) |
+| `flask create-demo-data` | 200 fake Bangla applicants with photos, marks, merit list — so the admin UI is testable on day one |
+| `flask simulate-queue` | Drain the notification queue in the terminal instead of waiting for cron |
+| `flask render-doc <kind> <id>` | Write a document's HTML/PDF to `var/generated/` for inspection |
+| `flask stats-snapshot` | Force a stats snapshot |
+| `flask check-config` | Verify every required env var, DB charset, writable dirs, PDF engine availability, **and that `app.css` exists and is newer than `source.css`** |
+
+**Dev-only debug toolbar** (disabled when `APP_DEBUG=false`): query count and time per page —
+used to hold the ≤ 8-queries-on-home invariant.
+
+**Seed-data reality check:** `flask create-demo-data` generates Bangla names
+(`মোহাম্মদ রফিকুল ইসলাম`, `সুমাইয়া আক্তার`, …), real Sylhet upazila addresses, varied education
+and edge cases (duplicate phone, expired dob, missing photo) so QA validates the *actual*
+failure paths rather than happy paths only. **This is not optional** — the correctness of a
+2,500-row admission pipeline cannot be verified against three hand-typed rows.
+
+---
+## 22. Deployment: cPanel/Passenger, deploy.sh, CI, Cron
+
+### 22.1 Hosting recommendation
+
+| Option | Verdict |
+|---|---|
+| **A. Existing Namecheap cPanel server** (`<REMOTE_USER>@<REMOTE_HOST>`, port `<SSH_PORT>`, passenger) | ✅ **Start here.** Zero new cost, your `deploy.sh` and Passenger knowledge transfer directly, AutoSSL is handled. Limits: no root (so no `libpango` → PDF Layer 3), CPU throttle during bulk work (mitigated by the cron queue), MySQL row limits. |
+| **B. Small VPS** (2 vCPU / 4 GB, Ubuntu 24.04, nginx + gunicorn + MariaDB) | ✅ **Recommended for the exam/certificate peak.** Root access means WeasyPrint + real PDFs, no CPU throttling, easier load spikes. ~$6–12/month. |
+| **C. Keep both** | ✅ **Best answer:** build and run the public+apply phase on **A**, and move to **B** before the bulk exam/certificate phase — the codebase is identical, only the deploy target differs. Make `deploy.sh` support both from day one (a `DEPLOY_TARGET` variable). |
+
+A subdomain is recommended regardless: **`sylhet.dydaiproject.com`** (CNAME/A to the same server,
+its own SSL, its own Passenger app, its own database). This keeps the national site untouched,
+which matters because the national site is live with real data.
+
+> 🔒 **Host credentials are deliberately NOT recorded in this document.** Server IP, SSH user,
+> port and key paths live only in the operator's own `deploy.sh` config block / password manager,
+> and are supplied to `deploy.sh` via environment variables (`REMOTE_USER`, `REMOTE_HOST`,
+> `SSH_PORT`, `SSH_KEY`). This file is committed to git — treat it as public.
+
+> ⚠️ **Never point the Sylhet code at the national database, and never deploy the Sylhet app
+> into the national app's directory.** They must be separate Passenger apps with separate
+> databases on the same server.
+
+### 22.2 One-time server setup (cPanel path)
+
+```bash
+# 1. Subdomain
+cPanel → Domains → Create A New Domain →  sylhet.dydaiproject.com
+        → Document Root: /home/<user>/sylhet.dydaiproject.com/public     (a "public/" docroot)
+
+# 2. SSL
+cPanel → SSL/TLS Status → Run AutoSSL for sylhet.dydaiproject.com
+
+# 3. Database
+cPanel → MySQL Databases → create DB + user (ALL PRIVILEGES)
+        → in phpMyAdmin confirm collation is utf8mb4_unicode_ci   ← MANDATORY for Bangla
+
+# 4. Python app
+cPanel → Setup Python App → Create Application
+        Python version : 3.12
+        Application root : sylhet.dydaiproject.com
+        Application URL  : https://sylhet.dydaiproject.com
+        Startup file     : passenger_wsgi.py
+        Entry point      : application
+
+# 5. Upload root OUTSIDE the webroot
+mkdir -p /home/<user>/sylhet_uploads/{photos,documents,generated,backups}
+chmod 750 /home/<user>/sylhet_uploads
+
+# 6. .env
+cd /home/<user>/sylhet.dydaiproject.com
+cp .env.example .env && nano .env      # fill every value from §20.1
+chmod 600 .env
+
+# 7. Migrate + seed
+source /home/<user>/virtualenv/sylhet.dydaiproject.com/3.12/bin/activate
+pip install -r requirements.txt
+flask db upgrade && flask seed && flask create-admin --role super_admin
+flask check-config                     # must print all-green
+
+# 8. Restart Passenger
+mkdir -p tmp && touch tmp/restart.txt
+```
+
+### 22.3 `passenger_wsgi.py`
+
+```python
+"""Phusion Passenger WSGI entry point for AI Sylhet (cPanel)."""
+import os, sys
+from pathlib import Path
+
+APP_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(APP_ROOT))
+
+# Load .env BEFORE importing the app so config sees it
+from dotenv import load_dotenv
+load_dotenv(APP_ROOT / ".env", override=False)
+
+# Tell Flask it is behind a TLS-terminating proxy
+os.environ.setdefault("PROXY_FIX", "1")
+
+from app import create_app           # noqa: E402
+application = create_app(os.environ.get("APP_ENV", "production"))
+```
+
+### 22.4 `.htaccess` (docroot — merged by hand, then NEVER overwritten by deploys)
+
+```apache
+# ── Force HTTPS ───────────────────────────────────────────────────────────────
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# ── Security headers ─────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
+</IfModule>
+
+# ── Never serve secrets or source ────────────────────────────────────────────
+<FilesMatch "^\.env|\.py$|\.md$|\.sql$|\.log$|\.ini$|^composer\.|^package\.json$">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git
+
+# ── Deflate / cache ──────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css               "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType font/woff2             "access plus 1 year"
+  ExpiresByType image/svg+xml          "access plus 6 months"
+  ExpiresByType text/html              "access plus 0 seconds"
+</IfModule>
+
+# ── Public docroot: serve files, hand everything else to Passenger ───────────
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /passenger_wsgi.py/$1 [L]
+```
+
+### 22.5 `deploy.sh` — complete specification
+
+Adapted directly from your proven `Favonia-Hobbies/deploy.sh`: same ssh-agent passphrase handling,
+same rsync → tar fallback, same flag style — **plus** app-specific flags. This is the "final step"
+artifact you asked for, specified in full so it can be handed to any developer.
+
+```
+FILE: deploy.sh                                    (bash, set -euo pipefail, executable)
+
+USAGE:
+  ./deploy.sh                          safe deploy: sync code → migrate → restart → health
+  ./deploy.sh --setup                  first-time: dirs, seed check, permissions, venv deps
+  ./deploy.sh --install-deps           pip install -r requirements.txt
+  ./deploy.sh --migrate                run flask db upgrade (checked out of maintenance mode)
+  ./deploy.sh --seed                   run flask seed (idempotent reference data)
+  ./deploy.sh --with-uploads           sync local dev uploads (NEVER on prod)
+  ./deploy.sh --with-db                upload a local SQLite db (dev/DEMO only, blocked on prod)
+  ./deploy.sh --setup-cron             install the 4 cron jobs
+  ./deploy.sh --backup                 take an immediate DB + uploads backup first
+  ./deploy.sh --no-restart             skip the Passenger restart
+  ./deploy.sh --dry-run                show exactly what would change
+  ./deploy.sh --build-css              run `npm run css:build` locally first   ← RECOMMENDED
+  ./deploy.sh --check-css              run `npm run css:check` and ABORT on failure ← RECOMMENDED
+  ./deploy.sh --allow-stale-css        deploy even if app.css is older than source.css (escape hatch)
+  ./deploy.sh --full                   --build-css --check-css --backup --install-deps
+                                       --migrate --restart --verify
+
+CONFIG (env-overridable):
+  DEPLOY_TARGET=cpanel|vps            default cpanel
+  REMOTE_USER / REMOTE_HOST / SSH_PORT / SSH_KEY
+  APP_NAME=sylhet.dydaiproject.com    (also the cPanel Application root)
+  REMOTE_APP=/home/${REMOTE_USER}/${APP_NAME}
+  VENV_BIN=/home/${REMOTE_USER}/virtualenv/${APP_NAME}/3.12/bin
+  UPLOAD_ROOT=/home/${REMOTE_USER}/sylhet_uploads
+  DOMAIN_URL=https://${APP_NAME}
+
+PRE-FLIGHT (aborts on any failure):
+  1. SSH key file exists and is readable
+  2. ssh + (rsync or tar) present
+  3. ssh-agent loaded with the key (passphrase asked ONCE)
+  4. `ssh echo SSH_AUTH_OK` succeeds
+  5. Remote app root exists and is a directory
+  6. Remote disk free > 500 MB
+  7. Local `git status --porcelain` clean (warn + 5s abort window, since a dirty tree
+     deploys uncommitted work)
+  8. If DEPLOY_TARGET=cpanel: confirm it is NOT the national app root (hard guard)
+  9. **CSS freshness check** — ABORT unless `app/static/css/app.css` is newer than
+     `assets/tailwind/source.css` AND newer than every file under `app/templates/`.
+     Message: "❌ Stale CSS — the templates changed after the last build.
+     Run: npm run css:build   (or rerun with --build-css)". Skippable only via
+     --allow-stale-css. This single check prevents the most likely styling bug in this stack.
+ 10. If --build-css: require node/npx (or tools/tailwindcss) and run the build, then
+     re-run check 9. If neither exists → ABORT with the standalone-CLI instructions.
+ 11. If --check-css: run tools/check-css.py (anti-slop rules + drift detector) and ABORT on
+     a non-zero exit.
+
+ENV SAFETY (the rule that protects live data):
+  • .env, .env.*, instance/*.db, Keys/, PEM/, var/, uploads/, .git/ are ALWAYS excluded
+  • .htaccess is ALWAYS excluded (it is hand-merged with the Passenger block)
+  • --with-db refuses to run when APP_ENV=production on the remote (reads it and aborts)
+  • deploy.sh NEVER runs `flask db downgrade` and NEVER drops a table
+
+SYNC (excluding the list above, plus __pycache__, *.pyc, .venv, node_modules, .github,
+      assets/, package.json, package-lock.json, tools/tailwindcss*, *.css.map,
+      tests/, docs/):
+  rsync -az --delete --exclude-from=<generated list> -e "$RSYNC_SSH" ./ user@host:$REMOTE_APP/
+  fallback:  tar czf - --exclude=… . | ssh … "tar xzf - -C $REMOTE_APP"
+  # NOTE: app/static/css/app.css IS synced — it is the shipped artifact.
+  #       assets/ (the Tailwind source) deliberately is NOT — the server cannot compile it.
+
+REMOTE STEPS (in order):
+  1. mkdir -p $REMOTE_APP/tmp                      (Passenger restart dir)
+  2. mkdir -p $UPLOAD_ROOT/{photos,documents,generated,backups}
+     chmod 750 $UPLOAD_ROOT && chmod 750 each subdir
+  3. mkdir -p $REMOTE_APP/var/{logs,cache,generated,backups} && chmod 755
+  4. verify $REMOTE_APP/.env exists; if not → ABORT with instructions (never auto-create)
+  5. verify the DB charset is utf8mb4:
+       mysql -e "SELECT @@character_set_database" and abort if not utf8mb4
+  6. **verify app/static/css/app.css arrived and is non-empty** (> 20 KB) — a failed CSS sync
+     must never silently ship an unstyled site to citizens
+  7. if --install-deps:  $VENV_BIN/pip install -r requirements.txt
+  8. if --migrate:       $VENV_BIN/flask db upgrade && record the revision
+  9. if --seed:          $VENV_BIN/flask seed
+ 10. $VENV_BIN/flask check-config   (aborts the deploy on a red config)
+ 11. maintenance mode ON:  write $REMOTE_APP/var/MAINTENANCE (a file-flag, no restart needed)
+ 12. touch $REMOTE_APP/tmp/restart.txt
+ 13. wait for Passenger: poll $DOMAIN_URL/health up to 60s for {"status":"ok"}
+ 14. smoke tests (fail the deploy if any fail):
+        GET /                       → 200, contains "সিলেট"
+        GET /apply                  → 200, contains "আবেদন"
+        GET /api/districts          → 200, JSON with 4 districts
+        GET /login                  → 302 to /portal/login
+        GET /admin                  → 404     (the admin prefix must NOT be /admin)
+        GET /ops-sylhet/login       → 200     (the configured prefix must exist)
+        GET /robots.txt             → 200 and Disallow: /portal/
+        GET /health                 → 200 {"db":"ok","pdf_engine":"…","css":"ok"}
+        POST /apply (empty body)    → 422 with Bangla validation errors (form is alive)
+        CSS CHECK                   → the stylesheet URL referenced in / actually returns 200
+                                      and its byte size matches the local app.css
+                                      (catches a stale or missing stylesheet at the edge)
+ 15. maintenance mode OFF
+ 16. print a summary: revision, changed files, engine detected, css size/hash, health, elapsed
+
+--setup-cron installs (idempotent, wrapped in a marker block):
+  */2  * * * *  cron_queue.sh        # drain notification queue
+  */5  * * * *  cron_deadline.sh     # auto-close applications at the deadline
+  0    21 * * * cron_digest.sh       # admin daily digest email
+  15   2  * * * cron_backup.sh       # nightly DB + uploads backup, 7-day rotation
+  30   3  * * 0 cron_retention.sh    # weekly retention/anonymisation + token purge
+  0    * * * *  cron_stats.sh        # hourly stats snapshot
+
+EXIT CODES: 0 ok · 1 pre-flight · 2 auth · 3 sync · 4 remote step · 5 smoke test · 6 config · 7 stale CSS
+
+ALWAYS PRINTS at the end:
+  "▶ Deployed <git sha> at <time>  ·  URL <domain>  ·  rollback: ./rollback.sh"
+```
+
+### 22.6 `rollback.sh`
+
+Same SSH config as `deploy.sh`, but:
+1. Lists the last 10 release archives (`var/releases/<sha>.tar.gz`, created by `deploy.sh` before
+   every sync — a 5-line addition worth its weight in gold).
+2. Restores the chosen archive over the app root (excluding `.env` and `.htaccess`).
+3. Runs `flask db downgrade <previous_revision>` **only** if the operator passes `--db` (and
+   prints a loud warning that this can lose data).
+4. Restarts Passenger, re-runs the same smoke tests.
+
+### 22.7 GitHub Actions
+
+**`.github/workflows/ci.yml`** (on every PR/push, no deploy):
+
+```
+setup-python 3.12 + setup-node 22 (cache npm)
+  → npm ci
+  → npm run css:build
+  → git diff --exit-code app/static/css/app.css
+        ↑ FAILS THE BUILD if someone edited templates and forgot to rebuild Tailwind.
+          The error message names this command: "Run `npm run css:build` and commit app.css".
+  → npm run css:check                     (tools/check-css.py: anti-slop + gzip-size budget)
+  → ruff  →  mypy  →  pytest --cov (gate: 70% on app/services)
+  → pip-audit  →  bandit -r app
+  → upload coverage artifact
+```
+
+**`.github/workflows/deploy.yml`** (on push to `main`, or manual `workflow_dispatch`):
+same shape as your Favonia workflow, plus the CSS job inlined — rsync over SSH using
+`DEPLOY_SSH_KEY` / `DEPLOY_SSH_PASSPHRASE`, install Python deps only when `requirements.txt`
+changed, **build Tailwind and assert zero drift before syncing**, `flask db upgrade`,
+restart Passenger, then health-check and fail the run loudly.
+
+Secrets required: `DEPLOY_SSH_KEY`, `DEPLOY_SSH_PASSPHRASE`, `DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_PORT`, `DEPLOY_APP_PATH`, `DEPLOY_URL`.
+
+> ⚠️ **Standing rule (carried over from Favonia):** a push to `main` **is a production release**.
+> Nobody pushes without your explicit instruction. Branch → PR → CI → you approve → merge.
+> For a government site carrying citizen PII, this is not optional.
+
+### 22.8 Backup, monitoring and retention
+
+| Concern | Implementation |
+|---|---|
+| DB backup | `mysqldump --single-transaction --routines --triggers` → gzip → `var/backups/db-YYYYMMDD-HHMM.sql.gz`, keep 7 daily + 4 weekly + 3 monthly |
+| Uploads backup | `tar czf` of `$UPLOAD_ROOT` weekly (photos are large, keep 4) |
+| Off-site | optional `rclone` to Google Drive / S3 via `BACKUP_OFFSITE_CMD` |
+| Restore drill | **documented and rehearsed once before go-live** — an untested backup is not a backup |
+| Uptime | UptimeRobot (or similar) hitting `/health` every 5 min → email/SMS the admin |
+| Errors | `sentry-sdk[flask]` optional; otherwise `system_events` + a 9 pm digest email |
+| Logs | rotating `var/logs/app.log` (10 MB × 5), `access.log` from cPanel, never log PII |
+| Queue monitoring | admin dashboard widget + alert email if `failed > 10` in an hour |
+| SMS balance | dashboard widget polling provider balance daily; alert below a threshold |
+| SSL expiry | AutoSSL + a monthly reminder in the admin dashboard |
+| Version banner | footer/admin shows the deployed git short SHA — so support can identify the build |
+| Retention | weekly `cron_retention.sh`: anonymise rejected applicants past `RETENTION_MONTHS_REJECTED`, purge expired exports/tokens/OTP rows |
+
+### 22.9 Go-live cutover checklist
+
+```
+□ Domain + DNS (sylhet.dydaiproject.com) resolving, SSL A grade on ssllabs
+□ MySQL created with utf8mb4_unicode_ci — verified by flask check-config
+□ .env complete; SMS_DRY_RUN flipped to false ONLY after a live test send to your own phone
+□ seed run: 4 districts, 41 upazilas, centres, batch, modules, FAQs, settings, templates
+□ super_admin + admin + exam_controller + 4 district_coordinators created, 2FA enrolled
+□ Real batch dates entered and cross-checked against the national notice
+□ Notice PDF uploaded, /project-overview reads correctly in Bangla on a real phone
+□ /apply submitted end-to-end on a real phone with a real photo → SMS + email received
+□ Application Copy rendered and printed on A4 (check Bangla shaping on paper)
+□ /admit-card lookup works for that test application
+□ /results and /certificate-verification render their "not published yet" states
+□ /admin and /ops-sylhet/login verified: the former 404, the latter 200
+□ robots.txt disallows /portal/ and the admin prefix
+□ Security headers verified on securityheaders.com (target A)
+□ Backups running nightly; **one restore rehearsed onto staging**
+□ Uptime monitoring live, alerting to a real inbox
+□ Bangla admin guide + runbook handed over; two training sessions booked
+□ Load test: 500 concurrent visitors on /apply (public pages) without 5xx
+□ Rollback rehearsed once (./rollback.sh in a staging window)
+□ Sign-off from the DYD Sylhet project director
+```
+
+---
+
+## 23. Testing & QA Strategy
+
+### 23.1 Test pyramid
+
+| Level | Tool | Scope | Gate |
+|---|---|---|---|
+| Unit | `pytest` | services, validators, permissions, formatters, status machine | 70% coverage on `app/services` |
+| Integration | `pytest` + Flask test client | every route: status codes, permissions, redirects, validation | every route in §8.2 has ≥ 1 test |
+| Data | `pytest` + factory fixtures | migrations up/down, unique constraints, cascade behaviour | all migrations reversible |
+| E2E | `playwright` (Python) | the 6 critical journeys on a real browser | must pass before release |
+| Visual | `playwright` screenshots | the 6 key public screens at 360/768/1440 | manual review, baseline tracked |
+| **CSS** | `tools/check-css.py` + `git diff --exit-code` | anti-slop constructs, gzip-size budget, committed CSS matches a fresh build | **build fails** on any violation |
+| A11y | `axe-core` via Playwright + manual | public + portal + admin forms | **zero** serious/critical violations |
+| Load | `locust` / `k6` | 500 concurrent public reads; 20 concurrent admin writes | no 5xx, p95 < 1.5 s |
+| Security | `bandit`, `pip-audit`, manual checklist | §14 controls | zero high findings |
+| Manual UAT | Bangla checklist | 18-step operator workflow with a real batch of 50 | signed off |
+
+### 23.2 The E2E journeys that must pass
+
+1. **Apply → confirm** — fill the form on a 360px viewport with Bangla input, upload a photo,
+   submit, land on success, download the application copy.
+2. **Duplicate blocked** — submit the same phone twice → Bangla inline error, server rejects.
+3. **Age gate** — a 17-year-old and a 36-year-old are both rejected with the correct Bangla message.
+4. **Admin: screen → allocate → roll → admit card → SMS** — bulk operations on 50 applications.
+5. **Exam: attendance → marks → verify → publish → public lookup by roll.**
+6. **Merit publish → account provisioned → student logs in with Roll + Mobile → dashboard →
+   certificate.**
+7. **Student logs in with Email + Password** after setting it via the invite link.
+8. **A non-selected applicant cannot log in** — friendly Bangla message, no session created.
+9. **A student cannot read another student's data** — tamper the URL id → 403.
+10. **A `viewer` cannot POST anywhere** — every admin write returns 403.
+11. **A `district_coordinator` cannot see another district's applications** — filter forced.
+12. **Certificate verification** — QR code → `/verify/<code>` → VALID; a revoked certificate → REVOKED.
+
+### 23.3 Regression test fixtures worth gold
+
+- `tests/fixtures/bangla_edge_cases.py` — names with conjuncts (`বিষ্ণুপ্রসাদ`), zero-width
+  joiners, NFC/NFD variants, Bangla digits as phone input, 60-char names, single-word names,
+  names with `।`, mixed Bangla/Latin.
+- `tests/fixtures/photo_cases.py` — a 12 MB JPEG, a `.jpg` that is really a PDF, a `.png` with
+  embedded EXIF GPS, a CMYK JPEG, a 1×1 px image, a file with a null byte in the name.
+- `tests/fixtures/import_cases.py` — a Bangla CSV in UTF-8 **and** in UTF-8-BOM, a semicolon
+  delimiter, a header typo, 500 rows with 30 errors, and a completely empty file.
+
+### 23.4 Anti-slop and quality gates for the UI
+
+Before any screen is called done:
+- No item from the §7.6 banned list is present — and CI's `tools/check-css.py` proves the
+  compiled stylesheet contains no banned construct (§7.6.1), so this is enforced, not hoped for.
+- `npm run css:build` has been run and `app/static/css/app.css` is committed (CI fails otherwise).
+- No `<style>` block and no `@apply` inside a Jinja template: all styling resolves through
+  `source.css` utilities, `@utility` component classes, or an existing component macro.
+- Keyboard-only run-through of the full form and the marks grid.
+- 360px render has no horizontal scroll and no clipped Bangla text.
+- Contrast checked on every text/background pair actually shipped.
+- The screen contains **real content** — real dates, real upazila names — not placeholders.
+- Bangla copy read aloud by a Bangla speaker; nothing that reads as machine-translated English.
+
+---
+
+## 24. Milestones & Effort Estimate
+
+Assumes one full-stack developer. Parallel-safe tasks are marked ⚡.
+
+| # | Milestone | Deliverable | Days | Cumulative |
+|---|---|---|---|---|
+| **M0** | Discovery & decisions | This plan signed off; §26 answered; server + domain + DB provisioned | 3 | 3 |
+| M1 | **Design gate** | Tailwind v4 scaffold (`source.css` @theme with the wiped default palette, component `@utility` classes, build scripts), component inventory, and **statically-built HTML + Tailwind for 6 screens**: home, project-overview, apply, admit-card lookup, portal login, portal dashboard. Covers the full home page at 360/768/1440. **⛔ Hard stop for your approval.** | 7 | 10 |
+| **M2** | Foundation | Flask skeleton, config, extensions, `check-config`, logging, error pages, DB models for all 52 tables, migrations, seeders (geo/batch/modules/faqs/settings), layout shells + component macros, base JS, CI incl. the CSS drift check | 6 | 16 |
+| **M3** | Public site | Home, project-overview, centers, live-status, notices, FAQ, contact, legal, SEO/PWA, sitemap, robots, a11y pass | 8 | 24 |
+| **M4** | Application | Form (all fields), server validation, AJAX checks, photo pipeline, Turnstile, draft autosave, `application_no`, Application Copy document, confirmation + SMS/email | 9 | 33 |
+| **M5** | Lookups | admit-card, results, certificate-verification, `/verify/<code>`, signed URLs, rate limits, print views | 5 | 38 |
+| **M6** | Auth | Portal login (dual mode), locked-out states, set/reset password, OTP, staff login, 2FA, sessions, RBAC + scopes, audit service | 8 | 46 |
+| **M7** | Admin core | Shell, dashboard, applications list/detail/review, bulk actions, notes, import/export, batches, centres, partners, users, settings, audit viewer | 12 | 58 |
+| **M8** | Exam & selection | Exam CRUD, allocation (manual + auto), roll generation, admit card bulk, attendance grid, marks grid + verify, result publish, merit builder, waitlist | 12 | 70 |
+| **M9** | Portal | 14 student screens, provisioning, notifications history, support tickets, security page | 8 | 78 |
+| **M10** | Training & certificates ⚡ | Enrollment, schedules, attendance + TA report, materials, certificate templates, issue/revoke, bulk ZIP | 8 | 86 |
+| **M11** | Comms & CMS ⚡ | SMS adapters, email adapters, queue + cron drain, blast composer with cost preview, templates, CMS (pages/FAQ/sliders/gallery), stats editor | 7 | 93 |
+| **M12** | Reports & analytics | All 14 reports, exports with watermarking, funnel, dashboards | 5 | 98 |
+| **M13** | Hardening | Security checklist, a11y audit, performance budget, load test, E2E suite, bug fixes | 9 | 107 |
+| **M14** | Deploy & handover | `deploy.sh`, CI, cron, backups, monitoring, `ADMIN_GUIDE.md`, `RUNBOOK.md`, training sessions, UAT | 5 | 112 |
+
+**Total ≈ 112 developer-days ≈ 22 working weeks for one person.**
+Compressed estimate: **~11 weeks** with two developers (frontend/design + backend/admin in
+parallel from M2), or **~8 weeks** with three (add a dedicated QA/documentation person from M7).
+
+> **Note on the Tailwind switch:** M1 gains a day for the Tailwind v4 scaffold and the token file,
+> but M2 loses a day because the hand-written component-CSS layer no longer exists — the utility
+> system *is* the component layer. Net effect on the schedule: **zero**. The workflow wins show up
+> later as faster iteration on the ~40 components in §7.7 and a guaranteed-small stylesheet.
+
+**A pragmatic staged launch** (strongly recommended over a big-bang release):
+
+| Stage | Ships | Days | When |
+|---|---|---|---|
+| **Stage 1 — Public + Apply** | M0–M5 + a minimal admin review screen | ~38 | **Before the application deadline.** Highest value, lowest risk. |
+| **Stage 2 — Exam & Selection** | M6–M8 | +32 | Before the written exam |
+| **Stage 3 — Portal & Certificates** | M9–M10 + M11 | +23 | Before classes start |
+| **Stage 4 — Reports, CMS, hardening** | M12–M14 | +19 | During the training period |
+
+This staging means the department is **never waiting** for a finished monolith —
+Stage 1 alone replaces the paper form and gives them a real application database.
+
+---
+
+## 25. Risks & Mitigations
+
+| # | Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|---|
+| **R1** | **Bangla text renders broken in server-side PDFs** (libpango unavailable on shared hosting) | **High** | High | Layered engine strategy + **guaranteed HTML print views** for every document (§13). Verify `PDF_ENGINE` capability **on day one of M2**, not at the end. |
+| **R2** | Shared-hosting CPU throttling during bulk PDF/SMS | High | High | Cron-queue everything bulk; never in a request; VPS migration path already documented and supported by `deploy.sh`. |
+| **R3** | SMS gateway not procured in time / no budget | Medium | High | Build `dryrun` first; ship the site fully functional without SMS; the queue UI makes enabling SMS a one-line change. Centre reports remain printable. |
+| **R4** | Roll + Mobile is enumerable (roll space is small) | Medium | Medium | Aggressive rate limits + lockouts + generic errors + audit + admin alert + **first-login OTP** available as a one-flag switch. Documented as a conscious trade-off. |
+| **R5** | MySQL on cPanel has row/size limits; or latin1 charset mangles Bangla | Medium | High | `check-config` **hard-fails** on a non-utf8mb4 database. Sizing check up front (2,500 applicants ≈ trivial). SQLite fallback documented. |
+| **R6** | Data loss on a live government site | Low | **Critical** | Soft deletes only; nightly backups; **rehearsed restore**; no `db downgrade` in `deploy.sh`; no push-to-main without your explicit instruction; secrets never uploaded. |
+| **R7** | PII leak (NID, phone, address) | Low | **Critical** | Fernet encryption at rest, masked UI, `pii.unmask` permission, CSP, no PII in logs, noindex on lookup pages, audit of exports, retention anonymisation. |
+| **R8** | Spam / bots flood the application form | Medium | Medium | Honeypot + min-time + Turnstile + 1-per-phone + 3-per-IP-per-day + admin duplicate detection. |
+| **R9** | Wrong roll numbers or marks published | Medium | High | Preview-before-commit on rolls; 4-eyes marks verification; publish gate checks; correction SMS workflow; audit trail; "revoke and reissue" instead of edit. |
+| **R10** | Candidate email addresses are wrong/unusable | **High** | Low | **Roll + Mobile is the primary login path** precisely for this reason. Email is a convenience, never a dependency. |
+| **R11** | Scope creep (LMS, video, payments) | High | Medium | §3.3 non-goals written down; anything new goes to a Stage-5 backlog. |
+| **R12** | Bangla copy reads as machine-translated | Medium | Medium | Every string written by a Bangla speaker, reviewed before launch; no auto-translation in the pipeline. |
+| **R13** | Staff don't adopt the admin console | Medium | High | Keyboard-first grids, printable fallbacks for every workflow, Bangla guide with screenshots, two training sessions, and a paper-parallel path for the first batch. |
+| **R14** | Peak load on deadline day and result day | Medium | High | Full-page caching for public reads, `/api/stats` cached 300 s, rate limits, CDN in front if needed, load-tested at 500 concurrent. |
+| **R15** | Conflict with the national system (double data entry) | Medium | Medium | `national_sync` export; `national_ref_id` mapping columns; agree the interface with HQ in M0. |
+| **R16** | **Committed CSS drifts from the templates** (someone edits Jinja, forgets `css:build`) | **High** | Low | `npm run css:watch` in dev; **CI `git diff --exit-code`** fails the build and names the command; `deploy.sh` pre-flight aborts on stale CSS; `flask check-config` warns; the failure mode is a *missing* style, never a broken page. |
+| **R17** | Tailwind adds a **Node/npm dependency** to a Python project | Medium | Low | Node is **dev/CI-only**. The compiled `app.css` is committed, so the server never needs Node — a developer without Node uses the standalone `tools/tailwindcss` binary. CI is the only hard requirement, and it can be relaxed to "use the standalone binary" if npm CI ever becomes unavailable. |
+| **R18** | Tailwind's *defaults* reintroduce generic design (blue-500, `rounded-3xl`, `shadow-lg`) | Medium | Medium | `--color-*: initial`, `--radius-*: initial`, `--shadow-*: initial` in `@theme` — those utilities **do not compile**. `tools/check-css.py` in CI verifies the compiled output contains no banned construct. The design system is enforced by the build, not by review. |
+
+---
+
+## 26. Decisions Needed From You (blocking)
+
+These block or reshape the plan. **M0 cannot finish, and I should not write code, until these are answered.**
+
+| # | Question | Why it matters | My recommendation |
+|---|---|---|---|
+| **Q1** | **Domain/hosting** — subdomain `sylhet.dydaiproject.com` on the existing cPanel server, or a standalone domain, or a VPS? | Determines the whole deploy topology and whether real server-side PDF is available | Subdomain on the existing server to start; move to a 2 vCPU VPS before the certificate phase |
+| **Q2** | Is this an **official extension** of the live DYD project (shares HQ reporting, must sync) or a **fully independent** Sylhet system? | Drives the sync export, the design relationship with the national site, and who owns the data | Independent app + a `national_sync` export. Never share the live database. |
+| **Q3** | Confirm the **training partner** for Sylhet is **Service Engines Ltd., Dot Com Systems Ltd. & Wizard Software Technology Bangladesh Ltd. (JV)**? | Appears on the site, admit card, certificate and footer | Confirm, or tell me the correct entity/entities |
+| **Q4** | **Exam centres** — how many, and where? Who chooses, admin or candidate? | Allocation design and the centre picker in the form | Admin allocates by district; candidate may state a preference. Send me the list. |
+| **Q5** | **Login hardening** — pure Roll + Mobile (fast, BD-friendly, weaker) or OTP on first login (1 SMS per candidate)? | Cost vs security trade-off on the primary login path | **OTP on first login only**, device remembered 90 days |
+| **Q6** | **SMS gateway** provider + budget, and **email** provider (cPanel SMTP is free)? | Notification design and the cost report | cPanel SMTP for email; pick a BD bulk gateway for SMS. Build `dryrun` until then. |
+| **Q7** | **Real Sylhet batch dates** — or copy the national Batch-2 dates (apply by 23 Sep 2026, written 26 Sep, viva 27 Sep, merit 29 Sep, class from 1 Oct 2026)? | Every countdown, state and SMS depends on these | Start from the national dates and edit later; all dates are admin-editable |
+| **Q8** | **Language** — Bangla only, or Bangla + English toggle? | Doubles the content work for CMS prose | Bangla-first with an English toggle for the chrome (nav, buttons, form labels); prose Bangla-only in v1 |
+| **Q9** | Do you need the **training layer** (schedule, attendance, materials, TA day-counts) or only the admission → exam → certificate pipeline? | Removes ~2 weeks if dropped | Keep it — the ৳200/day TA report alone justifies it |
+| **Q10** | Does the department need **TA/allowance disbursement tracking** (who was paid, when, per month)? | Adds a finance module + reports | Yes, add a lightweight `allowance_payments` table (not in v1 scope above — say the word and I'll add it) |
+| **Q11** | **Certificate signing** — digital signature image of the DG? QR only? Both? | Certificate template design and legal acceptability | QR + signature image + seal; the signature must be uploaded by you |
+| **Q12** | Should **district coordinators** get their own logins with district-only visibility? | Drives the RBAC scope implementation (already designed) | Yes — it prevents the "everyone shares one admin password" failure mode |
+| **Q13** | Existing **brand assets** — DYD logo, government logo, Sylhet-specific logo, the official notice PDF, and any approved photographs? | Hero, footer, certificate, OG image | Send them; until then I will use placeholder marks and **no AI-generated hero art** |
+| **Q14** | Should the Sylhet site be **linked from** the national site's navigation, and should Sylhet applications flow into the national system? | SEO, user confusion, double data entry | Yes to a nav link; yes to an export, no to a shared database |
+| **Q15** | **Who is the Bangla copy reviewer** on the DYD side? | Every user-facing string needs a Bangla speaker's sign-off | Name one person; I will not ship machine-translated Bangla |
+| **Q16** | Any **existing data** to migrate (a spreadsheet of applications, a previous batch's students)? | Import tooling and dedupe strategy | Send a sample file; I will build a mapping + dry-run import |
+
+### 26.1 ⏳ Provisional defaults — what we build against until you answer
+
+> **Status: you will provide the answers later.** Nothing below blocks progress. Each default is
+> chosen to be the *lowest-regret* option, and each is deliberately isolated in one place so that
+> when the real answer arrives it is a **find-and-replace, not a refactor**.
+
+| Question | Provisional default we build against | Where it is isolated (cheap to change) | Cost to change later |
+|---|---|---|---|
+| **Q1** Domain/hosting | Subdomain **`sylhet.dydaiproject.com`** on a **new Passenger app on the existing cPanel server** | `.env` (`APP_URL`, `ALLOWED_HOSTS`) + `deploy.sh` config block at the top | ~10 min |
+| **Q2** Independent vs extension | **Fully independent app and database**, with a `national_sync` CSV export | A sync module; `national_ref_id` columns already in the schema | ~1 day (export only, no schema change) |
+| **Q3** Partner entity | **Package-৪ JV**, as printed on the national site | `training_partners` + `packages` **seed rows**, and one settings key | ~5 min (admin UI edit, no code) |
+| **Q4** Exam centres | **4 temporary centres**, one per district (district HQ), with placeholder names, capacity 300 each | `centers` / `exam_centers` seed rows — fully admin-editable | ~15 min (admin UI) |
+| **Q5** Login hardening | **Roll + Mobile**, with **first-login OTP = ON** and trusted-device memory for 90 days | `security.roll_login_require_otp` setting + `ROLL_LOGIN_*` env vars | ~0 (it is a toggle) |
+| **Q6** SMS / email provider | **Email: cPanel SMTP. SMS: `dryrun`** (all SMS logged to DB, none actually sent) | `SMS_PROVIDER` / `MAIL_PROVIDER` in `.env` + the provider adapter folder | ~30 min, plus one live test send |
+| **Q7** Batch dates | **The national Batch-2 dates**: apply by 23 Sep 2026, written 26 Sep, viva 27 Sep, merit 29 Sep, class from 1 Oct 2026 | `batches` row — **100% admin-editable**, no code change | ~2 min (admin UI) |
+| **Q8** Language | **Bangla-first**, English only for nav/buttons/form labels. **No English CMS prose in v1** | `messages.po` files + the `*_en` columns stay nullable | ~2 days if full EN prose is later wanted |
+| **Q9** Training layer | **Included** (schedule, attendance, materials, TA day-counts) | Milestones M9/M10 — droppable without touching anything else | saves ~14 days if cut |
+| **Q10** TA payment tracking | **Not in v1.** TA *eligible days* are computed and exported; actual disbursement is tracked in the department's own records | Reports → "Attendance & TA" export | ~3 days to add `allowance_payments` later |
+| **Q11** Certificate signing | **QR + verification code + roundel seal.** Signature image slot built and left empty | `document_templates.layout` JSON + `static/img/signatures/` | ~10 min (upload a PNG) |
+| **Q12** District coordinators | **Yes — separate logins with district-only row scoping** | Already fully designed in §4.2; `users.district_id` exists | ~0 (already built) |
+| **Q13** Brand assets | **Typographic wordmark + a neutral SVG roundel placeholder.** No AI-generated hero art; hero uses a **Surma contour band + typography** only, so it looks *finished* rather than "missing an image" | `static/img/` + the header/footer macros | ~30 min (drop in the real logo) |
+| **Q14** National-site link | **Link out from the Sylhet footer to the national site; no inbound link requested yet** | Footer macro + one settings key | ~5 min |
+| **Q15** Bangla copy reviewer | **Not assumed.** All copy is drafted carefully and clearly marked `<!-- COPY-REVIEW-PENDING -->` in the templates so your reviewer can find every string that needs sign-off | HTML comments in templates + a `flask copy-audit` CLI command that lists them all | ~0 (it is a workflow, not a blocker) |
+| **Q16** Existing data | **Assume none for v1**, but the import tool is built generically with a column-mapping UI | `import_export_service` | ~0 (already built) |
+
+**Two defaults deserve a note, because they are deliberate judgement calls rather than neutral placeholders:**
+
+1. **Q13 — no placeholder photography.** A grey "image goes here" box makes a design look broken and
+   makes stakeholders review the *hole* instead of the design. A typographic hero with the contour
+   band is a complete composition that your logo can later *improve*, not complete. This is why §7.6
+   bans AI-generated hero art: it would be replaced anyway, and in the meantime it would misrepresent
+   the programme.
+2. **Q15 — copy review is tracked, not pretended.** I will not claim Bangla copy is "final". Every
+   string needing human sign-off is commented, and `flask copy-audit` lists them, so reviewer time is
+   spent on a known checklist rather than a re-read of the whole site.
+
+**What this means for scheduling:** **M1 (the 6-screen design gate) can start today** — it depends
+only on Q13, and only in the "placeholder is fine" sense handled above. **M2–M5** (foundation,
+public site, apply form, lookups) need **Q1** to be real in order to deploy, but can be *built*
+without it. **M6 onward** needs **Q5, Q6 and Q7** to be settled before the exam cycle, since SMS
+and dates are load-bearing for candidate communication.
+
+---
+
+## 27. Appendices
+
+### 27.1 Appendix A — Sylhet Division geography seed data
+
+```
+Sylhet Division (বিভাগ: সিলেট)
+├── Sylhet (সিলেট)  code=SYL  national_ref_id=265  upazilas=13
+│   Balaganj(বালাগঞ্জ) · Beanibazar(বিয়ানীবাজার) · Bishwanath(বিশ্বনাথ) ·
+│   Companiganj(কোম্পানীগঞ্জ) · Fenchuganj(ফেঞ্চুগঞ্জ) · Golapganj(গোলাপগঞ্জ) ·
+│   Gowainghat(গোয়াইনঘাট) · Jaintiapur(জৈন্তাপুর) · Kanaighat(কানাইঘাট) ·
+│   Osmani Nagar(ওসমানীনগর) · Sylhet Sadar(সিলেট সদর) · Zakiganj(জকিগঞ্জ) ·
+│   Dakshin Surma(দক্ষিণ সুরমা)
+├── Moulvibazar (মৌলভীবাজার)  code=MOU  national_ref_id=227  upazilas=7
+│   Barlekha(বড়লেখা) · Juri(জুড়ী) · Kamalganj(কমলগঞ্জ) · Kulaura(কুলাউড়া) ·
+│   Moulvibazar Sadar(মৌলভীবাজার সদর) · Rajnagar(রাজনগর) · Sreemangal(শ্রীমঙ্গল)
+├── Habiganj (হবিগঞ্জ)  code=HAB  national_ref_id=226  upazilas=9
+│   Ajmiriganj(আজমিরীগঞ্জ) · Bahubal(বাহুবল) · Baniyachong(বানিয়াচং) ·
+│   Chunarughat(চুনারুঘাট) · Habiganj Sadar(হবিগঞ্জ সদর) · Lakhai(লাখাই) ·
+│   Madhabpur(মাধবপুর) · Nabiganj(নবীগঞ্জ) · Sayestaganj(শায়েস্তাগঞ্জ)
+└── Sunamganj (সুনামগঞ্জ)  code=SUN  national_ref_id=266  upazilas=12
+    Bishwamvarpur(বিশ্বম্ভরপুর) · Chhatak(ছাতক) · Derai(দিরাই) · Dharampasha(ধর্মপাশা) ·
+    Dowarabazar(দোয়ারাবাজার) · Jagannathpur(জগন্নাথপুর) · Jamalganj(জামালগঞ্জ) ·
+    Madhyanagar(মধ্যনগর) · Shantiganj(শান্তিগঞ্জ) · Sulla(শাল্লা) ·
+    Sunamganj Sadar(সুনামগঞ্জ সদর) · Tahirpur(তাহিরপুর)
+```
+**Total: 4 districts, 41 upazilas.** Verify against the current BBS list before seeding —
+administrative boundaries change.
+
+### 27.2 Appendix B — Roll / Registration / Certificate number formats
+
+| Identifier | Format | Example | Rules |
+|---|---|---|---|
+| Application No | `REG` + year + 6-digit seq | `REG2026000123` | Global, assigned on submit |
+| Registration No | `SYL` + year(2) + `R` + 6-digit seq | `SYL26R000123` | Assigned on eligibility |
+| **Exam Roll No** | district(1) + 5-digit seq | `100001` … `100412` | `1`=Sylhet, `2`=Moulvibazar, `3`=Habiganj, `4`=Sunamganj. 6 digits, phone-keypad friendly, sorts naturally, reveals district for allocation |
+| Seat No | room(2) + `-` + seat(3) | `03-045` | Per room, per centre |
+| Certificate No | `DYD-AI-SYL-` + year(4) + `-` + 4-digit seq | `DYD-AI-SYL-2026-0001` | Never reused, even after a revocation |
+| Verification Code | 8 chars, Crockford base32, no `I/O/L/U` | `7K3M9PQR` | QR target; deliberately typo-resistant for phone dictation |
+
+Roll numbers are **gap-free within a district**, allocated under a `SELECT … FOR UPDATE` lock, and
+**a revoked roll is returned to the pool only before the admit card is issued** — after that it is
+permanently retired to protect the audit trail.
+
+### 27.3 Appendix C — Forms of the two login paths (for the implementer)
+
+```
+POST /portal/login
+  Content-Type: application/x-www-form-urlencoded
+  csrf_token      = <Flask-WTF>
+  login_mode      = roll | email
+  # mode=roll
+  exam_roll_number= "100001"
+  phone           = "01712345678"
+  remember        = "on" | absent
+  # mode=email
+  email           = "user@example.com"
+  password        = "••••••••"
+  remember        = "on" | absent
+
+200 → 302 /portal/dashboard
+401 → re-render with the Bangla error; increment login_attempts
+423 → locked; show "অনেকবার ভুল হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন।"
+429 → throttled; show the Turnstile challenge
+```
+
+### 27.4 Appendix D — Permission → route matrix (abridged)
+
+| Route group | super_admin | admin | exam_controller | district_coord | centre_coord | data_entry | viewer | student |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Public pages | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `/apply` (POST) | ✔ | ✔ | – | – | – | ✔ | – | – |
+| Lookups | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Dashboard | ✔ | ✔ | ✔ | ✔ | ✔ | – | ✔ | – |
+| Applications read | ✔ | ✔ | ✔ | own district | own centre | ✔ | ✔ | – |
+| Applications create/edit | ✔ | ✔ | – | own district | – | ✔ | – | – |
+| Applications review | ✔ | ✔ | ✔ | own district | – | – | – | – |
+| Export | ✔ | ✔ | ✔ | own district | – | – | – | – |
+| Batches / centres | ✔ | ✔ | ✔ | – | – | – | – | – |
+| Allocation / rolls | ✔ | ✔ | ✔ | – | – | – | – | – |
+| Marks entry | ✔ | ✔ | ✔ | – | – | ✔ | – | – |
+| Marks verify | ✔ | ✔ | ✔ | – | – | – | – | – |
+| Merit publish | ✔ | ✔ | ✔ | – | – | – | – | – |
+| Students manage | ✔ | ✔ | – | own district | – | – | – | – |
+| Attendance | ✔ | ✔ | ✔ | own district | own centre | ✔ | – | – |
+| Certificates issue | ✔ | ✔ | – | – | – | – | – | – |
+| Certificates revoke | ✔ | ✔ | – | – | – | – | – | – |
+| Notices / CMS | ✔ | ✔ | – | – | – | – | – | – |
+| Blast SMS/email | ✔ | ✔ | exam-only | district-only | – | – | – | – |
+| Reports | ✔ | ✔ | exam reports | district reports | centre reports | – | ✔ | – |
+| Users / settings | ✔ | partial | – | – | – | – | – | – |
+| Audit / backups / restore | ✔ | read | – | – | – | – | – | – |
+| Portal pages | – | – | – | – | – | – | – | ✔ own |
+
+### 27.5 Appendix E — Definition of Done (per feature)
+
+```
+□ Route + permission decorator + scope filter in place
+□ Service method with a docstring and no ORM access in the view
+□ Server-side validation mirrors every client rule
+□ Styling uses Tailwind utilities / component macros only — NO hand-written CSS, no <style>
+  block, no @apply in a template, no arbitrary values like bg-[#ff00ff]
+□ Any new reusable pattern became a @utility in source.css or a Jinja macro — not a copy-paste
+□ npm run css:build run; app/static/css/app.css committed; css:check passes
+□ Bangla (and English where applicable) copy final, reviewed by a Bangla speaker
+□ Empty / loading / error / permission-denied states all designed and implemented
+□ Keyboard-navigable; visible focus; labels associated; errors announced
+□ 360px, 768px, 1440px verified; no horizontal scroll
+□ Unit + integration tests written; E2E path covered where relevant
+□ Audit log entry on the write path
+□ Every list paginated, every query has an index that covers it
+□ No PII in logs; masked in the UI
+□ No banned pattern from §7.6
+□ Marshmallow/WTForms errors rendered in Bangla
+□ Performance: no page adds > 8 queries without justification
+□ Docs updated (ADMIN_GUIDE / RUNBOOK) if the operator touches it
+```
+
+### 27.6 Appendix F — Recommended first three commits
+
+So the very first code is small, verifiable and reversible:
+
+1. `chore: project skeleton + config + check-config CLI + Tailwind v4 scaffold (source.css with
+   @theme tokens, wiped default palette, @utility components, build scripts, CSS drift check in CI)`
+2. `feat(db): full schema, migrations, and the Sylhet geography seeder (4 / 41)`
+3. `feat(public): home page built from the Tailwind design tokens with real content`
+
+After that, one vertical slice per pull request, always green in CI.
+
+### 27.7 Appendix G — What I need from you to start coding
+
+| # | Item |
+|---|---|
+| 1 | Answers to the blocking questions in §26 (at minimum **Q1, Q2, Q7, Q13**) |
+| 2 | ~~Design direction~~ — ✅ **DONE: A+C hybrid, Tailwind CSS v4** (2026-09-23) |
+| 3 | The exam/centre list (**Q4**) and the confirmed partner entity (**Q3**) |
+| 4 | Logo files + the official notice PDF (**Q13**) |
+| 5 | Confirmation that the build goes into `d:\web\DYD AI SYLHET` as designed |
+| 6 | *(optional)* Node 18+ on your dev machine, or accept the standalone `tools/tailwindcss` binary |
+
+---
+
+## Sign-off
+
+| Item | Status |
+|---|---|
+| Reference site (`dydaiproject.com`) fully analysed — stack, routes, form fields, programme facts, packages, stats | ✅ verified live |
+| Sylhet scope defined (4 districts / 41 upazilas, Package-৪) | ✅ |
+| Functional requirements enumerated (FR-1.x → FR-6.x) | ✅ |
+| Backend architecture, ~52-table schema, ~93 routes, service layer | ✅ |
+| Authentication designed around the no-registration / selection-gated rule | ✅ |
+| Security, privacy, notifications, Bangla/i18n, PWA, SEO | ✅ |
+| Full deployment spec incl. `deploy.sh`, `rollback.sh`, cron, CI, go-live checklist | ✅ |
+| Testing, milestones, staffing, staged launch | ✅ |
+| Risks with mitigations | ✅ 18 identified |
+| **Design direction chosen** | ✅ **A + C hybrid — 「সুরমা প্রোটোকল」 (Surma Protocol)** |
+| **CSS approach chosen** | ✅ **Tailwind CSS v4** — CSS-first `@theme`, wiped default palette, committed compiled output, no Node on the server |
+| **Blocking questions answered** | ⏳ **to come later** — unblocked by the provisional defaults in §26.1, so progress is not gated on them |
+| **Provisionally-safe to start** | ✅ **M1 (6-screen design gate)** — depends only on Q13, which the typographic-wordmark fallback covers |
+
+### Change log
+
+| Date | Change |
+|---|---|
+| 2026-09-23 | Initial plan created from live analysis of `dydaiproject.com` |
+| 2026-09-23 | **Design direction locked: A + C hybrid (Surma Protocol).** Direction B rejected as a trust risk for a government programme |
+| 2026-09-23 | **CSS layer switched from hand-written to Tailwind CSS v4.** Added §7.3 `@theme` tokens / §7.3.1 utility map / §7.6.1 enforced anti-slop / §7.9 Tailwind architecture & build pipeline. Updated the stack table, directory layout, performance budget, Bangla typography rules, local dev, `deploy.sh` (`--build-css`, `--check-css`, stale-CSS abort), CI (drift + anti-slop gates), test pyramid, milestones (M1/M2 rebalanced, total unchanged at 112 days), risks (R16–R18) and the Definition of Done |
+
+> **Next step:** the §26 answers can arrive whenever they are ready — they are **not blocking**,
+> thanks to the provisional defaults in §26.1. The only open question is whether to start:
+>
+> **Say "go" and I build M1 — the 6 Tailwind screens** (home, project-overview, apply, admit-card
+> lookup, portal login, portal dashboard) as static HTML, with the placeholder choices §26.1
+> describes, for your review before any backend code is written.
+>
+> Nothing gets implemented until you say go.
+

@@ -1,0 +1,68 @@
+# =============================================================================
+# DYD AI SYLHET — .gitattributes
+# =============================================================================
+# Normalise content in the repo, check out with LF everywhere.
+# Why this matters here: the app is developed on Windows and deployed to a Linux
+# cPanel server. A CRLF `deploy.sh` fails on the server with
+#   "bad interpreter: /bin/bash^M: no such file or directory"
+# and CRLF in *.py is harmless but noisy. So: LF for everything that runs on Linux.
+
+* text=auto eol=lf
+
+# ── Executables and scripts that MUST be LF ─────────────────────────────────
+*.sh              text eol=lf
+*.bash            text eol=lf
+cron_*.sh         text eol=lf
+deploy.sh         text eol=lf
+rollback.sh       text eol=lf
+passenger_wsgi.py text eol=lf
+
+# ── Source files ────────────────────────────────────────────────────────────
+*.py              text eol=lf
+*.html            text eol=lf
+*.jinja           text eol=lf
+*.jinja2          text eol=lf
+*.css             text eol=lf
+*.js              text eol=lf
+*.json            text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+*.toml            text eol=lf
+*.cfg             text eol=lf
+*.ini             text eol=lf
+*.txt             text eol=lf
+*.md              text eol=lf
+.env.example      text eol=lf
+.gitignore        text eol=lf
+.gitattributes    text eol=lf
+
+# ── Windows-only tooling keeps CRLF ─────────────────────────────────────────
+*.bat             text eol=crlf
+*.cmd             text eol=crlf
+*.ps1             text eol=crlf
+
+# ── Binary assets — never normalised, never diffed as text ──────────────────
+*.png             binary
+*.jpg             binary
+*.jpeg            binary
+*.gif             binary
+*.ico             binary
+*.webp            binary
+*.avif            binary
+*.svg             text eol=lf
+*.woff            binary
+*.woff2           binary
+*.ttf             binary
+*.otf             binary
+*.eot             binary
+*.pdf             binary
+*.zip             binary
+*.gz              binary
+*.tar             binary
+
+# ── Diff behaviour ──────────────────────────────────────────────────────────
+# The compiled Tailwind output is committed on purpose (see plan.md §7.9),
+# but it should not drown out real changes in a diff or the repo language stats.
+app/static/css/app.css   -diff linguist-generated=true
+package-lock.json        -diff linguist-generated=true
+*.min.js                 -diff linguist-generated=true
