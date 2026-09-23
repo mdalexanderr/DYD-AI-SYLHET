@@ -105,14 +105,14 @@ deployment, cron and CI patterns are proven rather than invented.
    The theme wipes Tailwind's default palette, radius and shadow scales, so generic-looking
    utilities **do not compile** — the anti-slop rules are enforced by the build, not by review.
 4. **Rebuild CSS** (`npm run css:build`) whenever a template changes; CI fails the build on drift.
-5. **A push to `main` is a production release.** Branch → PR → CI → review → merge from the
-   A-track. The frontend collaborator may push to `main` directly — safe because `design-src/`
-   is excluded from the deploy sync. The deploy workflow is gated on a blocking
-   `flask render-check --all` pre-flight job.
-6. **Stay inside your track.** Backend works in `app/**`; the frontend collaborator works in
-   `design-src/**` and never edits `assets/tailwind/source.css`, `app/**` or
-   `app/static/css/app.css`. Token and component requests go through `DESIGN-NOTES.md`
-   (`plan.md` §10.6.5).
+5. **A push to `main` is a production release.** Branch for anything risky, merge when CI is
+   green. The deploy workflow is gated on a blocking `flask render-check --all` pre-flight job,
+   so a broken template fails the deploy rather than the live site. If the design supplier is
+   given repository access, their `design-src/` commits are safe by construction — that folder
+   is excluded from the deploy sync.
+6. **The supplier stays in `design-src/`.** They never edit `assets/tailwind/source.css`,
+   anything under `app/`, or `app/static/css/app.css`. Token and component requests go through
+   `DESIGN-NOTES.md` (`plan.md` §10.6.5) so the design system stays coherent.
 
 ---
 
