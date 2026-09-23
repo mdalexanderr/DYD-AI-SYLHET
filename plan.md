@@ -33,13 +33,13 @@
   - [3.3 Explicit non-goals (v1)](#33-explicit-non-goals-v1)
 - [4. Ways of Working](#4-ways-of-working)
   - [4.1 Development model: solo build with an external design supplier](#41-development-model-solo-build-with-an-external-design-supplier)
-    - [4.1.1 Why this is not a "backend/frontend split"](#411-why-this-is-not-a-backendfrontend-split)
+    - [4.1.1 How the supplier's markup reaches the codebase](#411-how-the-suppliers-markup-reaches-the-codebase)
     - [4.1.2 Who produces what (file level)](#412-who-produces-what-file-level)
     - [4.1.3 The four frozen contracts](#413-the-four-frozen-contracts)
   - [4.2 The design handoff kit — what to send the supplier](#42-the-design-handoff-kit--what-to-send-the-supplier)
-    - [4.2.1 Why the kit must exist (and what happens without it)](#421-why-the-kit-must-exist-and-what-happens-without-it)
+    - [4.2.1 What happens without the kit](#421-what-happens-without-the-kit)
     - [4.2.2 The preview harness](#422-the-preview-harness)
-    - [4.2.3 The kitchen sink (the single most valuable artifact)](#423-the-kitchen-sink-the-single-most-valuable-artifact)
+    - [4.2.3 The kitchen sink](#423-the-kitchen-sink)
     - [4.2.4 The placeholder convention — [[TOKEN]]](#424-the-placeholder-convention--token)
     - [4.2.5 Requesting a token or a component](#425-requesting-a-token-or-a-component)
     - [4.2.6 The "do not" list (goes in design-src/README.md)](#426-the-do-not-list-goes-in-design-srcreadmemd)
@@ -507,18 +507,11 @@ codebase.
 | **Sole developer** | You + me | **Everything**: backend, database, auth, the admin console full-stack, the student portal, all public-site wiring, documents/PDF, notifications, deployment, data, security — *and* the conversion of the supplied HTML into Jinja |
 | **Design supplier** | Collaborator | **HTML + CSS for the public-facing pages only.** No Python, no Jinja, no access to `app/`, no ownership of anything that runs |
 
-#### 4.1.1 Why this is not a "backend/frontend split"
+#### 4.1.1 How the supplier's markup reaches the codebase
 
-Earlier drafts of this plan framed the work as two parallel tracks. That was wrong, and it is worth
-recording why so the framing does not creep back in:
-
-- In a server-rendered Jinja app there is **no horizontal backend/frontend line**. A template calls
-  `url_for()`, reads `current_user`, filters through `bn_date`, and is chosen by a Python view.
-  "One person does Python, the other does HTML" always collapses, because every screen touches both.
-- With a single developer there is no parallelisation to reason about — only a **sequence of work**
-  plus **one external input**.
-
-So the model is not two tracks. It is **one build, with a markup package arriving from outside**:
+A Jinja template is not "frontend" in the SaaS sense: it calls `url_for()`, reads `current_user`,
+and is chosen by a Python view. With one developer there is nothing to parallelise — only a sequence
+of work plus one external input.
 
 ```
    Design supplier                    You (sole developer)
@@ -532,14 +525,8 @@ So the model is not two tracks. It is **one build, with a markup package arrivin
             → their files can never break production
 ```
 
-**Two consequences that matter:**
-
-1. **`design-src/` is excluded from the deploy sync**, so whatever the supplier delivers — including
-   anything half-finished — is structurally incapable of affecting the live site. No branch
-   protection or review ceremony is needed to make that safe.
-2. **The schedule is a solo schedule.** See §25.1: ~108 developer-days, ≈22 weeks best case. That is
-   the single most important planning fact in this document, and §25.2 lists *scope levers* rather
-   than ways to add people.
+`design-src/` is excluded from the deploy sync, so nothing the supplier delivers can reach
+production. The schedule consequence is in §25.1.
 
 #### 4.1.2 Who produces what (file level)
 
@@ -555,15 +542,12 @@ So the model is not two tracks. It is **one build, with a markup package arrivin
 | `deploy.sh`, `.github/**`, `.env*`, `plan.md`, `README.md` | **You** | |
 | `DESIGN-NOTES.md` | **Supplier** | Their questions, token requests, missing copy. One file, one writer. |
 
-**No `CODEOWNERS` file.** With a single developer and a supplier who never touches `app/`, code
-ownership rules would be ceremony without a purpose. The boundary is enforced by something better:
-`design-src/` is not deployed, so their edits cannot reach production by construction.
+No `CODEOWNERS` file. The boundary needs no review ceremony: `design-src/` is not deployed, so
+supplier edits cannot reach production by construction.
 
 #### 4.1.3 The four frozen contracts
 
-The supplier's output is only useful if it can be converted mechanically. These four things are
-therefore frozen **before they start their first screen** — and changing one is a deliberate event,
-not a quiet edit.
+Frozen **before the supplier starts their first screen**. Changing one is a deliberate event.
 
 | # | Contract | Where it lives |
 |---|---|---|
@@ -572,32 +556,25 @@ not a quiet edit.
 | **C3** | **Component inventory** — the ~40 named components and their exact variants/states | §10.7 + `design-src/kitchen-sink.html` (§4.2.3) |
 | **C4** | **Placeholder dictionary** — every `[[TOKEN]]` and what it becomes in Jinja | `design-src/PLACEHOLDERS.md` (§4.2.4) |
 
-> **Why freeze them:** with a single developer, the expensive failure is not a merge conflict — it is
-> **rework**. If the supplier invents a colour that does not exist, writes English filler, or
-> hard-codes a roll number, you discover it at conversion time and pay for the screen twice. C1–C4
-> are what make their output convertible on first delivery.
+The purpose is avoiding **rework**: a colour that does not exist, English filler, or a hard-coded
+roll number is only discovered at conversion time, and the screen is paid for twice. C1–C4 are what
+make the supplier's output convertible on first delivery.
 
 ### 4.2 The design handoff kit — what to send the supplier
 
-> ⚠️ **On the critical path.** The supplier cannot start a single screen until this kit exists.
-> It is a **1–2 day job** and the highest-leverage thing to build first, because it decides whether
-> their output converts on the first pass or comes back three times.
+> ⚠️ **On the critical path.** The supplier cannot start a screen until this kit exists. It is a
+> **1–2 day job** and the highest-leverage thing to build first.
 
-#### 4.2.1 Why the kit must exist (and what happens without it)
+#### 4.2.1 What happens without the kit
 
-Without it, the supplier would: invent their own colour scale (their classes would not compile
-against our wiped palette), invent component variants we do not have, write English placeholder
-copy, and produce markup whose dynamic fields cannot be identified. Every one of those becomes
-rework — and with a single developer, rework is the only real cost that matters.
-
-With it, they build screens from **your** palette, **your** components, **your** real Bangla copy,
-**your** frozen routes and **your** declared dynamic fields — so conversion is a mechanical step
-rather than an act of interpretation.
+The supplier invents colours that do not compile, component variants that do not exist, English
+placeholder copy, and markup whose dynamic fields cannot be identified — all discovered at
+conversion time. With the kit they build against the real palette, components, Bangla copy, routes
+and declared fields, so conversion is mechanical.
 
 #### 4.2.2 The preview harness
 
-So B can see exactly what our production CSS does, using **our** theme, with no Python and no
-build knowledge:
+The supplier sees production CSS, using the real theme, with no Python and no build knowledge:
 
 ```
 design-src/preview.css
@@ -622,22 +599,20 @@ Each file in `design-src/public/` ends with:
 B runs `npm run design:watch` and refreshes the browser. No Flask, no database, no Jinja.
 `design-src/preview.out.css` and `design-src/node_modules` are git-ignored; `preview.css` is not.
 
-#### 4.2.3 The kitchen sink (the single most valuable artifact)
+#### 4.2.3 The kitchen sink
 
 `design-src/kitchen-sink.html` renders **every component from §10.7, in every state**: button
-variants × sizes × disabled × loading × focus; all form fields × default × focused × invalid ×
-readonly × hint; table in zebra/hover/empty/loading; badges; the notice bar; the step spine; the
-roll slab; status timeline; empty states; toasts; modals; the pagination; the deadline chip with
-each countdown band; the document headers used on admit cards and certificates.
+variants × sizes × disabled × loading × focus; form fields × default × focused × invalid × readonly
+× hint; tables zebra/hover/empty/loading; badges; notice bar; step spine; roll slab; status
+timeline; empty states; toasts; modals; pagination; deadline chip across countdown bands; document
+headers for admit cards and certificates.
 
-**Why this matters more than any single screen:** it is the shared vocabulary. When I ask B for
-"the invalid state of a Bangla date field", or B asks me whether a disabled primary button exists,
-the answer is a link, not a description. It also becomes our visual regression baseline in §24.1.
+It is the shared vocabulary for component questions and the visual regression baseline (§24.1).
 
 #### 4.2.4 The placeholder convention — `[[TOKEN]]`
 
-B does not know Jinja, so dynamic values are written as **double-bracket tokens**, which are
-visually obvious in the browser and scriptable at conversion time:
+Dynamic values are written as **double-bracket tokens** — visible in the browser, scriptable at
+conversion:
 
 ```html
 <!-- B writes this -->
@@ -653,16 +628,14 @@ visually obvious in the browser and scriptable at conversion time:
 <a href="{{ url_for('apply.form') }}" class="btn-primary">আবেদন করুন</a>
 ```
 
-`design-src/PLACEHOLDERS.md` is the dictionary — token, meaning, example value, and its Jinja
-target. **Anything not in the dictionary is not allowed to be dynamic**, so the conversion script
-can report an unknown token as an error rather than silently shipping `[[FOO]]` to a citizen.
+`design-src/PLACEHOLDERS.md` is the dictionary: token, meaning, sample value, Jinja target.
+**Nothing outside the dictionary may be dynamic**, so an unknown token is an error rather than
+`[[FOO]]` reaching a citizen.
 
 #### 4.2.5 Requesting a token or a component
 
-Because B cannot edit `source.css`: if B needs a colour, space step, variant or component that
-does not exist, they **write it in `DESIGN-NOTES.md`** with a screenshot, and we either add it or
-explain why the design does not need it. This is the mechanism that keeps the design system
-coherent while still letting the designer shape it.
+The supplier cannot edit `source.css`. A needed colour, space step, variant or component is
+requested in `DESIGN-NOTES.md` with a screenshot; you either add it or explain why it is not needed.
 
 #### 4.2.6 The "do not" list (goes in `design-src/README.md`)
 
@@ -689,8 +662,8 @@ DO NOT commit design-src/preview.out.css or node_modules.
 | Artifact | Purpose |
 |---|---|
 | `design-src/content/routes.md` | The frozen public URL list (C1) with the Bangla nav label for each |
-| `design-src/content/*.md` | **Real Bangla copy** for every public screen, written by us, ready to paste |
-| `design-src/content/data-samples.json` | Realistic sample values for every `[[TOKEN]]` (a real 6-digit roll, a real upazila, real dates) so B designs against truth, not "Lorem" |
+| `design-src/content/*.md` | **Real Bangla copy** for every public screen, ready to paste |
+| `design-src/content/data-samples.json` | Realistic sample values for every `[[TOKEN]]` (a real 6-digit roll, a real upazila, real dates) |
 | `design-src/content/imagery.md` | Which photographs are needed, at what sizes/crops, and the rule: **no AI-generated hero art, no stock "team at laptops"** (§10.6) |
 | Fonts + the roundel SVG | Already self-hosted; the roundel is the placeholder until the real logo arrives (§27.1 Q13) |
 | A 30-minute walkthrough call | Screenshare the kitchen sink, the tokens and the conversion pipeline |
