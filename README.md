@@ -20,7 +20,36 @@ Companion to the national site: <https://www.dydaiproject.com> · Scope: **4 dis
 | Design direction | ✅ A + C hybrid — 「সুরমা প্রোটোকল」 (Surma Protocol) |
 | CSS approach | ✅ Tailwind CSS v4 (CSS-first `@theme`) |
 | Hosting / domain / dates / brand assets | ⏳ pending, unblocked via provisional defaults (`plan.md` §26.1) |
-| **Next step** | **M1 — six Tailwind screens, for review before any backend code** |
+| **Next step** | **M1a — the design handoff kit** (`plan.md` §10.6), which unblocks the frontend collaborator |
+
+---
+
+## Team
+
+| Track | Who | Owns |
+|---|---|---|
+| **A** | Backend team | All backend, the **admin console** (full-stack), the **student portal**, deployment, data, security |
+| **B** | Frontend collaborator | The **public site only** — markup + styling, as standalone HTML/Tailwind |
+
+**How the seam works.** In a server-rendered Jinja app there is no horizontal backend/frontend
+line, so the split is by a **frozen contract plus a one-way delivery pipe**:
+
+```
+  B: design-src/public/*.html   ──convert──►   A: app/templates/public/*.html
+     standalone HTML + Tailwind                Jinja wired to routes and data
+     [[TOKEN]] placeholders                    real context variables
+     NOT deployed                              owns the runtime
+```
+
+Because `design-src/` is **excluded from the deploy sync**, the collaborator's pushes to `main`
+are structurally incapable of affecting production.
+
+The four frozen contracts (URL map, design tokens, component inventory, placeholder dictionary)
+and the full ownership map are in `plan.md` §10.5.3 and §10.5.2.
+
+> ⚠️ **Capacity note.** The public site is one of the smaller workstreams — this split gives the
+> collaborator ~12 days and leaves ~108 days on the A-track (~21 weeks elapsed). `plan.md` §24.1
+> quantifies it and §24.2 lists four ways to reach ~17 weeks. Worth reading before the work starts.
 
 ---
 
@@ -69,7 +98,14 @@ deployment, cron and CI patterns are proven rather than invented.
    The theme wipes Tailwind's default palette, radius and shadow scales, so generic-looking
    utilities **do not compile** — the anti-slop rules are enforced by the build, not by review.
 4. **Rebuild CSS** (`npm run css:build`) whenever a template changes; CI fails the build on drift.
-5. **A push to `main` is a production release.** Branch → PR → CI → review → merge.
+5. **A push to `main` is a production release.** Branch → PR → CI → review → merge from the
+   A-track. The frontend collaborator may push to `main` directly — safe because `design-src/`
+   is excluded from the deploy sync. The deploy workflow is gated on a blocking
+   `flask render-check --all` pre-flight job.
+6. **Stay inside your track.** Backend works in `app/**`; the frontend collaborator works in
+   `design-src/**` and never edits `assets/tailwind/source.css`, `app/**` or
+   `app/static/css/app.css`. Token and component requests go through `DESIGN-NOTES.md`
+   (`plan.md` §10.6.5).
 
 ---
 
