@@ -8,8 +8,8 @@ Ministry of Youth & Sports.
 The site documents the course as delivered in Sylhet and the cohort who took it: who they are, where
 they came from, what they learned, and what they have done since.
 
-Companion to the national site: <https://www.dydaiproject.com> · **4 districts / 41 upazilas** ·
-Package-৪ (Chattogram + Sylhet).
+Companion to the national site: <https://www.dydaiproject.com> · Delivered in Sylhet by **Sylhet
+BUTTC** (name to be confirmed, `plan.md` §22 Q2).
 
 ---
 
@@ -19,7 +19,7 @@ Package-৪ (Chattogram + Sylhet).
 
 | Item | State |
 |---|---|
-| Master plan | ✅ [`plan.md`](plan.md) — 1,853 lines, 23 sections, 111 indexed headings |
+| Master plan | ✅ [`plan.md`](plan.md) — 1,797 lines, 23 sections, 109 indexed headings |
 | Product | ✅ Documentary site + CMS for one admin |
 | Design direction | ✅ A + C hybrid (Surma Protocol) |
 | CSS approach | ✅ Tailwind CSS v4 (CSS-first `@theme`) |
@@ -32,7 +32,7 @@ Package-৪ (Chattogram + Sylhet).
 ## What this is, and what it is not
 
 It is a **documentary site with a CMS**: pages built from ordered sections, a cohort register, course
-documentation, a gallery and notices — all entered and managed by a **single admin user**.
+documentation and a gallery — all entered and managed by a **single admin user**.
 
 It is **not** the operational system behind the national site. Not being built: the online
 application form, admit-card / results / certificate lookups, the exam engine, student accounts and
@@ -48,7 +48,7 @@ There is exactly **one kind of user**: the admin.
 
 The site publishes people's names. That is a consent obligation, not a styling choice.
 
-**Published:** name · district · upazila · education · what they did (outcome)
+**Published:** name · education · occupation before · what they did (outcome)
 
 **Never published, and the database cannot store it:** photograph · phone · email · NID or
 birth-registration number · date of birth · blood group · full address · guardian names · marks
@@ -113,13 +113,13 @@ CI patterns are proven rather than invented.
 |---|---|
 | What is and is not being built | §2 Scope & Non-Goals |
 | Programme facts and coverage | §3 |
-| Content model — 11 types, 15 section types | §4 |
+| Content model — 10 content types, 13 section types | §4 |
 | Participant fields, consent model, statistics | §5 |
-| Sitemap and all 39 routes | §6 |
+| Sitemap and all 34 routes | §6 |
 | Visual direction, design tokens, anti-slop | §7 |
 | Tailwind and local development | §8 |
 | Architecture and the section renderer | §9 |
-| Data model — 18 tables | §10 |
+| Data model — 17 tables | §10 |
 | Admin CMS screens and workflows | §11 |
 | Security, 2FA, privacy commitments | §12 |
 | Media pipeline | §13 |
@@ -129,7 +129,7 @@ CI patterns are proven rather than invented.
 | Deployment, `deploy.sh`, cron, go-live | §17 |
 | Operational runbook and withdrawal workflow | §18 |
 | Testing strategy | §19 |
-| Roadmap — 40 days, staged | §20 |
+| Roadmap — 37 days, staged | §20 |
 | Risks | §21 |
 | Open questions | §22 |
 

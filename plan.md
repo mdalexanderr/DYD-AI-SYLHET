@@ -23,7 +23,7 @@
   - [2.3 Privacy boundary](#23-privacy-boundary)
 - [3. Programme Context](#3-programme-context)
   - [3.1 Programme facts](#31-programme-facts)
-  - [3.2 Coverage](#32-coverage)
+  - [3.2 The institution](#32-the-institution)
   - [3.3 What we take from the national site, and what we do not](#33-what-we-take-from-the-national-site-and-what-we-do-not)
 - [4. Content Model](#4-content-model)
   - [4.1 Content types](#41-content-types)
@@ -61,12 +61,11 @@
   - [9.5 Background work](#95-background-work)
 - [10. Data Model](#10-data-model)
   - [10.1 Identity](#101-identity)
-  - [10.2 Geography](#102-geography)
-  - [10.3 CMS](#103-cms)
-  - [10.4 People](#104-people)
-  - [10.5 Course and institution](#105-course-and-institution)
-  - [10.6 Media and operations](#106-media-and-operations)
-  - [10.7 Seed data](#107-seed-data)
+  - [10.2 CMS](#102-cms)
+  - [10.3 People](#103-people)
+  - [10.4 Course and institution](#104-course-and-institution)
+  - [10.5 Media and operations](#105-media-and-operations)
+  - [10.6 Seed data](#106-seed-data)
 - [11. Admin CMS](#11-admin-cms)
   - [11.1 Screens](#111-screens)
   - [11.2 Page sections editor](#112-page-sections-editor)
@@ -118,10 +117,9 @@
 - [21. Risks](#21-risks)
 - [22. Open Questions](#22-open-questions)
 - [23. Appendices](#23-appendices)
-  - [23.1 Sylhet Division geography (seed data)](#231-sylhet-division-geography-seed-data)
-  - [23.2 Recommended first three commits](#232-recommended-first-three-commits)
-  - [23.3 Deferred design (not being built)](#233-deferred-design-not-being-built)
-  - [23.4 Change log](#234-change-log)
+  - [23.1 Recommended first three commits](#231-recommended-first-three-commits)
+  - [23.2 Deferred design (not being built)](#232-deferred-design-not-being-built)
+  - [23.3 Change log](#233-change-log)
 - [Sign-off](#sign-off)
 
 ---
@@ -134,9 +132,9 @@ programme *"তথ্যপ্রযুক্তি জ্ঞানসম্প�
 উন্নয়ন"* — implemented by **যুব উন্নয়ন অধিদপ্তর (Department of Youth Development)**, Ministry of
 Youth & Sports.
 
-The site tells the story of **Batch 1 in Sylhet**: who took part, where they came from, what they
-learned and what they have done since. It also documents the course itself — curriculum, duration,
-the training institution, and the facilities.
+The site tells the story of **Batch 1 in Sylhet**: who took part, what they learned and what they
+have done since. It also documents the course itself — curriculum, duration, the training
+institution, and the facilities.
 
 It is **not** an operational system. There is no application form, no exam engine, no student
 portal and no certificate verification. See §2.
@@ -202,7 +200,7 @@ Not deferred by accident — **these are not being built**:
 | Fee or allowance payments | No financial data on this site |
 | Import of applications or marks | Only participant records are imported (§11.4) |
 
-> A short "deferred design" note in §23.3 records what the earlier plan covered, so it is not
+> A short "deferred design" note in §23.2 records what the earlier plan covered, so it is not
 > re-proposed later without a deliberate decision.
 
 ### 2.3 Privacy boundary
@@ -237,8 +235,8 @@ Verified from the national site `https://www.dydaiproject.com` (live inspection,
 | Hotline | +88 02-8091188 \| 01550-666900 · info@elaeltd.com |
 | National HQ | খাজা আইটি পার্ক (২য়–৬ষ্ঠ তলা), ০৭ দক্ষিণ কল্যাণপুর, মিরপুর রোড, ঢাকা-১২০৭ |
 
-> Q2 must confirm the institution's name and address; the name appears throughout the site and on the
-> Contact page.
+> Q3 confirms the partner entity and Q2 the institution name for Sylhet; both appear on the site
+> and must be correct.
 
 ### 3.2 The institution
 
@@ -247,7 +245,7 @@ documents that institute and its students. There is no multi-district or multi-c
 cohort is one institute's Batch 1, and §10.4 holds the institute record.
 
 > **Q2 must confirm the institution's full legal name and address before the Course and About pages
-go live.** "BUTTC" is used here as supplied and should not be expanded or guessed at.
+> go live.** "BUTTC" is used here as supplied and should not be expanded or guessed at.
 
 ### 3.3 What we take from the national site, and what we do not
 
@@ -268,7 +266,7 @@ UI, the database and the templates.
 
 | Type | Purpose | Count guide |
 |---|---|---|
-| **Page** | A public page, composed of ordered **sections** | ~10 |
+| **Page** | A public page, composed of ordered **sections** | 8 |
 | **Section** | One block within a page, of a fixed type (§4.2) | 3–8 per page |
 | **Participant** | One Batch 1 cohort member (§5) | ~100–400 |
 | **Course** | The programme as delivered in Sylhet | 1 |
@@ -393,15 +391,15 @@ cause a problem.
 The site publishes aggregate figures derived **only from consented records**:
 
 মোট প্রশিক্ষণার্থী · শিক্ষাগত যোগ্যতার বিভাজন · ফলাফলের বিভাজন (কর্মসংস্থান / ফ্রিল্যান্সিং /
-আরও পড়াশোনা …) · ব্যাচ ১
+আরও পড়াশোনা / ব্যবসা / শিক্ষকতা) · লিঙ্গ (only if recorded)
 
 Rules:
 - Every figure recomputes from consented records on read, cached 300 s (§15.1).
 - **Gender is optional and off by default.** It is not needed for a documentary page and adds a
   sensitive dimension to every record.
 - Never publish a figure that could identify an individual — any cell derived from **fewer than 5
-  records** renders as `—`. With a cohort this size, an outcome shown against an education level can
-  easily point at one or two people.
+  records** renders as `—`. This matters most for the outcome breakdown, where a small cohort can
+  leave a category holding one or two people.
 
 ### 5.5 Participant profile page
 
@@ -409,13 +407,12 @@ Rules:
 
 ```
 নাম (name_bn)                        ← largest element
-শিক্ষাগত যোগ্যতা                       ← label-value pairs
-এর আগে (occupation_before, if present)
+শিক্ষাগত যোগ্যতা                      ← label-value pairs
 এর আগে (occupation_before, if present)
 [quote_bn, if consented — set as a pull quote]
 কী করেছেন (outcome_text)
 ━━━  ← "the document rule" motif (§7.5)
-ব্যাচ ১ · সিলেট বিভাগ
+ব্যাচ ১ · সিলেট BUTTC
 [← সব প্রশিক্ষণার্থী]   [পরবর্তী →]
 ```
 
@@ -447,36 +444,36 @@ No photograph, no image placeholder, no silhouette graphic. The page is typograp
 | 2 | GET | `/course` | – | |
 | 3 | GET | `/batch-1` | – | Filter `?outcome=&q=&page=` |
 | 4 | GET | `/batch-1/<slug>` | – | Consented participants only |
-| 7 | GET | `/gallery` | – | Paginated |
-| 10 | GET | `/about` | – | |
-| 11 | GET/POST | `/contact` | – | Rate-limited, Turnstile-protected |
-| 12 | GET | `/privacy` | – | Must contain the participant data policy |
-| 13 | GET | `/sitemap.xml` | – | Generated from published pages and consented participant profiles |
-| 14 | GET | `/robots.txt` | – | Disallow `/admin/`; **allow** participant pages |
-| 15 | GET | `/health` | – | JSON uptime probe |
-| 16 | GET | `/manifest.json`, `/sw.js` | – | PWA |
-| 17 | GET | `/media/<path>` | – | Signed URLs; never executable |
-| 18 | GET/POST | `/<ADMIN_PREFIX>/login` | – | Single admin |
-| 19 | POST | `/<ADMIN_PREFIX>/logout` | ✔ | POST only |
-| 20 | GET | `/<ADMIN_PREFIX>/` | ✔ | Dashboard |
-| 21 | GET/POST | `/<ADMIN_PREFIX>/pages` | ✔ | List + create |
-| 22 | GET/POST | `/<ADMIN_PREFIX>/pages/<id>` | ✔ | Sections editor (§11.2) |
-| 23 | POST | `/<ADMIN_PREFIX>/pages/<id>/publish` | ✔ | |
-| 24 | GET/POST | `/<ADMIN_PREFIX>/participants` | ✔ | List, filter, bulk publish (§11.3) |
-| 25 | GET/POST | `/<ADMIN_PREFIX>/participants/new` | ✔ | |
-| 26 | GET/POST | `/<ADMIN_PREFIX>/participants/<id>` | ✔ | |
-| 27 | GET/POST | `/<ADMIN_PREFIX>/participants/<id>/consent` | ✔ | Consent record (§5.3) |
-| 28 | GET | `/<ADMIN_PREFIX>/participants/consent` | ✔ | Consent dashboard |
-| 29 | GET/POST | `/<ADMIN_PREFIX>/participants/import` | ✔ | CSV import (§11.4) |
-| 30 | GET/POST | `/<ADMIN_PREFIX>/course` | ✔ | Course + modules |
-| 31 | GET/POST | `/<ADMIN_PREFIX>/institutions` | ✔ | |
-| 32 | GET/POST | `/<ADMIN_PREFIX>/media` | ✔ | Library + upload |
-| 34 | GET/POST | `/<ADMIN_PREFIX>/stats` | ✔ | Stat definitions |
-| 35 | GET/POST | `/<ADMIN_PREFIX>/faqs` | ✔ | |
-| 36 | GET/POST | `/<ADMIN_PREFIX>/settings` | ✔ | |
-| 37 | GET | `/<ADMIN_PREFIX>/messages` | ✔ | Contact form submissions |
-| 38 | GET | `/<ADMIN_PREFIX>/audit` | ✔ | Admin write history |
-| 39 | GET | `/<ADMIN_PREFIX>/backups` | ✔ | |
+| 5 | GET | `/gallery` | – | Paginated |
+| 6 | GET | `/about` | – | |
+| 7 | GET/POST | `/contact` | – | Rate-limited, Turnstile-protected |
+| 8 | GET | `/privacy` | – | Must contain the participant data policy |
+| 9 | GET | `/sitemap.xml` | – | Generated from published pages and consented participant profiles |
+| 10 | GET | `/robots.txt` | – | Disallow `/admin/`; **allow** participant pages |
+| 11 | GET | `/health` | – | JSON uptime probe |
+| 12 | GET | `/manifest.json`, `/sw.js` | – | PWA |
+| 13 | GET | `/media/<path>` | – | Signed URLs; never executable |
+| 14 | GET/POST | `/<ADMIN_PREFIX>/login` | – | Single admin |
+| 15 | POST | `/<ADMIN_PREFIX>/logout` | ✔ | POST only |
+| 16 | GET | `/<ADMIN_PREFIX>/` | ✔ | Dashboard |
+| 17 | GET/POST | `/<ADMIN_PREFIX>/pages` | ✔ | List + create |
+| 18 | GET/POST | `/<ADMIN_PREFIX>/pages/<id>` | ✔ | Sections editor (§11.2) |
+| 19 | POST | `/<ADMIN_PREFIX>/pages/<id>/publish` | ✔ | |
+| 20 | GET/POST | `/<ADMIN_PREFIX>/participants` | ✔ | List, filter, bulk publish (§11.3) |
+| 21 | GET/POST | `/<ADMIN_PREFIX>/participants/new` | ✔ | |
+| 22 | GET/POST | `/<ADMIN_PREFIX>/participants/<id>` | ✔ | |
+| 23 | GET/POST | `/<ADMIN_PREFIX>/participants/<id>/consent` | ✔ | Consent record (§5.3) |
+| 24 | GET | `/<ADMIN_PREFIX>/participants/consent` | ✔ | Consent dashboard |
+| 25 | GET/POST | `/<ADMIN_PREFIX>/participants/import` | ✔ | CSV import (§11.4) |
+| 26 | GET/POST | `/<ADMIN_PREFIX>/course` | ✔ | Course + modules |
+| 27 | GET/POST | `/<ADMIN_PREFIX>/institutions` | ✔ | |
+| 28 | GET/POST | `/<ADMIN_PREFIX>/media` | ✔ | Library + upload |
+| 29 | GET/POST | `/<ADMIN_PREFIX>/stats` | ✔ | Stat definitions |
+| 30 | GET/POST | `/<ADMIN_PREFIX>/faqs` | ✔ | |
+| 31 | GET/POST | `/<ADMIN_PREFIX>/settings` | ✔ | |
+| 32 | GET | `/<ADMIN_PREFIX>/messages` | ✔ | Contact form submissions |
+| 33 | GET | `/<ADMIN_PREFIX>/audit` | ✔ | Admin write history |
+| 34 | GET | `/<ADMIN_PREFIX>/backups` | ✔ | |
 
 **34 routes total**, versus ~93 in the earlier operational plan.
 
@@ -668,10 +665,9 @@ hero with a floating fake dashboard · stock photography of any kind · autoplay
 `border-radius: 24px` everywhere · "AI-powered" as a headline · the words *seamless*,
 *revolutionise*, *unlock*, *elevate*.
 
-**Required:** real content (real names once consented, real course and institution detail, real
-cohort figures) · one loud colour used once · visible rules and alignment instead of shadows ·
-left-aligned prose · tabular numerals · self-hosted fonts · mobile-first at 360px ·
-**no AI-generated imagery anywhere**.
+**Required:** real content (real names once consented, real module names, real dates) · one loud
+colour used once · visible rules and alignment instead of shadows · left-aligned prose · tabular
+numerals · self-hosted fonts · mobile-first at 360px · **no AI-generated imagery anywhere**.
 
 #### 7.6.1 Enforced by the theme, not by discipline
 
@@ -928,8 +924,6 @@ No Celery or Redis. Everything is either fast-and-synchronous or handled by a ni
 
 There is **no** `role` column. There is one kind of user.
 
-
-
 ### 10.2 CMS
 
 | Table | Columns |
@@ -987,7 +981,7 @@ not publish — the strongest form of the §5.2 rule.
 ### 10.6 Seed data
 
 `flask seed` populates: 1 institution (Sylhet BUTTC) · 1 course + 6 modules · ~10 stats ·
-~12 FAQs · 9 page records with their sections · ~40 settings · 1 admin user.
+~12 FAQs · 8 page records with their sections · ~40 settings · 1 admin user.
 
 ---
 
@@ -1007,7 +1001,7 @@ its output.
 | **Participant detail** | Edit fields, manage consent, preview the public profile |
 | **Consent dashboard** | Consented / not consented / withdrawn / missing `consent_date` — §5.3 |
 | **Course** | Course record + module list (drag to reorder, inline edit) |
-| **Institution** | Sylhet BUTTC — name, address, description, logo |
+| **Institutions** | Training centre / partner records |
 | **Media** | Library grid, upload (multi-file, drag-drop), alt text, tags, usage count, replace-in-place |
 | **Stats** | Define the figures shown in stat strips; manual or computed |
 | **FAQs** | Grouped question/answer list |
@@ -1037,7 +1031,7 @@ The one screen where a mistake is publicly visible, so it is built defensively.
 
 | Behaviour | Rule |
 |---|---|
-| Add | A picker of the 15 section types (§4.2), each with a one-line description. No free-form block builder. |
+| Add | A picker of the 13 section types (§4.2), each with a one-line description. No free-form block builder. |
 | Edit | A type-specific form generated from the section schema. Field-level validation with Bangla messages. |
 | Reorder | Drag handle; persists `sort_order` on drop. Keyboard alternative: move up/down buttons — **not** drag-only. |
 | Visibility | A toggle, not a delete. `is_visible = false` sections are not rendered at all. |
@@ -1670,7 +1664,7 @@ Assumes **one developer**. Days are effort, not elapsed.
 |---|---|---|---|
 | **M0** | Discovery & decisions | This plan signed off; §22 answered; subdomain, DB and Passenger app created | 1 |
 | **M1** | Design system + screens | Tailwind tokens, kitchen sink, and static HTML for Home · Course · Batch 1 · Participant profile · Admin shell | 4 |
-| **M2** | Foundation | Flask skeleton, config, models (17 tables), migrations, seeders, layouts, component macros, CI | 4 |
+| **M2** | Foundation | Flask skeleton, config, models (18 tables), migrations, seeders, layouts, component macros, CI | 4 |
 | **M3** | Public read-only site | Routes, section renderer + 13 types, all pages against seed data, SEO, a11y pass | 6 |
 | **M4** | Admin: pages & sections | Pages list; the sections editor with validation, reorder, visibility, preview, publish gate | 6 |
 | **M5** | Admin: participants | CRUD, list + filters, bulk actions, consent panel + dashboard, CSV import with dry run | 5 |
@@ -1686,11 +1680,13 @@ Assumes **one developer**. Days are effort, not elapsed.
 
 | Session | Ships | Days | Elapsed |
 |---|---|---|---|
-| **1 — A publishable site** | M0–M3 + minimal admin (pages + participants CRUD, no section builder) | ~20 | **~4 weeks** |
-| **2 — Real CMS** | M4, M5, M7 | +14 | ~7 weeks |
-| **3 — Complete + hardened** | M6, M8, M9 | +6 | ~8–9 weeks |
+| **1 — Public site** | M0–M3 | 15 | **~3 weeks** |
+| **2 — Real CMS** | M4, M5, M7 | +13 | ~6 weeks |
+| **3 — Complete + hardened** | M6, M8, M9 | +9 | ~8 weeks |
 
-Session 1 gives the department a live site with Batch 1 content. It is the version to promise.
+Session 1 is the full public site rendering **seeded** content — the department can read it but not
+edit it. If they need to enter participants before Session 2, pull the participant CRUD forward from
+M5 (+3 days), which makes Session 1 ~3½ weeks.
 
 ### 20.2 Scope levers
 
@@ -1734,8 +1730,8 @@ content records still let the admin change all the words and images.
 | # | Question | Why it matters | Default if unanswered |
 |---|---|---|---|
 | **Q1** | **Batch 1 dates** for Sylhet — start, end, and whether it has completed? | The Course and Batch 1 pages state duration and status | Build with placeholders; the CMS makes them editable |
-| **Q2** | **Sylhet BUTTC** — confirm the full legal name (is "BUTTC" the complete name?), address and any official Bangla form of the name | Appears on Course, About, Contact and the footer | Use "Sylhet BUTTC" as supplied and mark it for confirmation; editable in the CMS either way |
-| **Q3** | What is BUTTC's **relationship to the programme** — the training partner under Package-৪, or a separate institute hosting the batch? | Determines what the About page says about the delivery arrangement | Describe it as the training institute for the Sylhet batch |
+| **Q2** | **Confirm the institution's full legal name and address** — recorded here as **Sylhet BUTTC** (§3.2). Is that correct, and should it be expanded? | Appears on Course, About, every participant profile and the footer | Ship as "Sylhet BUTTC" exactly as supplied; correct in the CMS |
+| **Q3** | Confirm the **partner entity** for Sylhet is Service Engines Ltd., Dot Com Systems Ltd. & Wizard Software Technology Bangladesh Ltd. (JV)? | Legal accuracy on a government page | Confirm — the name is on the national site |
 | **Q4** | Can we use the **DYD logo and government identity assets**? | Header, footer, OG image | Typographic wordmark + roundel until supplied |
 | **Q5** | **How many Batch 1 participants**, and in what form does the roster exist? | Drives pagination, search and import | Assume 100–400 records, CSV import needed |
 | **Q6** | **Does written consent for publication already exist** for the batch, or must it be collected? | Determines whether the site can launch with names at all | Nothing publishes until consent is recorded per participant |
@@ -1743,8 +1739,7 @@ content records still let the admin change all the words and images.
 | **Q8** | Are **photographs of training sessions** available for the gallery? | The design has no portraits, so facility/training shots carry the visual load | Build gallery-ready; launch without it |
 | **Q9** | Do you want **outcome tracking** (what participants do after), and who updates it? | Drives the participant field set and a maintenance commitment | Keep the fields; populate what is known |
 | **Q10** | Confirm **the domain** — `sylhet.dydaiproject.com` or something else? | Deploy topology and the canonical URL | Subdomain of the national site |
-| **Q11** | **Public contact details** — the phone, email and address for the Contact page (the institute's own, or the national hotline?) | Public-facing accuracy | National hotline only until the institute's own details are confirmed |
-| **Q12** | Is a **Bangla copy reviewer** available on the DYD side? | Every user-facing string needs a Bangla speaker's sign-off | Draft copy marked for review; nothing machine-translated ships |
+| **Q11** | Is a **Bangla copy reviewer** available on the DYD side? | Every user-facing string needs a Bangla speaker's sign-off | Draft copy marked for review; nothing machine-translated ships |
 
 ---
 
@@ -1775,7 +1770,8 @@ choice with its own plan, not an extension of this one.
 |---|---|
 | 2026-09-23 | Plan created from live analysis of `dydaiproject.com` as an **operational** system |
 | 2026-09-23 | Restructured (28 sections); design direction locked (A+C hybrid, Tailwind v4); scope corrected to a solo build |
-| 2026-09-23 | **Districts and notices removed.** The programme in Sylhet is delivered by a **single institute — Sylhet BUTTC** — so there is no multi-district or multi-centre dimension. Deleted: the `/districts` and `/districts/<code>` pages, the `district_grid` section type, both geographic filters, the `districts` and `upazilas` tables with their 41-row seed, the `Notice` content type, the `notice_list` section type, the public and admin notice screens, and the geography appendix. Participants lose `district_id` / `upazila_id`. Content types 11→10, section types 15→13, routes 39→34, tables 20→17, effort 40→37 days. The publishable field set is now **name, education and outcome**. |
+| 2026-09-23 | **Scope replaced.** The product is now a **documentary site with a CMS** for Batch 1 of the Sylhet programme. Operational content deleted (§23.2). Sections: 23. Effort: 40 days. Participant photographs excluded; the publishable field set is name, district, upazila, education and outcome. |
+| 2026-09-24 | **Districts and notices removed.** The site documents **one institution** (Sylhet BUTTC), not a multi-district rollout, so the Districts browse pages, the geography tables, and `district`/`upazila` as participant fields and filters are gone. The Notices content type, its pages, admin screen and table are removed. Participant fields are now **name, education, occupation before, and outcome**. Result: 17 tables, 34 routes, 13 section types, 37 days. |
 
 ---
 
