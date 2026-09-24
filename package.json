@@ -15,8 +15,12 @@
     "design:build": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --minify",
     "design:watch": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --watch",
     "design:render": "python tools/render-design.py",
-    "design:serve": "python -m http.server 8099",
-    "gates": "npm run css:build && npm run css:check && npm run bans"
+    "design:serve": "python tools/serve_design.py",
+    "tree": "python tools/check-tree.py",
+    "proof": "python tools/gate-proof.py",
+    "widths": "python tools/check-widths.py",
+    "gates": "npm run css:build && npm run css:check && npm run bans && npm run tree",
+    "gates:full": "npm run gates && npm run proof && npm run widths"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",

@@ -1,0 +1,216 @@
+# =============================================================================
+# CI — plan.md §17.5, EXECUTION-PLAN step 2.19.
+# =============================================================================
+# The pipeline is ordered cheapest-and-most-decisive first, so a broken commit
+# fails in seconds rather than after a full test run.
+#
+# THE CSS DRIFT GATE IS THE POINT OF THIS FILE (§17.5, R6)
+#   `app.css` is compiled AND committed, because the deploy target is cPanel shared
+#   hosting with no build step. That means the committed file can silently fall out
+#   of step with `assets/tailwind/source.css` — and the symptom is a class that does
+#   nothing, on a live page, with no error anywhere. So CI rebuilds the sheet and
+#   fails if the result differs from what is committed, naming the fix command.
+#
+#   For that gate to be trustworthy, the build must be REPRODUCIBLE. The Node version
+#   is pinned below and `npm ci` (never `npm install`) installs the exact locked
+#   tree. If Tailwind ever produces byte-different output across platforms, the gate
+#   must be fixed rather than loosened: a gate that fails spuriously gets deleted,
+#   and a deleted gate protects nothing.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"   # §3: matches the cPanel Passenger app, NOT the dev machine
+  NODE_VERSION: "22"       # pinned so the CSS drift gate is reproducible
+
+jobs:
+  # ── 1. CSS: the drift gate, then the design checks ─────────────────────────
+  css:
+    name: CSS build + drift gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # `npm ci`, not `npm install`: it installs the locked tree exactly, and fails
+      # outright if package-lock.json and package.json disagree.
+      - name: Install toolchain
+        run: npm ci
+
+      - name: Rebuild the stylesheet
+        run: npm run css:build
+
+      # THE GATE. Ordered before the checks below so a stale sheet is reported as a
+      # stale sheet, not as a design-rule failure it may have caused.
+      - name: Fail if the committed stylesheet is stale
+        run: |
+          if ! git diff --exit-code -- app/static/css/app.css; then
+            echo ""
+            echo "::error title=Committed CSS is out of date::app/static/css/app.css does not match assets/tailwind/source.css."
+            echo "Fix:  npm run css:build && git add app/static/css/app.css"
+            echo "Do NOT hand-edit app.css — it is generated (§9.1, S11)."
+            exit 1
+          fi
+          echo "Stylesheet is in step with its sources."
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # check-css.py is stdlib-only, so it needs no dependency install. The layout
+      # check below does need Playwright, and check-widths.py is run through the
+      # venv-free interpreter only after that install.
+      - name: Install Playwright (for the layout check)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest-playwright playwright
+
+      # check-css.py is stdlib-only, so no dependency install is needed for it.
+      - name: Design rules and size budget (§7.6, §15.1)
+        run: python tools/check-css.py
+
+      - name: Banned patterns, PII columns, emoji (§8.1, S2, S3)
+        run: python tools/check-bans.py
+
+      - name: §9.1 tree audit (step 2.1)
+        run: python tools/check-tree.py
+
+      # Deliberately breaks each gate and requires it to complain. A gate that has
+      # only ever been seen to pass is not a gate — it is a script that prints "OK".
+      - name: Prove the gates fail when they should (steps 1.3, 1.6, 2.16, 2.19)
+        run: python tools/gate-proof.py
+
+      - name: Rebuild the design harness
+        run: |
+          npm run design:render
+          npm run design:build
+
+      # §19.4 makes 360/768/1440 a requirement and step 1.7 makes it a Phase 1
+      # exit-gate item, so it is checked rather than eyeballed.
+      - name: Install Chromium for the layout check
+        run: python -m playwright install --with-deps chromium
+
+      - name: Layout and a11y at 360/768/1440 (steps 1.7, 1.10)
+        run: python tools/check-widths.py
+
+  # ── 2. Documents ───────────────────────────────────────────────────────────
+  docs:
+    name: plan.md integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: plan_lint (§23)
+        run: python tools/plan_lint.py
+
+  # ── 3. Python: lint, types, then the tests ─────────────────────────────────
+  test:
+    name: ruff + mypy + pytest
+    runs-on: ubuntu-latest
+
+    services:
+      # Step 2.11 asks for the publish guard to be proved on BOTH engines. SQLite is
+      # the dev database; MySQL is production, so MySQL is the one whose behaviour
+      # actually protects the data. The `mysql` marker in tests/ skips automatically
+      # when MYSQL_TEST_URL is unset, so this service is what turns those tests on.
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: sylhet_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # utf8mb4 is MANDATORY (§9.4, R5, S10). A latin1 schema mangles every Bangla
+      # string silently, so the test DSN sets it explicitly — the tests would
+      # otherwise pass against a database that cannot store the product's language.
+      MYSQL_TEST_URL: mysql+pymysql://root:ci-root-password@127.0.0.1:3306/sylhet_test?charset=utf8mb4
+      APP_ENV: testing
+      # 64 chars, generated per run. Not a real secret: it exists so the suite has a
+      # SECRET_KEY without one ever being committed (§17.1).
+      SECRET_KEY: ci-secret-key-not-a-real-secret-0123456789abcdef0123456789abcdef
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: ruff
+        run: ruff check . --output-format=github
+
+      - name: mypy
+        run: mypy
+
+      - name: pytest with coverage
+        run: pytest --cov --cov-report=term-missing --cov-report=xml
+
+      - name: Prove the publish guard on MySQL too (step 2.11)
+        run: pytest tests/test_schema.py -m mysql -v
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  # ── 4. Security ────────────────────────────────────────────────────────────
+  security:
+    name: pip-audit + bandit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      # Fails on a known-vulnerable dependency. A CVE in a pinned package is worth
+      # breaking the build over: the alternative is finding out from a scanner that
+      # someone else is running (§17.5).
+      - name: pip-audit
+        run: pip-audit --strict --progress-spinner=off
+
+      - name: bandit
+        run: bandit -r app -q

@@ -56,7 +56,9 @@ dist/
 .coverage.*
 htmlcov/
 coverage.xml
-
+# Scratch directory used by tools/gate-proof.py for throwaway Tailwind builds.
+.gate-proof-*
+assets/tailwind/.gate-probe.css
 # ── Tailwind / Node (dev-only toolchain — the compiled app.css IS committed) ─
 node_modules/
 # package-lock.json IS committed: ci.yml runs `npm ci`, which hard-fails without it.
