@@ -57,15 +57,49 @@ if (os.environ.get("APP_ENV") or "").strip().lower() != "production":
     load_dotenv(BASE_DIR / ".env", override=False)
 
 
+def _raw(name: str) -> str | None:
+    """The environment value for `name`, with a comment-only value treated as ABSENT.
+
+    WHY THIS EXISTS — A REAL BUG, FOUND IN THE WILD
+        python-dotenv strips an inline comment only when a NON-EMPTY value precedes
+        it. The two lines below are both documented forms in `.env.example`, and they
+        do not behave the same way:
+
+            ADMIN_URL_PREFIX=ops-sylhet    # MUST stay non-guessable  ->  "ops-sylhet"
+            ADMIN_IP_ALLOWLIST=            # empty = off              ->  "# empty = off"
+
+        The second resolved to the COMMENT TEXT. `_csv` then split it on the comma,
+        and ADMIN_IP_ALLOWLIST became
+            ("# CIDR list", "comma-separated; empty = off.")
+        — a truthy allowlist containing no valid entry. Every admin request was then
+        denied with a 403 and nothing but a log warning to explain it, on a setting
+        whose own documentation says "empty = off".
+
+        A security control that silently switches ITSELF ON is the worst possible
+        reading of a missing value.
+
+    ONLY A VALUE THAT BEGINS WITH `#` IS TREATED AS A COMMENT. A value that merely
+        CONTAINS one is returned untouched, and that distinction is load-bearing:
+        SECRET_KEY, database passwords and a Fernet key can all legitimately contain
+        `#`, and truncating one of those would be a far worse bug than this one.
+    """
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    if value.lstrip().startswith("#"):
+        return ""
+    return value
+
+
 def _bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name)
+    raw = _raw(name)
     if raw is None or raw == "":
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _int(name: str, default: int) -> int:
-    raw = os.environ.get(name)
+    raw = _raw(name)
     if raw is None or raw == "":
         return default
     try:
@@ -75,14 +109,14 @@ def _int(name: str, default: int) -> int:
 
 
 def _csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
-    raw = os.environ.get(name)
+    raw = _raw(name)
     if not raw:
         return default
     return tuple(part.strip() for part in raw.split(",") if part.strip())
 
 
 def _str(name: str, default: str = "") -> str:
-    value = os.environ.get(name)
+    value = _raw(name)
     return default if value is None else value
 
 
