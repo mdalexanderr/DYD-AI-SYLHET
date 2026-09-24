@@ -1,0 +1,5 @@
+{# sections/faq_list.html — FAQ (§4.2, §15.3).
+   The answers stay in the DOM, which is what makes the FAQPage JSON-LD legitimate —
+   structured data has to describe content a reader can actually see. #}
+{% from "components/content.html" import faq_accordion %}
+{{ faq_accordion(context.faqs, context.heading, context.subtext) }}

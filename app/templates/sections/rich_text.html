@@ -1,0 +1,6 @@
+{# sections/rich_text.html — prose (§4.2, §9.3 rule 3).
+   `context.body_html` has already been through the sanitiser in rich_text.py — that is
+   what the `_html` suffix means, and it is the only thing `check-bans` permits `|safe`
+   on. #}
+{% from "components/content.html" import rich_text %}
+{{ rich_text(context.body_html, context.heading, none, context.narrow) }}

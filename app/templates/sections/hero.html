@@ -1,0 +1,7 @@
+{# sections/hero.html — hero (§4.2, §7.5 element 3).
+   Every section template is a thin adapter: `context()` in the matching Python module
+   decides WHAT the page shows, the macro in components/ decides HOW it looks. Neither
+   knows about the other, which is why a template here has no logic in it. #}
+{% from "components/content.html" import hero %}
+{{ hero(context.heading_bn, context.subheading_bn, context.primary_cta,
+        context.secondary_cta, context.media, context.size, context.band) }}

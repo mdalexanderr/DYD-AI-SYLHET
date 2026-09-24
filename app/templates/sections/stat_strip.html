@@ -1,0 +1,6 @@
+{# sections/stat_strip.html — large figures (§4.2, §6.5).
+   `context.stats` came from stats_service, which is what sets a suppressed value to
+   None; the macro renders `—` for None (§5.4). A section can therefore never show a
+   figure the service would have withheld. #}
+{% from "components/data.html" import stat_strip %}
+{{ stat_strip(context.stats, context.heading, context.subtext, context.columns) }}

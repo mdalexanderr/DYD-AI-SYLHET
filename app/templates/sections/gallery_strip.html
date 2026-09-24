@@ -1,0 +1,5 @@
+{# sections/gallery_strip.html — a row of images (§4.2).
+   Classroom, whiteboard, certificate — never a participant's face (§5.3, S2). #}
+{% from "components/content.html" import gallery_strip %}
+{# Subscript, not `context.items` — see the note in fact_list.html. #}
+{{ gallery_strip(context['items'], context.heading, context.columns) }}

@@ -1,0 +1,6 @@
+{# sections/fact_list.html — labelled facts (§4.2). #}
+{% from "components/data.html" import fact_list %}
+{# `context['items']`, not `context.items`: the dict is a Python dict, so attribute
+   access finds the built-in `dict.items` METHOD first and the macro receives it
+   instead of the list. Same reason for the brackets in gallery_strip and timeline. #}
+{{ fact_list(context['items'], context.layout, context.heading) }}

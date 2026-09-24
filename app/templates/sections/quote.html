@@ -1,0 +1,5 @@
+{# sections/quote.html — pull quote (§4.2, §5.3 rule 5).
+   The attribution is free text on purpose: "ব্যাচ ১-এর একজন প্রশিক্ষণার্থী" is the
+   honest form for somebody who agreed to be quoted but not to be named. #}
+{% from "components/content.html" import quote_block %}
+{{ quote_block(context.quote_bn, context.attribution_bn) }}

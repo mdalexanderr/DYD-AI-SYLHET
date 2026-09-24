@@ -1,0 +1,21 @@
+{# sections/participant_grid.html — the list of trainees (§4.2, §6.4).
+   `context.participants` are card PROJECTIONS from participant_service, already
+   filtered to published-and-consented. The macro reads four facts and nothing else.
+
+   THE FILTER BAR IS SERVER-RENDERED AND JAVASCRIPT-FREE
+   §6.4 makes every control a query parameter on a plain GET form, so filtering,
+   sorting and searching all work with scripting switched off. JS only enhances.
+
+   ORDER MATTERS: the bar goes ABOVE the count, so a reader who has just narrowed the
+   list sees the number that describes what they are looking at. #}
+{% from "components/base.html" import section_heading %}
+{% from "components/participants.html" import participant_grid, result_count, filter_bar %}
+{# Guarded, because `section_heading` is not None-tolerant — it calls `text.isascii()` to
+   decide whether to mark the element `lang="bn"`. Every other section forwards its
+   heading to a component macro that does this check, so this is the one place the
+   section template has to do it itself. Without the guard, an editor clearing the
+   grid heading in the CMS turns /batch-1 into a 500. #}
+{% if context.heading %}{{ section_heading(context.heading, context.subtext) }}{% endif %}
+{{ filter_bar('/batch-1', context.query, context.outcome, context.sort, context.outcomes) }}
+{{ result_count(context.count_bn, context.has_filters, '/batch-1') }}
+{{ participant_grid(context.participants) }}

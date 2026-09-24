@@ -1,0 +1,6 @@
+{# sections/timeline.html — the programme's stages (§4.2).
+   Stages, not a schedule: `date_bn` is free text because the real dates are Q1 in §22
+   and a Date column would force a placeholder that reads like a fact. #}
+{% from "components/content.html" import timeline %}
+{# Subscript, not `context.items` — see the note in fact_list.html. #}
+{{ timeline(context['items'], context.heading, context.subtext) }}

@@ -1,12 +1,18 @@
 """Section types. plan.md §4.2, §9.3, §9.1.
 
 THE REGISTRY IS THE SINGLE SOURCE OF TRUTH FOR "WHICH TYPES EXIST"
-    The admin picker (`section_choices`), the validator (`validate_section`) and,
-    from Phase 3, the page renderer all read `registry`, so a section type can never
-    exist in one place and be missing from another. That is the whole reason §9.3
-    rule 1 makes an unknown type RAISE rather than be skipped: a silently skipped
-    section is a page quietly missing something, which is the one failure nobody
-    notices until a human reads the page.
+    The admin picker (`section_choices`), the validator (`validate_section`), the page
+    renderer (`render_section`) and `flask render-check` all read `registry`, so a
+    section type can never exist in one place and be missing from another. §9.3 rule 1
+    makes an unknown type RAISE rather than be skipped: a silently skipped section is a
+    page quietly missing something, which is the one failure nobody notices until a
+    human reads that page.
+
+ONE MODULE PER TYPE, COLLECTED BY `registry`
+    `app/sections/<type>.py` declares one type's schema, validation and template
+    context. `registry.SECTION_CLASSES` lists all thirteen, and the registry refuses to
+    build if `SectionType` has a member with no module behind it — which would be a
+    type the admin offers and the renderer cannot draw.
 
 WHY `RENDERERS` IS DECLARED AND EMPTY
     It is the type → callable mapping the page pipeline will drive (Phase 3). It
@@ -22,22 +28,30 @@ WHY THESE NAMES ARE RE-EXPORTED
 
 from __future__ import annotations
 
+from app.sections.base import SectionBase, SectionError, validate_href
 from app.sections.registry import (
     RENDERERS,
+    SECTION_CLASSES,
     SECTION_SCHEMAS,
-    Field,
-    SectionError,
+    SECTIONS,
     get_schema,
+    get_section,
+    render_section,
     section_choices,
     validate_section,
 )
 
 __all__ = [
     "RENDERERS",
+    "SECTIONS",
+    "SECTION_CLASSES",
     "SECTION_SCHEMAS",
-    "Field",
+    "SectionBase",
     "SectionError",
     "get_schema",
+    "get_section",
+    "render_section",
     "section_choices",
+    "validate_href",
     "validate_section",
 ]

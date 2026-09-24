@@ -1,0 +1,6 @@
+{# sections/module_list.html — the syllabus (§4.2, §3.1).
+   The modules come from the course row, not from the payload, so the department has
+   one place to correct the list. #}
+{% from "components/content.html" import module_grid %}
+{{ module_grid(context.modules, context.heading, context.subtext,
+               context.columns or 'sm:grid-cols-2 lg:grid-cols-3') }}
