@@ -81,7 +81,20 @@ class AuditLog(Base):
 
     __tablename__ = "audit_logs"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # `with_variant(Integer, "sqlite")` IS NOT COSMETIC — IT IS THE DIFFERENCE
+    # BETWEEN THIS TABLE WORKING AND RENDERING THE WHOLE AUDIT LOG UNWRITABLE.
+    # SQLite autoincrements only an exactly-`INTEGER PRIMARY KEY`. A `BIGINT`
+    # primary key gets no rowid alias, so any insert that omits the id fails with
+    # "NOT NULL constraint failed: audit_logs.id". MySQL is perfectly happy with
+    # BIGINT, so this is invisible in production and fatal in development and in the
+    # entire test suite — the worst possible split, because it makes every audit
+    # write look like a test defect rather than a schema bug. It shipped unnoticed
+    # through Phase 2 because nothing wrote an audit row until step 4.1 logged a
+    # login. BIGINT is kept for MySQL because the audit log is the one table
+    # expected to grow without bound.
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     actor_id: Mapped[int | None] = mapped_column(
         ForeignKey("admin_users.id", ondelete="SET NULL"), nullable=True
     )
