@@ -1,0 +1,59 @@
+# =============================================================================
+# DYD AI SYLHET — runtime requirements
+# =============================================================================
+# Python 3.12 (pinned in plan.md §3). Verified working on CPython 3.12.10.
+#
+#   python -m venv .venv && .venv\Scripts\activate
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# The cPanel server needs NO Node and NO compiler: every wheel below is
+# manylinux-compatible. `app/static/css/app.css` is committed, so the front-end
+# toolchain never runs on the server (plan.md §8.1).
+#
+# Each entry notes why it is here, so a future maintainer can delete it with
+# confidence rather than cargo-culting it forward.
+# -----------------------------------------------------------------------------
+
+# ── Web framework (plan.md §3, §9.2) ────────────────────────────────────────
+Flask==3.1.3                # blueprints, app factory, Jinja, CLI
+
+# ── Persistence (plan.md §10) ───────────────────────────────────────────────
+Flask-SQLAlchemy==3.1.1     # ORM; 17-table model layer
+Flask-Migrate==4.1.0        # Alembic migrations via `flask db upgrade`
+PyMySQL==1.2.3              # MySQL driver; DATABASE_URL uses mysql+pymysql
+                            # with ?charset=utf8mb4 — mandatory for Bangla
+
+# ── Authentication — exactly one admin, no roles (plan.md §12.1) ────────────
+Flask-Login==0.6.3          # admin session, 30-min idle / 8-h absolute
+Flask-Bcrypt==1.0.1         # password hashing at cost 12
+PyOTP==2.10.0               # mandatory TOTP 2FA on the single admin account
+cryptography==50.0.1        # Fernet encryption of admin_users.twofa_secret
+
+# ── Forms, CSRF and validation (plan.md §9.1, §12.2) ───────────────────────
+Flask-WTF==1.3.0            # CSRFProtect globally + FlaskForm base
+email-validator==2.3.0      # required by WTForms Email() — the contact form
+
+# ── Abuse resistance (plan.md §12.1, §12.2) ────────────────────────────────
+Flask-Limiter==4.1.1        # 3 logins/10min, 3 contact posts/hour, /batch-1
+                            # filter rate limit (enumeration guard)
+
+# ── Caching (plan.md §15.1) ────────────────────────────────────────────────
+Flask-Caching==2.5.1        # 300 s statistics + page cache; file backend.
+                            # MUST be invalidated in the same transaction as
+                            # any participant write (§5.3 rule 2)
+
+# ── Outbound mail (plan.md §16) ────────────────────────────────────────────
+Flask-Mail==0.10.0          # contact-form notifications; smtp|brevo|dryrun
+
+# ── Media pipeline (plan.md §13.1) ─────────────────────────────────────────
+Pillow==12.3.0              # resize to 2000px, EXIF strip, sRGB, thumbs, WebP
+
+# ── Content safety (plan.md §9.1, §12.2) ───────────────────────────────────
+bleach==6.4.0               # rich_text allowlist, applied on save AND render
+
+# ── Participant tooling (plan.md §11.4, §12.1) ─────────────────────────────
+qrcode==8.2                 # TOTP enrolment QR for the admin account
+openpyxl==3.1.5             # CSV/XLSX export of the participant register
+
+# ── Configuration (plan.md §16) ────────────────────────────────────────────
+python-dotenv==1.2.3        # loads .env in dev only; prod uses real env vars

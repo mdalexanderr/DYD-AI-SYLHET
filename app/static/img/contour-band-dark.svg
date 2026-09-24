@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 180"
+     preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <!--
+    §7.5 signature element 3 — the Surma contour band, DARK colourway.
+    Used on the green-900 footer. Companion file: contour-band-paper.svg (cream hero).
+
+    Geometry is identical to the paper file; only the stroke colour and opacity
+    differ. The two files MUST be edited together — there is deliberately no
+    generator, because two 1.7 KB files that a reviewer can diff are easier to
+    trust than a script that has to be run before the site looks right.
+
+    See contour-band-paper.svg for why this is not currentColor and not a mask.
+  -->
+  <g fill="none" stroke="#E3F0E9" stroke-linecap="round">
+    <g stroke-opacity="0.16" stroke-width="1.1">
+      <path d="M0 42 C 180 12, 300 68, 480 44 S 840 4, 1020 40 S 1320 74, 1440 44"/>
+      <path d="M0 70 C 200 44, 320 96, 500 70 S 860 34, 1040 68 S 1330 96, 1440 72"/>
+      <path d="M0 128 C 210 104, 330 154, 510 128 S 870 96, 1050 126 S 1330 152, 1440 130"/>
+      <path d="M0 156 C 200 134, 320 178, 500 154 S 860 124, 1040 154 S 1330 178, 1440 158"/>
+    </g>
+    <g stroke-opacity="0.28" stroke-width="1.5">
+      <path d="M0 99 C 190 74, 310 126, 490 100 S 850 66, 1030 98 S 1330 126, 1440 102"/>
+      <path d="M120 20 C 260 -2, 380 22, 520 10"/>
+      <path d="M900 168 C 1040 150, 1160 174, 1300 162"/>
+    </g>
+  </g>
+</svg>

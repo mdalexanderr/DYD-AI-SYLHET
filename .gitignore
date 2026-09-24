@@ -59,9 +59,10 @@ coverage.xml
 
 # ── Tailwind / Node (dev-only toolchain — the compiled app.css IS committed) ─
 node_modules/
-package-lock.json
+# package-lock.json IS committed: ci.yml runs `npm ci`, which hard-fails without it.
 !app/static/css/app.css
 app/static/css/*.map
+design-src/preview.out.css
 tools/tailwindcss
 tools/tailwindcss.exe
 *.css.map

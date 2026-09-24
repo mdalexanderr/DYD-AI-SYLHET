@@ -1,0 +1,27 @@
+/* =============================================================================
+   AI Sylhet — design preview stylesheet                    project: DYD AI SYLHET
+   =============================================================================
+   DEV ONLY. Never deployed, never linked from a template (see deploy.sh sync
+   excludes and plan.md §9.1 — design-src/ is excluded from the release).
+
+   Purpose: compile the kitchen-sink harness in design-src/, which renders the
+   real component macros so the design is judged on real content at 360/768/1440
+   (plan.md §8.1, step 1.7).
+
+   It imports the SAME theme as the shipped stylesheet. If the preview and the
+   site could drift, the preview would be worthless — so there is exactly one
+   definition of every token and it lives in assets/tailwind/source.css.
+   ============================================================================= */
+
+@import "../assets/tailwind/source.css";
+
+/* Only the hand-written harness feeds the preview.
+   `source.css` imports Tailwind with `source(none)`, so automatic content
+   detection is off everywhere in this project — the @source directives below are
+   the whole input list. That matters here especially: `preview.out.css` is
+   generated and sits in this same directory, and a build that scans its own
+   output eats itself, because every class name in it becomes a candidate on the
+   next run. */
+@source "./kitchen-sink/";
+@source not "./preview.out.css";
+

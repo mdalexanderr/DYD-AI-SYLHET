@@ -61,8 +61,13 @@ passenger_wsgi.py text eol=lf
 *.tar             binary
 
 # ── Diff behaviour ──────────────────────────────────────────────────────────
-# The compiled Tailwind output is committed on purpose (see plan.md §7.9),
+# The compiled Tailwind output is committed on purpose (see plan.md §8.1 rule 2),
 # but it should not drown out real changes in a diff or the repo language stats.
+#
+# `-diff` suppresses the diff TEXT only — git still compares blob contents, so
+# CI's drift gate (`git diff --exit-code app/static/css/app.css`) still returns 1
+# when a template changed without a rebuild. Verified, because a gate that
+# silently always passed would be worse than no gate.
 app/static/css/app.css   -diff linguist-generated=true
 package-lock.json        -diff linguist-generated=true
 *.min.js                 -diff linguist-generated=true

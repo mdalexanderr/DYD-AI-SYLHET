@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 180"
+     preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <!--
+    §7.5 signature element 3 — the Surma contour band, PAPER colourway.
+    Used on the cream hero. Companion file: contour-band-dark.svg (green-900 footer).
+
+    WHY TWO FILES AND NOT currentColor
+      An <img>-embedded or background-image SVG is an isolated document: it cannot
+      inherit `currentColor` from the page. Verified, not assumed — the first
+      version used currentColor and rendered almost invisibly, because currentColor
+      resolved to the SVG's own default rather than the surrounding text colour.
+      Hard-coding the two colours is one extra 1.7 KB file and removes the whole
+      class of problem. The two files MUST be edited together.
+
+    WHY NOT A CSS MASK
+      The obvious modern answer — paint the band with background-color and punch it
+      out with `mask-image: url(...)` — was tried and produced a completely blank
+      band at every height and both mask-size strategies, in a real browser, for
+      reasons that are not worth depending on. A background-image is dumber, works
+      in every engine, and prints.
+
+    It stands in for the atmospheric photograph a site like this would normally
+    reach for, and it encodes the place rather than decorating the page: the
+    contours are the tea terraces of the Surma valley. Kept very low-contrast on
+    purpose — at full strength it competes with the typography, and with no
+    photographs the typography is the whole design.
+
+    viewBox is 1440 wide so one tile covers a desktop viewport without repeating
+    mid-screen; `preserveAspectRatio="none"` lets the band stretch to whatever
+    height the band gets, which keeps the stroke weight proportional.
+  -->
+  <g fill="none" stroke="#0B4A32" stroke-linecap="round">
+    <g stroke-opacity="0.16" stroke-width="1.1">
+      <path d="M0 42 C 180 12, 300 68, 480 44 S 840 4, 1020 40 S 1320 74, 1440 44"/>
+      <path d="M0 70 C 200 44, 320 96, 500 70 S 860 34, 1040 68 S 1330 96, 1440 72"/>
+      <path d="M0 128 C 210 104, 330 154, 510 128 S 870 96, 1050 126 S 1330 152, 1440 130"/>
+      <path d="M0 156 C 200 134, 320 178, 500 154 S 860 124, 1040 154 S 1330 178, 1440 158"/>
+    </g>
+    <!-- Every so often a heavier line, the way a real map grades its contours -->
+    <g stroke-opacity="0.30" stroke-width="1.5">
+      <path d="M0 99 C 190 74, 310 126, 490 100 S 850 66, 1030 98 S 1330 126, 1440 102"/>
+      <path d="M120 20 C 260 -2, 380 22, 520 10"/>
+      <path d="M900 168 C 1040 150, 1160 174, 1300 162"/>
+    </g>
+  </g>
+</svg>

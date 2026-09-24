@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"
+     role="img" aria-labelledby="roundel-title">
+  <title id="roundel-title">যুব উন্নয়ন অধিদপ্তর · এআই সিলেট · ব্যাচ ১</title>
+  <!--
+    §7.5 signature element 2 — the roundel.
+    One recognisable institutional symbol: header, footer, and the loading state.
+
+    It is drawn rather than supplied so the site has a mark before the DYD logo
+    question (Q4) is answered, and so the mark is ours to license. If the real
+    logo arrives, this file is replaced and nothing else changes.
+
+    WHY THERE IS ONLY ONE ARC OF TEXT
+      Text on a circular path reads correctly only on the TOP arc. On the bottom arc
+      it comes out rotated, and in a browser it lands wherever the path's sweep flag
+      puts it — verified, not assumed: the first version put the identity line down
+      the left-hand side. Rather than tune a sweep flag that any future edit could
+      break, the identity line is now set straight, under the numeral. That also
+      suits the direction: §7.2 takes "ruler-straight numbering" from direction C.
+
+    Bangla is NOT letter-spaced — that breaks conjunct spacing (§14.3) — so the arc
+    radius is chosen to fit the word, not the word squeezed onto a radius.
+  -->
+  <defs>
+    <path id="ring-top" fill="none"
+          d="M 60,60 m -43,0 a 43,43 0 1,1 86,0"/>
+  </defs>
+
+  <!-- Outer seal ring -->
+  <circle cx="60" cy="60" r="57" fill="none" stroke="#0B4A32" stroke-width="2"/>
+  <circle cx="60" cy="60" r="52.5" fill="none" stroke="#0B4A32" stroke-width="0.75"
+          stroke-opacity="0.45"/>
+
+  <!-- The Surma contour band, echoed at small scale (§7.5 element 3). Kept very
+       low-contrast so it reads as paper texture, not as a graphic. -->
+  <g stroke="#0B4A32" stroke-width="0.6" fill="none">
+    <path stroke-opacity="0.18" d="M22 72 q 13 -5 26 0 q 13 5 26 0 q 12 -4 24 -1"/>
+    <path stroke-opacity="0.13" d="M22 78 q 13 -5 26 0 q 13 5 26 0 q 12 -4 24 -1"/>
+  </g>
+
+  <!-- Institution name, around the top arc — the one arc that reads correctly -->
+  <text font-family="'Noto Sans Bengali','Kalpurush',sans-serif" font-size="10.5"
+        font-weight="600" fill="#0B4A32">
+    <textPath href="#ring-top" startOffset="50%" text-anchor="middle">যুব উন্নয়ন অধিদপ্তর</textPath>
+  </text>
+
+  <!-- Core mark: the document-rule tick (§7.5 element 1), then the batch numeral.
+       No face, no silhouette — the same decision as the participant pages. -->
+  <rect x="45.5" y="37" width="7" height="7" fill="#0B4A32"/>
+  <line x1="56.5" y1="40.5" x2="74.5" y2="40.5" stroke="#0B4A32" stroke-width="1.1"
+        stroke-opacity="0.7"/>
+
+  <text x="60" y="74" text-anchor="middle"
+        font-family="'Noto Serif Bengali',Georgia,serif" font-size="25" font-weight="700"
+        fill="#0B1410">১</text>
+
+  <!-- Identity line, set straight: ruler-straight numbering, and it stays legible
+       when the roundel is only 40px wide in the footer. -->
+  <text x="60" y="88" text-anchor="middle"
+        font-family="'IBM Plex Sans','Noto Sans Bengali',sans-serif" font-size="7.4"
+        font-weight="500" fill="#4F6A5E" letter-spacing="0.5">AI · SYLHET · BATCH 1</text>
+</svg>

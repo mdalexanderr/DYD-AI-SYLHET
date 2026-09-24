@@ -1,0 +1,24 @@
+{
+  "name": "dyd-ai-sylhet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Sylhet — documentary site + CMS for Batch 1, Sylhet Division (DYD). Dev-only toolchain: Tailwind CSS v4. The server needs no Node.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "css:build": "tailwindcss -i assets/tailwind/source.css -o app/static/css/app.css --minify",
+    "css:watch": "tailwindcss -i assets/tailwind/source.css -o app/static/css/app.css --watch",
+    "css:check": "python tools/check-css.py",
+    "bans": "python tools/check-bans.py",
+    "design:build": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --minify",
+    "design:watch": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --watch",
+    "design:render": "python tools/render-design.py",
+    "gates": "npm run css:build && npm run css:check && npm run bans"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}
