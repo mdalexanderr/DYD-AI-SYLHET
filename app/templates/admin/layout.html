@@ -1,0 +1,91 @@
+{#
+  =============================================================================
+  admin/layout.html — the shell every admin screen extends.
+  plan.md §11.1, §7.7, step 4.5.
+
+  WHY THIS OVERRIDES `header` AND `footer` INSTEAD OF WRAPPING SOMETHING NEW
+  The admin is not a public page with different content. It has its own chrome and
+  its own density (step 1.11), and it has no business rendering the public
+  navigation on a screen that requires a session. Overriding the two blocks keeps
+  the document head, the skip link, the stylesheet and the flash region coming from
+  `layouts/base.html` — so there is still exactly ONE place that loads the CSS and
+  ONE place that decides what a toast looks like.
+
+  THE FLASH REGION IS INHERITED, AND THAT IS WHAT MAKES 4.5's "DONE WHEN" TRUE
+  `layouts/base.html` renders flashed messages as server-side toasts. Because this
+  layout extends it, every admin screen gets that area without a line of markup
+  here. That is the difference between a consistent flash area and eight copies of
+  one that have quietly drifted apart.
+
+  THE NAV LISTS ONLY SCREENS THAT EXIST
+  Each Phase 4 step adds its own entry as its routes land. A nav pre-filled with
+  links to unbuilt screens would be eight 404s dressed up as a finished admin — and
+  then the one screen that is genuinely missing would never be noticed. Same
+  reasoning as the empty sections registry in Phase 3.
+  =============================================================================
+#}
+{% extends "layouts/base.html" %}
+
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}{{ self.admin_title()|striptags|trim }} · প্রশাসন · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}প্রশাসনিক প্যানেল।{% endblock %}
+
+{% block header %}
+{% set here = request.endpoint %}
+<header class="border-b border-line bg-paper-2">
+  <div class="container-site flex flex-wrap items-center justify-between gap-4 py-3">
+
+    <a class="flex items-center gap-3" href="{{ url_for('admin.index') }}">
+      <img src="{{ static_url('img/roundel.svg') }}" alt="" aria-hidden="true"
+           class="size-8" width="32" height="32">
+      <span class="font-display text-base font-bold text-ink-900" lang="bn">
+        প্রশাসন · {{ brand.title_bn }}
+      </span>
+    </a>
+
+    <div class="flex items-center gap-3">
+      <p class="text-sm text-ink-500" lang="bn">
+        {{ current_user.full_name_bn or current_user.email }}
+      </p>
+      {# POST, because a GET logout is a CSRF target — the same reasoning as
+         auth.logout itself. #}
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost btn-sm" type="submit" lang="bn">প্রস্থান</button>
+      </form>
+    </div>
+  </div>
+
+  <nav class="border-t border-line" aria-label="প্রশাসনিক মেনু">
+    <div class="container-site flex flex-wrap gap-x-6 gap-y-1 py-2">
+      {# One entry today: every other admin screen is a 404 until its step lands. #}
+      <a href="{{ url_for('admin.index') }}"
+         class="text-sm {{ 'font-bold text-ink-900' if here == 'admin.index' else 'text-ink-500' }}"
+         {% if here == 'admin.index' %}aria-current="page"{% endif %}
+         lang="bn">ড্যাশবোর্ড</a>
+    </div>
+  </nav>
+</header>
+{% endblock %}
+
+{# The public footer is deliberately absent: a nine-link sitemap under a
+   data-dense screen is noise, and one of those links leads out of the admin. #}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="container-site py-8">
+
+  <nav aria-label="আপনি এখানে আছেন">
+    <ol class="flex flex-wrap items-center gap-2 text-sm text-ink-500">
+      <li><a href="{{ url_for('admin.index') }}" lang="bn">প্রশাসন</a></li>
+      {% block breadcrumb %}{% endblock %}
+    </ol>
+  </nav>
+
+  <h1 class="mt-3 font-display text-2xl font-bold text-ink-900" lang="bn">
+    {% block admin_title %}প্রশাসন{% endblock %}
+  </h1>
+
+  {% block admin_content %}{% endblock %}
+</div>
+{% endblock %}
