@@ -1,0 +1,39 @@
+{#
+  errors/500.html — §9.2.
+
+  DELIBERATELY VAGUE. The traceback goes to the log, never to the page (§17.6). An
+  exception message on a public government page leaks table names, file paths and
+  sometimes a query with real data in it. The reader gets one sentence and a way
+  back; the operator gets the log line, which the handler writes with the request
+  path attached.
+
+  This page must render when the DATABASE IS DOWN, which is the most common cause of
+  a 500 on this site. It therefore uses no query and no settings row — brand identity
+  comes from constants.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import btn, document_rule %}
+
+{% block title %}কিছু একটা ভুল হয়েছে — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}সার্ভারে একটি সমস্যা হয়েছে।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<section class="container-site py-20 sm:py-28">
+  <p class="font-display text-sm font-bold tracking-widest text-flag-red" lang="bn">৫০০</p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    দুঃখিত, কিছু একটা ভুল হয়েছে
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    এই অনুরোধটি সম্পন্ন করা যায়নি। সমস্যাটি লিপিবদ্ধ করা হয়েছে এবং দেখা হবে।
+    অনুগ্রহ করে কিছুক্ষণ পরে আবার চেষ্টা করুন।
+  </p>
+
+  <div class="mt-10 flex flex-wrap gap-3">
+    {{ btn('হোমপাতায় যান', href='/') }}
+  </div>
+</section>
+{% endblock %}

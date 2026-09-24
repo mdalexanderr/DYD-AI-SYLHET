@@ -1,0 +1,13 @@
+[
+  { "key": "cohort_total", "label_bn": "মোট প্রশিক্ষণার্থী", "value_bn": null, "value_num": null, "unit_bn": null, "source": "computed", "display_order": 1 },
+  { "key": "cohort_consented", "label_bn": "সম্মতিপ্রাপ্ত", "value_bn": null, "value_num": null, "unit_bn": null, "source": "computed", "display_order": 2 },
+  { "key": "cohort_published", "label_bn": "প্রকাশিত", "value_bn": null, "value_num": null, "unit_bn": null, "source": "computed", "display_order": 3 },
+
+  { "key": "course_hours", "label_bn": "কোর্সের মেয়াদ", "value_bn": "৩০০", "value_num": 300, "unit_bn": "ঘণ্টা", "source": "manual", "display_order": 4 },
+  { "key": "course_days", "label_bn": "কার্যদিবস", "value_bn": "৫০", "value_num": 50, "unit_bn": "দিন", "source": "manual", "display_order": 5 },
+  { "key": "course_hours_per_day", "label_bn": "দৈনিক সময়", "value_bn": "৬", "value_num": 6, "unit_bn": "ঘণ্টা", "source": "manual", "display_order": 6 },
+  { "key": "batch_number", "label_bn": "ব্যাচ", "value_bn": "১", "value_num": 1, "unit_bn": null, "source": "manual", "display_order": 7 },
+  { "key": "module_count", "label_bn": "মডিউল সংখ্যা", "value_bn": "৬", "value_num": 6, "unit_bn": "টি", "source": "manual", "display_order": 8 },
+  { "key": "institution_count", "label_bn": "প্রশিক্ষণ প্রতিষ্ঠান", "value_bn": "১", "value_num": 1, "unit_bn": "টি", "source": "manual", "display_order": 9 },
+  { "key": "eligibility_age", "label_bn": "বয়সসীমা", "value_bn": "১৮–৩৫", "value_num": null, "unit_bn": "বছর", "source": "manual", "display_order": 10 }
+]

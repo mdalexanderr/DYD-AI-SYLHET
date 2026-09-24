@@ -1,0 +1,127 @@
+{#
+  =============================================================================
+  layouts/base.html — the single layout every public page extends.
+  plan.md §9.2, §6.3, §12.3, §15.1.
+
+  WHY ONE LAYOUT AND NOT A FAMILY OF THEM
+  The site has eight public pages and every one of them has the same chrome. A
+  layout hierarchy (base → section → page) would be three files to change for one
+  header tweak, and the moment two of them disagree nobody notices until a page
+  is missing its footer. One layout, blocks for the parts that vary.
+
+  NO JAVASCRIPT IN THE CRITICAL PATH
+  There is no <script> tag here at all. §15.1 caps first-load JS at 30 KB and asks
+  for no framework; the mobile menu in site_header is a <details> disclosure. A
+  layout that boots without JS is also a layout that still renders when a script
+  404s on a bad CDN day.
+
+  ERROR PAGES EXTEND THIS FILE
+  They must render when the database is unreachable, so every value used here —
+  brand identity, navigation — comes from constants and config, never from a
+  query. See _inject_template_globals() in app/__init__.py.
+  =============================================================================
+#}
+{% from "components/base.html" import skip_link %}
+{% from "components/layout.html" import site_header, site_footer %}
+{% from "components/forms.html" import toast_stack %}
+<!doctype html>
+<html lang="bn" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+
+  <title>{% block title %}{{ brand.title_bn }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ brand.tagline_bn }}{% endblock %}">
+  {% block meta_robots %}{% endblock %}
+
+  {# Canonical is the page's OWN url, without query strings. A filtered participant
+     list is the same document as the unfiltered one; letting ?outcome=… become a
+     canonical is how eight pages turn into eight hundred in a search index. #}
+  <link rel="canonical" href="{% block canonical %}{{ request.base_url }}{% endblock %}">
+  <link rel="alternate" hreflang="bn-BD" href="{{ request.base_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ request.base_url }}">
+
+  {# §7.4 — icons only. No emoji, no icon font, no raster logo in the header. #}
+  <link rel="icon" href="{{ static_url('img/favicon.ico') }}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('img/favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ static_url('img/favicon-16.png') }}">
+  <link rel="apple-touch-icon" href="{{ static_url('img/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ static_url('site.webmanifest') }}">
+
+  {# The two faces that appear above the fold on every page. Preloading more than
+     two is how a "fast" page ends up with eight competing requests. #}
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="{{ static_url('fonts/noto-serif-bengali-bengali-700.woff2') }}">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+        href="{{ static_url('fonts/noto-sans-bengali-bengali-400.woff2') }}">
+
+  {# One stylesheet, self-hosted, content-hashed. §15.1: no CDN, no Google Fonts. #}
+  <link rel="stylesheet" href="{{ asset_url('css/app.css') }}">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ brand.title_bn }}">
+  <meta property="og:locale" content="bn_BD">
+  <meta property="og:title" content="{{ self.title()|striptags|trim }}">
+  <meta property="og:description" content="{{ self.meta_description()|striptags|trim }}">
+  <meta property="og:url" content="{{ request.base_url }}">
+  {% block og_extra %}{% endblock %}
+
+  {% block head_extra %}{% endblock %}
+</head>
+
+<body class="flex min-h-full flex-col">
+
+  {{ skip_link() }}
+
+  {# Banner for the reduced-motion / no-JS reality is deliberately absent: there is
+     no JavaScript to fall back from. #}
+
+  {% block header %}
+    {{ site_header(nav_items, current_slug,
+                   brand.title_bn, brand.tagline_bn) }}
+  {% endblock %}
+
+  <main id="main" class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+    {{ site_footer(nav_items=nav_items,
+                   hotline=brand.hotline,
+                   mobile=brand.mobile,
+                   email=brand.email,
+                   address_bn=brand.address_bn,
+                   facebook_url=brand.facebook_url,
+                   privacy_href=brand.privacy_href,
+                   copyright_year_bn=brand.copyright_year_bn) }}
+  {% endblock %}
+
+  {# Flash messages. Rendered server-side as toasts rather than as a JS
+     notification, because a confirmation that needs script is a confirmation that
+     silently never appears. The category→tone map is explicit rather than a
+     passthrough: Flask's own categories (`message`, `error`) and `flash()`'s
+     free-form strings are not the four tones the toast understands, and guessing
+     would send a warning out as an `alert`, which interrupts a screen reader
+     mid-sentence. Unknown categories fall back to `info`, which is polite. #}
+  {% set flashes = get_flashed_messages(with_categories=true) %}
+  {% if flashes %}
+    {% set ns = namespace(toasts=[]) %}
+    {% for category, message in flashes %}
+      {%- if category == 'success' -%}
+        {%- set tone = 'success' -%}
+      {%- elif category in ('error', 'danger', 'csrf') -%}
+        {%- set tone = 'error' -%}
+      {%- elif category in ('warning', 'warn') -%}
+        {%- set tone = 'warn' -%}
+      {%- else -%}
+        {%- set tone = 'info' -%}
+      {%- endif -%}
+      {% set _ = ns.toasts.append({'message': message, 'tone': tone}) %}
+    {% endfor %}
+    {{ toast_stack(ns.toasts) }}
+  {% endif %}
+
+  {% block body_end %}{% endblock %}
+</body>
+</html>

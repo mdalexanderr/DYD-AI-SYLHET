@@ -1,0 +1,51 @@
+{
+  "slug": "generative-ai-sylhet",
+  "title_bn": "জেনারেটিভ এআই দক্ষতা উন্নয়ন — সিলেট",
+  "summary_bn": "<p>যুব উন্নয়ন অধিদপ্তরের কর্মসূচির আওতায় সিলেটে পরিচালিত ৩০০ ঘণ্টার প্রশিক্ষণ। প্রতিদিন ৬ ঘণ্টা, মোট ৫০ কার্যদিবস।</p>",
+  "duration_days": 50,
+  "duration_hours": 300,
+  "hours_per_day": 6,
+  "certification_note_bn": "সফলভাবে সম্পন্নকারীদের সরকারি প্রশিক্ষণ সনদ প্রদান করা হয়।",
+  "start_date": null,
+  "end_date": null,
+  "is_active": true,
+  "_note": "Q1 in plan.md §22 — the real Batch 1 dates are UNCONFIRMED. Nulls render as absent rather than as a placeholder that reads like a fact.",
+  "modules": [
+    {
+      "title_bn": "প্রম্পট ইঞ্জিনিয়ারিং",
+      "description_bn": "কার্যকর প্রম্পট লেখা, পরিমার্জন এবং ফলাফল মূল্যায়ন।",
+      "hours": 40,
+      "icon_slug": "pencil"
+    },
+    {
+      "title_bn": "এআই কনটেন্ট ক্রিয়েশন",
+      "description_bn": "লেখা, ছবি ও ভিডিও কনটেন্ট তৈরি এবং সম্পাদনা।",
+      "hours": 50,
+      "icon_slug": "image"
+    },
+    {
+      "title_bn": "জেনারেটিভ এআই টুলস",
+      "description_bn": "প্রচলিত জেনারেটিভ মডেল, তাদের সীমাবদ্ধতা ও ব্যবহারবিধি।",
+      "hours": 50,
+      "icon_slug": "settings"
+    },
+    {
+      "title_bn": "এআই প্রোডাক্টিভিটি",
+      "description_bn": "দৈনন্দিন কাজে এআই সহায়ক ব্যবহার করে সময় সাশ্রয়।",
+      "hours": 40,
+      "icon_slug": "clock"
+    },
+    {
+      "title_bn": "ডেটা অ্যানালাইসিস",
+      "description_bn": "ডেটা বিশ্লেষণ, পরিষ্কারকরণ ও ভিজুয়ালাইজেশন।",
+      "hours": 50,
+      "icon_slug": "database"
+    },
+    {
+      "title_bn": "এআই ফ্রিল্যান্সিং",
+      "description_bn": "অনলাইন মার্কেটপ্লেসে এআই সেবা বিক্রি এবং ক্লায়েন্ট ব্যবস্থাপনা।",
+      "hours": 70,
+      "icon_slug": "briefcase"
+    }
+  ]
+}

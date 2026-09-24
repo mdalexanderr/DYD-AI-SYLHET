@@ -1,0 +1,35 @@
+{#
+  errors/404.html — §9.2. Bangla, and it offers a way onward.
+
+  An error page that only says "not found" makes the reader go back and guess. This
+  one names the two places they were most likely trying to reach. It is also the
+  page §9.1's catch-all serves, so it is the most-seen page on the site after the
+  homepage and deserves the same care as one.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import btn, document_rule %}
+
+{% block title %}পাতাটি পাওয়া যায়নি — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}অনুরোধ করা পাতাটি এই ওয়েবসাইটে নেই।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+<section class="container-site py-20 sm:py-28">
+  <p class="font-display text-sm font-bold tracking-widest text-green-700" lang="bn">৪০৪</p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    পাতাটি খুঁজে পাওয়া যায়নি
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    আপনি যে ঠিকানায় এসেছেন, সেখানে কোনো পাতা নেই। ঠিকানাটি হয়তো বদলে গেছে, নয়তো
+    লেখার সময় একটি অক্ষর ভুল হয়েছে।
+  </p>
+
+  <div class="mt-10 flex flex-wrap gap-3">
+    {{ btn('হোমপাতায় যান', href='/') }}
+    {{ btn('প্রশিক্ষণার্থীদের তালিকা', href='/batch-1', variant='secondary') }}
+  </div>
+</section>
+{% endblock %}

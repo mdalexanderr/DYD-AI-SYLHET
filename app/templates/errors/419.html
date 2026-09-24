@@ -1,0 +1,39 @@
+{#
+  errors/419.html — §9.2, reached when a CSRF token has expired.
+
+  Bound to Flask-WTF's CSRFError class, not to the number 419: Werkzeug has no 419,
+  so registering a handler by code raises ValueError while the app is still being
+  built. See _error_handlers() in app/__init__.py.
+
+  §12.2: the honest explanation is that the form was open too long. Retrying is the
+  fix, and this page must say so, because a 419 with no explanation reads as a
+  broken site and the user's natural response is to go away.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import btn, document_rule %}
+
+{% block title %}সময় শেষ হয়ে গেছে — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}ফর্মটি অনেকক্ষণ খোলা ছিল, তাই নতুন করে পাঠানো প্রয়োজন।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<section class="container-site py-20 sm:py-28">
+  <p class="font-display text-sm font-bold tracking-widest text-gold" lang="bn">৪১৯</p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    ফর্মটি পাঠানোর সময় শেষ হয়ে গেছে
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    নিরাপত্তার জন্য প্রতিটি ফর্ম কিছু সময় পরপর নতুন করে নিতে হয়। আপনার কাছ থেকে
+    কোনো তথ্য জমা পড়েনি। অসুবিধার জন্য দুঃখিত — অনুগ্রহ করে পাতাটি নতুন করে খুলে
+    আবার পাঠান।
+  </p>
+
+  <div class="mt-10 flex flex-wrap gap-3">
+    {{ btn('যোগাযোগের পাতায় ফিরে যান', href='/contact') }}
+    {{ btn('হোমপাতা', href='/', variant='secondary') }}
+  </div>
+</section>
+{% endblock %}

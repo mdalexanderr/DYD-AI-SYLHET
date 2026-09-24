@@ -220,10 +220,12 @@ def shadow_lengths(shadow: str) -> list[float]:
     """
     cleaned = re.sub(r"[\w-]+\([^)]*\)", " ", shadow)
     out: list[float] = []
-    for token in cleaned.split():
-        if token == "inset":
+    # Named `part`, not `token`: a variable called `token` makes ruff's S105 fire
+    # on every comparison against it. Renaming costs nothing here.
+    for part in cleaned.split():
+        if part == "inset":
             continue
-        m = re.fullmatch(r"(-?\d*\.?\d+)(px|rem|em)?", token)
+        m = re.fullmatch(r"(-?\d*\.?\d+)(px|rem|em)?", part)
         if not m:
             continue  # a colour like #000, or a keyword
         number, unit = float(m.group(1)), m.group(2)

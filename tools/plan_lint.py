@@ -172,7 +172,11 @@ class Lint:
             shown = ", ".join(broken[:5])
             self.problems.append(f"{len(broken)} TOC links do not resolve: {shown}")
 
-        in_toc = {int(m.group(2)) for m in (TOC_ANCHOR_RE.match(l) for l in self.lines) if m}
+        in_toc = {
+            int(m.group(2))
+            for m in (TOC_ANCHOR_RE.match(line) for line in self.lines)
+            if m
+        }
         missing = [n for n in self.section_numbers() if n not in in_toc]
         if missing:
             self.problems.append(f"sections absent from the TOC: {missing}")
@@ -192,7 +196,7 @@ class Lint:
 
     def check_cross_references(self) -> None:
         exists = self.numbered_headings()
-        refs = sorted({r for r in re.findall(r"§(\d+(?:\.\d+)*)", self.text)})
+        refs = sorted(set(re.findall(r"§(\d+(?:\.\d+)*)", self.text)))
         dangling = [r for r in refs if r not in exists]
         if dangling:
             self.problems.append(f"§-references to non-existent sections: {dangling}")
@@ -231,14 +235,20 @@ def regenerate_toc(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
 
-    sec1_idx = next(i for i, l in enumerate(lines) if re.match(r"^## 1\. ", l))
+    sec1_idx = next(i for i, line in enumerate(lines) if re.match(r"^## 1\. ", line))
     try:
-        toc_idx = next(i for i, l in enumerate(lines) if l.strip() == "## Table of Contents")
+        toc_idx = next(
+            i for i, line in enumerate(lines) if line.strip() == "## Table of Contents"
+        )
     except StopIteration:
         # no TOC yet — insert one immediately before section 1
         toc_idx = sec1_idx
-        lines = lines[:toc_idx] + ["## Table of Contents", "", "---", ""] + lines[toc_idx:]
-        sec1_idx = next(i for i, l in enumerate(lines) if re.match(r"^## 1\. ", l))
+        lines = [
+            *lines[:toc_idx],
+            "## Table of Contents", "", "---", "",
+            *lines[toc_idx:],
+        ]
+        sec1_idx = next(i for i, line in enumerate(lines) if re.match(r"^## 1\. ", line))
 
     seen: dict[str, int] = {}
     body: list[str] = []

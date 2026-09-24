@@ -1,0 +1,34 @@
+{#
+  errors/429.html — §9.2, §12.4 rate limiting.
+
+  The rate limit that matters is the contact form and the login form. §12.4 asks for
+  a Bangla explanation and the wait, not a bare 429: a limit with no reason reads as
+  a broken site, and a legitimate visitor who submits twice by accident is far more
+  common than an attacker.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import btn, document_rule %}
+
+{% block title %}অনেক বেশি অনুরোধ — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}অল্প সময়ে অনেকবার অনুরোধ পাঠানো হয়েছে।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<section class="container-site py-20 sm:py-28">
+  <p class="font-display text-sm font-bold tracking-widest text-gold" lang="bn">৪২৯</p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    অল্প সময়ে অনেকবার অনুরোধ পাঠানো হয়েছে
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন। এটি এই সাইটের নিরাপত্তার
+    জন্য একটি সীমা — আপনার কোনো তথ্য হারিয়ে যায়নি।
+  </p>
+
+  <div class="mt-10 flex flex-wrap gap-3">
+    {{ btn('হোমপাতায় যান', href='/') }}
+  </div>
+</section>
+{% endblock %}

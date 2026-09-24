@@ -677,6 +677,18 @@
     font-size: var(--text-xs);
   }
 
+  /* §7.8 requires 44×44px minimum TOUCH targets. A fine pointer hits a 34px
+     control accurately, so the dense size is allowed where the pointer is precise
+     and raised where it is not. Without this, `size='sm'` was a way to opt out of
+     the accessibility baseline by accident — and the most likely mis-tap pairs on
+     this site are «প্রকাশ বাতিল» and «সম্মতি প্রত্যাহার» side by side in a table. */
+  @media (pointer: coarse) {
+    .btn-sm {
+      min-block-size: 44px;
+      min-inline-size: 44px;
+    }
+  }
+
   /* ── Cards ──────────────────────────────────────────────────────────────── */
   .card {
     background-color: var(--color-surface);
@@ -895,6 +907,20 @@
     min-block-size: 34px;
     padding: 0.3rem 0.5rem;
     font-size: var(--text-base);
+  }
+
+  /* The admin skin is desktop-density by design (§8.1 rule 6), but an operator
+     using a tablet is a real case, and the admin is where destructive actions
+     live. Same rule as .btn-sm above: dense on a fine pointer, 44px on a coarse
+     one. */
+  @media (pointer: coarse) {
+    .admin-scope .btn,
+    .admin-scope .input,
+    .admin-scope .select,
+    .admin-scope .textarea {
+      min-block-size: 44px;
+      min-inline-size: 44px;
+    }
   }
 
   /* Sticky filter bar (§7.7) */

@@ -1,0 +1,47 @@
+# =============================================================================
+# .htaccess at the PROJECT ROOT — a fail-safe, not a configuration file.
+# =============================================================================
+# This file should never be read by anyone.
+#
+# The subdomain's document root is `public/` (§17.2 step 1), so Apache serves from
+# `public/` and this directory is not in the served tree at all. That is the whole
+# point of the file: it does nothing while the docroot is correct, and it prevents a
+# disaster in the one case that matters — if the docroot is ever pointed at the
+# project root by mistake.
+#
+# WHAT THAT MISTAKE WOULD COST
+#   With the docroot set here, these URLs would serve real files over HTTP:
+#       /.env                    → the database password, the SECRET_KEY, the mail
+#                                  credentials, and everything else in .env
+#       /instance/ai_sylhet.db   → every participant record, downloaded as a file
+#       /app/models/people.py    → the schema, and the admin prefix it guards
+#       /requirements.txt        → exact dependency versions to attack
+#   None of that appears in a log. It is a single wrong dropdown in cPanel and a
+#   government website's citizen database is on the open internet.
+#
+# WHY NOT `Require all denied` FOR EVERYTHING
+#   Because it would also block Passenger if cPanel is configured with the app root
+#   here instead of `public/` — turning one misconfiguration into an outage. Denying
+#   the specific dangerous patterns fails safely in both cases: with the docroot
+#   wrong, the source is protected; with the app root here, requests still reach
+#   Passenger and the site keeps working.
+#
+# See also: public/.htaccess — the real document-root configuration.
+# =============================================================================
+
+Options -Indexes -MultiViews
+
+# The files that must never be downloadable, whatever the docroot is set to.
+<FilesMatch "(^\.|\.(env|db|sqlite|sqlite3|log|ini|cfg|bak|sql|gz|zip|key|pem)$)">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Nothing under these directories is ever a public document.
+  RewriteRule ^(app|migrations|tools|tests|assets|design-src|instance|var|node_modules)(/|$) - [F,L]
+
+  # package.json and the lockfile describe the toolchain; they are not content.
+  RewriteRule ^(package\.json|package-lock\.json|pyproject\.toml|requirements(-dev)?\.txt)$ - [F,L]
+</IfModule>

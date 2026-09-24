@@ -81,8 +81,12 @@ SUBSET_ORDER = {"bengali": 0, "latin": 1}
 
 
 def fetch(url: str) -> bytes:
+    # S310 is waived for this file in pyproject.toml: `url` is built by
+    # build_css_url() from a hardcoded https://fonts.googleapis.com/... base plus
+    # constants from this file. Nothing user-supplied reaches it, and this script
+    # is a one-off run by a developer when the font set changes — never at runtime.
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 — fixed https URL
+    with urllib.request.urlopen(req, timeout=30) as r:
         return r.read()
 
 

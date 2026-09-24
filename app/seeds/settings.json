@@ -1,0 +1,41 @@
+[
+  { "key": "site.title_bn", "value": "এআই সিলেট", "value_type": "string", "group": "site", "label_bn": "সাইটের নাম" },
+  { "key": "site.tagline_bn", "value": "যুব উন্নয়ন অধিদপ্তর", "value_type": "string", "group": "site", "label_bn": "সাইটের Tagline" },
+  { "key": "site.organisation_bn", "value": "যুব উন্নয়ন অধিদপ্তর", "value_type": "string", "group": "site", "label_bn": "প্রতিষ্ঠানের নাম" },
+  { "key": "site.ministry_bn", "value": "যুব ও ক্রীড়া মন্ত্রণালয়", "value_type": "string", "group": "site", "label_bn": "মন্ত্রণালয়" },
+  { "key": "site.hotline", "value": "+88 02-8091188", "value_type": "string", "group": "site", "label_bn": "হটলাইন" },
+  { "key": "site.hotline_mobile", "value": "01550-666900", "value_type": "string", "group": "site", "label_bn": "মোবাইল নম্বর" },
+  { "key": "site.email", "value": "info@elaeltd.com", "value_type": "string", "group": "site", "label_bn": "ইমেইল" },
+  { "key": "site.hq_address_bn", "value": "খাজা আইটি পার্ক (২য়–৬ষ্ঠ তলা), ০৭ দক্ষিণ কল্যাণপুর, মিরপুর রোড, ঢাকা-১২০৭", "value_type": "string", "group": "site", "label_bn": "প্রধান কার্যালয়ের ঠিকানা" },
+  { "key": "site.facebook_url", "value": "", "value_type": "string", "group": "site", "label_bn": "ফেসবুক পেজ" },
+  { "key": "site.partner_note_bn", "value": "প্রশিক্ষণ পার্টনার: Service Engines Ltd., Dot Com Systems Ltd. ও Wizard Software Technology Bangladesh Ltd. (JV)", "value_type": "string", "group": "site", "label_bn": "পার্টনার তথ্য" },
+
+  { "key": "batch.current", "value": "1", "value_type": "int", "group": "batch", "label_bn": "বর্তমান ব্যাচ" },
+  { "key": "batch.label_bn", "value": "ব্যাচ ১", "value_type": "string", "group": "batch", "label_bn": "ব্যাচের নাম" },
+  { "key": "batch.status_bn", "value": "চলমান", "value_type": "string", "group": "batch", "label_bn": "ব্যাচের অবস্থা" },
+
+  { "key": "course.summary_bn", "value": "যুব উন্নয়ন অধিদপ্তরের কর্মসূচির আওতায় সিলেটে পরিচালিত ৩০০ ঘণ্টার প্রশিক্ষণ।", "value_type": "string", "group": "course", "label_bn": "কোর্সের সারসংক্ষেপ" },
+  { "key": "course.duration_label_bn", "value": "৩০০ ঘণ্টা / ৫০ দিন", "value_type": "string", "group": "course", "label_bn": "মেয়াদের লেখা" },
+  { "key": "course.certificate_bn", "value": "সরকারি সনদ", "value_type": "string", "group": "course", "label_bn": "সনদের বর্ণনা" },
+
+  { "key": "display.show_bangla_numerals", "value": "true", "value_type": "bool", "group": "display", "label_bn": "বাংলা সংখ্যা দেখানো হবে" },
+  { "key": "display.participants_per_page", "value": "24", "value_type": "int", "group": "display", "label_bn": "প্রতি পাতায় প্রশিক্ষণার্থী" },
+  { "key": "display.stats_suppress_below", "value": "5", "value_type": "int", "group": "display", "label_bn": "কতজনের কম হলে হিসাব গোপন" },
+  { "key": "display.show_gender_stats", "value": "false", "value_type": "bool", "group": "display", "label_bn": "লিঙ্গভিত্তিক হিসাব দেখানো হবে" },
+  { "key": "display.contact_form_enabled", "value": "true", "value_type": "bool", "group": "display", "label_bn": "যোগাযোগ ফর্ম চালু" },
+  { "key": "display.gallery_enabled", "value": "true", "value_type": "bool", "group": "display", "label_bn": "গ্যালারি চালু" },
+  { "key": "display.stats_published", "value": "true", "value_type": "bool", "group": "display", "label_bn": "পরিসংখ্যা প্রকাশিত" },
+  { "key": "display.participant_pages_enabled", "value": "true", "value_type": "bool", "group": "display", "label_bn": "প্রশিক্ষণার্থী পাতা চালু" },
+  { "key": "display.participant_search_enabled", "value": "true", "value_type": "bool", "group": "display", "label_bn": "প্রশিক্ষণার্থী অনুসন্ধান চালু" },
+  { "key": "display.maintenance_mode", "value": "false", "value_type": "bool", "group": "display", "label_bn": "রক্ষণাবেক্ষণ মোড" },
+
+  { "key": "privacy.last_updated", "value": "", "value_type": "string", "group": "privacy", "label_bn": "প্রাইভেসি সর্বশেষ হালনাগাদ" },
+  { "key": "privacy.contact_for_withdrawal", "value": "", "value_type": "string", "group": "privacy", "label_bn": "সম্মতি প্রত্যাহারের যোগাযোগ" },
+  { "key": "privacy.contact_bn", "value": "প্রকল্প পরিচালক, যুব উন্নয়ন অধিদপ্তর — সিলেট", "value_type": "string", "group": "privacy", "label_bn": "প্রাইভেসি যোগাযোগ" },
+  { "key": "privacy.retention_note_bn", "value": "সম্মতি প্রত্যাহার করা হলে ২৪ ঘণ্টার মধ্যে নাম সরিয়ে দেওয়া হয়।", "value_type": "string", "group": "privacy", "label_bn": "সংরক্ষণ নীতি" },
+
+  { "key": "footer.note_bn", "value": "গণপ্রজাতন্ত্রী বাংলাদেশ সরকারের যুব ও ক্রীড়া মন্ত্রণালয়ের অধীন যুব উন্নয়ন অধিদপ্তরের কর্মসূচি।", "value_type": "string", "group": "footer", "label_bn": "ফুটার নোট" },
+  { "key": "og.default_image", "value": "", "value_type": "string", "group": "seo", "label_bn": "ডিফল্ট OG ছবি" },
+  { "key": "seo.meta_suffix_bn", "value": "এআই সিলেট", "value_type": "string", "group": "seo", "label_bn": "মেটা শিরোনামের শেষাংশ" },
+  { "key": "analytics.enabled", "value": "false", "value_type": "bool", "group": "seo", "label_bn": "স্ব-হোস্টেড অ্যানালিটিক্স চালু" }
+]

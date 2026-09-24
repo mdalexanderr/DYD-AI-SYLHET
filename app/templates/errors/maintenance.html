@@ -1,0 +1,37 @@
+{#
+  errors/maintenance.html — §9.2, served when `MAINTENANCE_MODE=true`.
+
+  The before_request hook exempts /health, /static/, /media/ and the admin prefix, so
+  the operator can still get in and turn the switch back off. Without that exemption
+  enabling maintenance mode locks the only person who can disable it out of the site.
+
+  Returns 503, not 200: a maintenance page served with a 200 tells every crawler the
+  site is fine and the pages have simply gone away.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import document_rule %}
+
+{% block title %}সাময়িকভাবে বন্ধ — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}ওয়েবসাইটটি রক্ষণাবেক্ষণের জন্য সাময়িকভাবে বন্ধ আছে।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<section class="container-site flex min-h-dvh flex-col justify-center py-20">
+  <p class="font-display text-sm font-bold tracking-widest text-gold" lang="bn">
+    রক্ষণাবেক্ষণ
+  </p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    ওয়েবসাইটটি সাময়িকভাবে বন্ধ আছে
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    রক্ষণাবেক্ষণের কাজ চলছে। অনুগ্রহ করে কিছুক্ষণ পরে আবার আসুন। আপনার তথ্য
+    নিরাপদে আছে এবং কিছুই হারায়নি।
+  </p>
+</section>
+{% endblock %}

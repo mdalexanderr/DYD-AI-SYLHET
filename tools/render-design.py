@@ -41,7 +41,7 @@ try:
 except ImportError:
     print("render-design: Jinja2 is missing. Run inside the venv:\n"
           "  .venv\\Scripts\\python.exe tools\\render-design.py", file=sys.stderr)
-    raise SystemExit(1)
+    raise SystemExit(1) from None
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_DIRS = [ROOT / "app/templates", ROOT / "design-src"]

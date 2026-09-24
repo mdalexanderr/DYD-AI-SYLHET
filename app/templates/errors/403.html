@@ -1,0 +1,33 @@
+{#
+  errors/403.html — §9.2.
+
+  §11.3: this page must NOT confirm whether the thing exists. "You are not allowed
+  to see this draft page" and "that draft page does not exist" must read
+  identically, or the error page itself becomes the enumeration oracle the admin
+  prefix is meant to prevent.
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import btn, document_rule %}
+
+{% block title %}প্রবেশের অনুমতি নেই — {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}এই পাতাটি দেখার অনুমতি আপনার নেই।{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<section class="container-site py-20 sm:py-28">
+  <p class="font-display text-sm font-bold tracking-widest text-flag-red" lang="bn">৪০৩</p>
+  {{ document_rule() }}
+
+  <h1 class="mt-8 font-display text-3xl font-bold text-ink-900 sm:text-4xl" lang="bn">
+    এই পাতাটি দেখার অনুমতি আপনার নেই
+  </h1>
+
+  <p class="prose-bn mt-5 max-w-prose text-ink-600" lang="bn">
+    এই ঠিকানার পাতাটি প্রকাশ করা হয়নি, অথবা এটি দেখতে প্রবেশ করা প্রয়োজন।
+  </p>
+
+  <div class="mt-10 flex flex-wrap gap-3">
+    {{ btn('হোমপাতায় যান', href='/') }}
+  </div>
+</section>
+{% endblock %}

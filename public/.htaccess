@@ -1,0 +1,70 @@
+# =============================================================================
+# public/.htaccess — the document root. plan.md §9.1, §17.2 step 1, §12.3.
+# =============================================================================
+# THIS FILE IS IN THE DOCROOT, NOT THE APP ROOT.
+#   §17.2 step 1 sets the subdomain's docroot to `.../public`. Apache only reads
+#   .htaccess files in the directory tree it is serving, so a file at the project
+#   root would never be consulted. That is why the functional directives live here
+#   and the project root carries a fail-safe instead.
+#
+# WHAT THIS FILE DELIBERATELY DOES NOT DO
+#   It does not set HSTS. The app emits `Strict-Transport-Security` in production
+#   from its after_request hook (§12.3), and having a header defined in two places
+#   means one of them is eventually wrong. The division is: Apache guarantees the
+#   visitor is on HTTPS at all, the app states the policy.
+#
+#   It does not set CSP, X-Frame-Options or Referrer-Policy either, for the same
+#   reason — those come from the app, where they are covered by tests.
+#
+# ⚠ NOT VERIFIED LOCALLY. This machine has no Apache and no Passenger, so these
+#   directives have not been exercised. cPanel's "Setup Python App" writes its own
+#   Passenger block, and reconciling the two is a deploy-time task (§17.2 step 4).
+#   If Passenger's block is already present and working, keep it and take only the
+#   HTTPS redirect and the dotfile rule from this file.
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # ── Force HTTPS (§17.2 step 2, §12.3) ─────────────────────────────────────
+  # Done at the web-server layer so an http:// request never reaches Python at all.
+  # Enforcing it only in Flask would mean a misconfigured deploy serves plaintext
+  # for as long as it takes somebody to notice.
+  #
+  # X-Forwarded-Proto is checked as well as %{HTTPS}: behind cPanel's proxy the
+  # connection from the proxy to Apache is often plain http, so %{HTTPS} alone is
+  # off even for a visitor who is on https — which produces an infinite redirect
+  # loop, the classic way this rule is got wrong.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# ── Defence in depth: nothing dot-prefixed is ever served ────────────────────
+# The docroot should contain no dotfiles at all. This rule exists so that a future
+# mistake — a .env copied into the wrong directory, an editor backup — is a 403
+# rather than a readable file on a government domain.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+# Directory listings off. A listing of the docroot is an inventory.
+Options -Indexes -MultiViews
+
+# ── Passenger ────────────────────────────────────────────────────────────────
+# Uncomment and set the absolute path ONLY if cPanel's generated block is absent.
+# The path cannot be guessed: it contains the cPanel account name, which §17.1
+# deliberately keeps out of this repository.
+#
+#   PassengerAppRoot /home/<user>/sylhet.dydaiproject.com
+#   PassengerAppType wsgi
+#   PassengerStartupFile passenger_wsgi.py
+#   PassengerBaseURI /
+#   PassengerPython /home/<user>/virtualenv/sylhet.dydaiproject.com/3.12/bin/python
+
+# ── Do not serve the app's own files as documents ────────────────────────────
+# With Passenger the application lives ABOVE this directory. If a request ever
+# reaches a path that looks like source, refuse it rather than letting Apache try
+# to resolve it.
+RedirectMatch 404 ^/(app|migrations|tools|tests|assets|design-src|instance|var)(/|$)
+RedirectMatch 404 ^/\.(env|git|gitignore|gitattributes)

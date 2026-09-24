@@ -1,0 +1,192 @@
+# =============================================================================
+# DYD AI SYLHET — tool configuration.            project: sylhet.dydaiproject.com
+# =============================================================================
+# NOT a packaging manifest. Runtime dependencies live in `requirements.txt`
+# (pinned with == for the cPanel Passenger deployment), and the dev toolchain in
+# `requirements-dev.txt`. plan.md §14.1 and §9.1 keep packaging out of scope: this
+# is a website, not a library, and a second place to declare dependencies is a
+# second place for them to drift.
+#
+# See EXECUTION-PLAN.md step 2.18.
+# =============================================================================
+
+[project]
+name = "dyd-ai-sylhet"
+version = "0.1.0"
+description = "Documentary site for the Sylhet AI training programme (DYD)."
+requires-python = ">=3.12"
+# Intentionally empty: see the note above.
+dependencies = []
+
+# -----------------------------------------------------------------------------
+# pytest — step 2.17
+# -----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `--strict-markers` fails on an unregistered marker and `--strict-config` fails on
+# a typo'd ini key. Both turn a silently-ignored option into an error, which is the
+# only way a config file stays honest as it grows.
+addopts = [
+  "-q",
+  "--strict-markers",
+  "--strict-config",
+  "--cov=app",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-report=xml",
+]
+markers = [
+  "slow: takes more than a second (excluded from the fast loop with -m 'not slow')",
+  "mysql: requires a MySQL server; skipped automatically when none is configured",
+]
+filterwarnings = [
+  # A DeprecationWarning that nobody reads is a DeprecationWarning that becomes an
+  # error during a minor-version bump on a Friday. Turn them into failures here.
+  "error::DeprecationWarning:app.*",
+  "ignore::DeprecationWarning:flask_caching.*",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = [
+  "app/seeds/*",
+  "*/__init__.py",
+]
+
+[tool.coverage.report]
+# The consent guard, the sanitizer and the publish rules are the code that must not
+# regress. A single global threshold on a half-built app would be noise; these
+# files are the ones worth holding to a number.
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
+show_missing = true
+
+# -----------------------------------------------------------------------------
+# ruff — step 2.18
+# -----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = [
+  "migrations/versions",   # alembic writes these; they are generated, not authored
+  "migrations/env.py",     # likewise: Flask-Migrate writes this on `db init`
+  "design-src",            # the design supplier's delivery area
+  "node_modules",
+  ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",      # pycodestyle
+  "F",           # pyflakes — the ones that catch real bugs
+  "I",           # import order
+  "UP",          # pyupgrade: modern syntax for the pinned interpreter
+  "B",           # bugbear: mutable defaults, bare except, shadowed builtins
+  "C4",          # comprehensions
+  "SIM",         # simplifications
+  "RET",         # return statements
+  "PTH",         # use pathlib instead of os.path
+  "BLE",         # blind `except Exception` — this codebase uses it deliberately
+                 # and with a comment, so the rule forces the comment
+  "T20",         # print() — must not reach app/ request paths
+  "S",           # bandit
+  "RUF",         # ruff's own
+  "A",           # builtin shadowing
+  "DTZ",         # naive datetimes — the site is Asia/Dhaka, §16
+]
+ignore = [
+  # Bangla is full of characters ruff reads as typography mistakes. The whole
+  # product is Bangla, so these three are permanently off.
+  "RUF001", "RUF002", "RUF003",
+  # §9.4: models declare class-level defaults as `x: Mapped[bool] = mapped_column(...)`.
+  # ClassVar annotation is wrong for a mapped column.
+  "RUF012",
+  # `E501` is line length, already governed by line-length above plus the formatter.
+  "E501",
+  # A `try/except/pass` that is deliberate (an unwritable cache dir, §9.2) is
+  # clearer than any alternative. The rule is kept on the specific lines instead.
+  "SIM105",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert, use hardcoded sample secrets, and use magic numbers for byte
+# counts. All three are the point of a test.
+"tests/*" = ["S101", "S105", "S106", "PLR2004", "ARG001", "ARG002"]
+# A CLI's entire job is printing and prompting.
+"app/cli.py" = ["T201", "S106", "DTZ005"]
+# The local dev runner prints its address on startup, which is the point of it.
+"run.py" = ["T201"]
+# Check scripts print by design.
+"tools/*" = ["T201", "S101", "S603", "S607"]
+# fetch-fonts.py downloads the self-hosted font files from a hardcoded HTTPS URL
+# built in that file. Nothing user-supplied reaches urlopen and the script never
+# runs at runtime — it is a one-off a developer runs when the font set changes.
+# The inline `# noqa: S310` was not being honoured, so the exception is recorded
+# here instead, where it is at least visible next to every other exception.
+"tools/fetch-fonts.py" = ["S310"]
+# The demo-participant generator uses `random` deterministically, with an explicit
+# seed. It is fixture data, not anything security-relevant.
+"app/seeds/*" = ["S311", "S101"]
+# Flask's decorators make truly `ANN`-clean code noisy, and mypy is the checker that
+# actually verifies types here.
+"app/routes/*" = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tools"]
+combine-as-imports = true
+
+# -----------------------------------------------------------------------------
+# mypy — step 2.18
+# -----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+# The two WSGI entry points are checked too, not just the package: they are the
+# files whose failure is hardest to diagnose on the server, because there is no
+# Flask app yet to render an error page.
+files = ["app", "run.py", "passenger_wsgi.py"]
+# Deliberately NOT `strict`. A Flask app's request handlers and Jinja context are
+# dynamically shaped, and `strict` on a skeleton produces a wall of noise that gets
+# switched off — which is worse than a targeted set of checks that stay on.
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+show_error_codes = true
+pretty = true
+exclude = ["^migrations/", "^design-src/", "^node_modules/"]
+
+# Only the packages that genuinely ship no type information. Silencing whole
+# modules (`ignore_errors = true`) would hide real mistakes in our own code called
+# through them; `ignore_missing_imports` only stops the "cannot find stubs" error,
+# so our own code is still checked.
+#
+# flask_login, flask_wtf and flask_migrate are here for the same reason as the four
+# §9.1 extensions — they are typed-by-convention Flask plugins with no py.typed
+# marker. bleach is not a Flask extension but ships no stubs either.
+[[tool.mypy.overrides]]
+module = [
+  "flask_bcrypt.*",
+  "flask_mail.*",
+  "flask_caching.*",
+  "flask_limiter.*",
+  "flask_login.*",
+  "flask_wtf.*",
+  "flask_migrate.*",
+  "bleach.*",
+]
+ignore_missing_imports = true
+
+# pyotp is used in exactly one place — TOTP enrolment in app/cli.py — and ships no
+# stubs. qrcode is NOT listed: the QR code is rendered by the authenticator app from
+# the otpauth:// URI this CLI prints, so nothing imports qrcode and an override for
+# it would be an unused section (mypy warns about exactly that).
+[[tool.mypy.overrides]]
+module = ["pyotp.*"]
+ignore_missing_imports = true

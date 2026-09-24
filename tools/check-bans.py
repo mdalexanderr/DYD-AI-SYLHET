@@ -269,14 +269,17 @@ def check_text(text: str, path: Path) -> list[Violation]:
                                  f"use a token instead — {line.strip()[:110]}"))
 
         if is_template:
-            for token, why in BANNED_TEMPLATE_TOKENS:
-                if token not in line:
+            # Named `marker`, not `token`: a variable called `token` makes ruff's
+            # S105 fire on every comparison against it, on the assumption that it
+            # holds a credential. Renaming costs nothing and keeps the rule on.
+            for marker, why in BANNED_TEMPLATE_TOKENS:
+                if marker not in line:
                     continue
                 # The one sanctioned `|safe`: sanitiser output, named `*_html`,
                 # and explicitly marked. Anything else still fails.
-                if token == "|safe" and SAFE_EXPR_RE.search(line):
+                if marker == "|safe" and SAFE_EXPR_RE.search(line):
                     continue
-                out.append(Violation(rel, n, f"banned template token “{token}”", why))
+                out.append(Violation(rel, n, f"banned template token “{marker}”", why))
 
         # Review marker left behind
         if "TODO" in line or "FIXME" in line:
