@@ -85,16 +85,46 @@ def _public(data: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in data.items() if not key.startswith("_")}
 
 
-def _upsert(model, key_field: str, key_value: Any, defaults: dict[str, Any]):
-    """Find by natural key and update, or create. Never duplicates."""
+def _upsert(
+    model,
+    key_field: str,
+    key_value: Any,
+    defaults: dict[str, Any],
+    *,
+    refresh: tuple[str, ...] = (),
+):
+    """Find by natural key, CREATING THE ROW IF IT IS MISSING AND LEAVING IT ALONE IF NOT.
+
+    EXISTING ROWS ARE NOT OVERWRITTEN, AND THAT IS THE POINT OF THIS FUNCTION.
+        The previous version wrote every key in `defaults` on every run. Among those
+        keys was `Page.is_published = False`, so re-running `flask seed` UNPUBLISHED
+        EVERY PAGE AND TOOK THE PUBLIC SITE OFFLINE.
+
+        That is not a theoretical hazard. The deploy runs `flask seed` (§20), so the
+        bug meant a routine redeploy silently removed the entire site — and it would
+        have been found by a reader, not by CI, because seeding exits 0 either way and
+        "pages: 7" is the same number before and after.
+
+    SEEDING IS A FIRST-INSTALL STEP, NOT A RESET.
+        Its job is to make sure the reference rows exist. A field that genuinely has
+        to track its source file on every run is named explicitly in `refresh`, so
+        destructive behaviour is opt-in per field. The failure mode of forgetting to
+        opt in is a stale seed value; the failure mode of the old default was that the
+        site disappears. Those two are not comparable, so the default is the safe one.
+
+    `refresh` exists rather than being omitted so the next person has an obvious place
+    to put a field that really must be re-applied, instead of reaching for `setattr`.
+    """
     column = getattr(model, key_field)
     existing = db.session.execute(select(model).where(column == key_value)).scalar_one_or_none()
     if existing is None:
         obj = model(**{key_field: key_value, **defaults})
         db.session.add(obj)
         return obj
-    for name, value in defaults.items():
-        setattr(existing, name, value)
+
+    for name in refresh:
+        if name in defaults:
+            setattr(existing, name, defaults[name])
     return existing
 
 
@@ -185,31 +215,54 @@ def seed_reference_data() -> dict[str, int]:
         db.session.flush()
         page_count += 1
 
-        for stale in list(page.sections):
-            db.session.delete(stale)
-        db.session.flush()
+        # SECTIONS ARE SEEDED ONLY INTO A PAGE THAT HAS NONE.
+        #
+        # The earlier version deleted every section and rebuilt them from the JSON on
+        # every run. That is right for a first install and destructive on a redeploy,
+        # because the deploy runs `flask seed` (§20): any section the department had
+        # edited, reordered or added would be destroyed and silently replaced by the
+        # seed copy. The command exits 0 either way, so nothing would report it.
+        #
+        # Harmless today — there is no admin yet, so no section has ever been edited —
+        # and it becomes data loss the moment Phase 4 lands. Guarding it now costs one
+        # level of indentation.
+        if not page.sections:
+            for order, section in enumerate(item.get("sections", []), start=1):
+                payload = dict(section.get("content") or {})
+                # The registry marks these two references REQUIRED, and pages.json
+                # cannot contain them: the primary keys do not exist until the
+                # database assigns them. They are injected here instead of being
+                # omitted, because an omitted required ref fails validation and the
+                # section is then rejected at seed time rather than at render time.
+                if section["type"] == SectionType.MODULE_LIST.value:
+                    payload["course_id"] = course.id
+                if section["type"] == SectionType.INSTITUTION_CARD.value:
+                    payload["institution_id"] = institution.id
+                if "body_bn" in payload:
+                    payload["body_bn"] = sanitize_html(payload["body_bn"])
+                db.session.add(PageSection(
+                    page_id=page.id,
+                    type=section["type"],
+                    sort_order=order,
+                    is_visible=section.get("is_visible", True),
+                    content=payload,
+                ))
 
-        for order, section in enumerate(item.get("sections", []), start=1):
-            payload = dict(section.get("content") or {})
-            # The registry marks these two references REQUIRED, and pages.json
-            # cannot contain them: the primary keys do not exist until the
-            # database assigns them. They are injected here instead of being
-            # omitted, because an omitted required ref fails validation and the
-            # section is then rejected at seed time rather than at render time.
-            if section["type"] == SectionType.MODULE_LIST.value:
-                payload["course_id"] = course.id
-            if section["type"] == SectionType.INSTITUTION_CARD.value:
-                payload["institution_id"] = institution.id
-            if "body_bn" in payload:
-                payload["body_bn"] = sanitize_html(payload["body_bn"])
-            db.session.add(PageSection(
-                page_id=page.id,
-                type=section["type"],
-                sort_order=order,
-                is_visible=section.get("is_visible", True),
-                content=payload,
-            ))
-            section_count += 1
+        # COUNT WHAT THE PAGE HAS, NOT WHAT THIS RUN CREATED.
+        #
+        # `section_count` used to increment inside the creation loop. Once sections
+        # stopped being rebuilt on every run, the second run reported 0 — so `flask
+        # seed` would print "page_sections: 0" against a perfectly healthy database,
+        # and boot-check's "seed pass 2 is identical" assertion, which is the whole
+        # idempotence proof, would have failed. Reporting the resulting state keeps the
+        # number meaningful whether the sections were just created or already there.
+        #
+        # The expire is required: `page.sections` was already loaded (as empty) by the
+        # `if not page.sections` test above, and without it the collection is served
+        # from the identity map and still reads as empty.
+        db.session.flush()
+        db.session.expire(page, ["sections"])
+        section_count += len(page.sections)
 
     counts["pages"] = page_count
     counts["page_sections"] = section_count
