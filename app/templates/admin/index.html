@@ -1,0 +1,52 @@
+{#
+  =============================================================================
+  admin/index.html — the authenticated landing page. plan.md §12.1, step 4.1.
+
+  WHAT THIS IS NOT
+  It is not the §4.6 dashboard. It shows nothing that requires a query, so it can
+  never be the reason a login fails, and it cannot be mistaken for a finished
+  dashboard — every panel it does not have is visibly absent rather than drawn as an
+  empty card. It exists to prove the session works and to give the admin a way out.
+  =============================================================================
+#}
+{% extends "layouts/base.html" %}
+
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}প্রশাসনিক প্যানেল · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}প্রশাসনিক প্যানেল।{% endblock %}
+
+{% block content %}
+<section class="container-site py-12 sm:py-16">
+  <h1 class="font-display text-3xl font-bold text-ink-900" lang="bn">
+    প্রশাসনিক প্যানেল
+  </h1>
+
+  <dl class="mt-8 max-w-lg grid gap-y-4">
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">প্রবেশ করেছেন</dt>
+      <dd class="mt-1 text-ink-900" lang="bn">
+        {{ current_user.full_name_bn or current_user.email }}
+      </dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">সর্বশেষ প্রবেশ</dt>
+      <dd class="mt-1 num text-ink-900">
+        {# Rendered only when it is known. A placeholder date here would look like a
+           fact, and "never logged in before" is a real and different state. #}
+        {{ current_user.last_login_at.strftime('%Y-%m-%d %H:%M') if current_user.last_login_at else '—' }}
+      </dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">২-ধাপ যাচাই</dt>
+      <dd class="mt-1 text-ink-900" lang="bn">
+        {{ 'চালু' if current_user.twofa_enabled else 'বন্ধ' }}
+      </dd>
+    </div>
+  </dl>
+
+  <form method="post" action="{{ url_for('auth.logout') }}" class="mt-10">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-ghost" type="submit" lang="bn">প্রস্থান করুন</button>
+  </form>
+</section>
+{% endblock %}

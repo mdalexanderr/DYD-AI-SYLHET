@@ -1,0 +1,73 @@
+{#
+  =============================================================================
+  admin/login.html — route 14. plan.md §12.1, step 4.1.
+
+  NOINDEX, AND THAT IS NOT COSMETIC
+  This page is not secret in the way the admin screens are, but there is no reason
+  for a search engine to hold a URL that exists only to accept credentials, and no
+  reason for it to appear in a result next to the public site.
+
+  NO SITE NAVIGATION
+  It extends the public layout for the document chrome (lang, viewport, stylesheet,
+  skip link, CSRF availability) but the form is the whole page. A login screen that
+  offers eight links away from itself is a login screen people leave.
+  =============================================================================
+#}
+{% extends "layouts/base.html" %}
+
+{% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}প্রশাসক প্রবেশ · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}প্রশাসক প্রবেশের পাতা।{% endblock %}
+
+{% block content %}
+<section class="container-site py-16">
+  <div class="mx-auto max-w-md">
+
+    <h1 class="font-display text-3xl font-bold text-ink-900" lang="bn">
+      প্রশাসক প্রবেশ
+    </h1>
+    <p class="mt-2 text-sm text-ink-500" lang="bn">
+      এই পাতাটি কেবল অনুমোদিত প্রশাসকের জন্য।
+    </p>
+
+    <form method="post" action="{{ url_for('auth.login') }}" class="mt-8">
+      {# Flask-WTF's CSRFProtect is app-wide, so a hand-written form still needs the
+         token. Without it every login POST would be a 400. #}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+      <div class="field">
+        <label class="label" for="email" lang="bn">ইমেইল</label>
+        <input class="input" type="email" id="email" name="email"
+               value="{{ email or '' }}" required autocomplete="username"
+               autocapitalize="none" spellcheck="false" autofocus>
+      </div>
+
+      <div class="field mt-5">
+        <label class="label" for="password" lang="bn">পাসওয়ার্ড</label>
+        <input class="input" type="password" id="password" name="password"
+               required autocomplete="current-password">
+      </div>
+
+      <div class="field mt-5">
+        <label class="label" for="totp" lang="bn">২-ধাপের কোড</label>
+        <input class="input" type="text" id="totp" name="totp"
+               inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9 ]*" maxlength="8">
+        <p class="mt-1 text-xs text-ink-500" lang="bn">
+          অ্যাপে দেখা ৬ সংখ্যার কোড। ২-ধাপ চালু না থাকলে খালি রাখুন।
+        </p>
+      </div>
+
+      <button class="btn btn-primary mt-6 w-full" type="submit" lang="bn">
+        প্রবেশ করুন
+      </button>
+    </form>
+
+    <p class="mt-6 text-xs text-ink-500" lang="bn">
+      পাসওয়ার্ড হারালে বা ২-ধাপের কোড কাজ না করলে সার্ভারে
+      <code class="num">flask admin-reset-2fa</code> চালান।
+    </p>
+  </div>
+</section>
+{% endblock %}

@@ -164,6 +164,11 @@ class BaseConfig:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = _str("SESSION_COOKIE_SAMESITE", "Lax")
     PERMANENT_SESSION_LIFETIME = _int("SESSION_LIFETIME_SECONDS", 28800)
+    # §12.1's 30-minute IDLE limit, which Flask cannot express on its own: the cookie's
+    # expiry is refreshed by every write to the session, so `PERMANENT_SESSION_LIFETIME`
+    # alone gives 8 hours of INACTIVITY, not 8 hours absolute. Both numbers are needed
+    # and they mean different things — see `_session_policy` in app/__init__.py.
+    SESSION_IDLE_SECONDS = _int("SESSION_IDLE_SECONDS", 1800)
     IDLE_TIMEOUT_SECONDS = _int("IDLE_TIMEOUT_SECONDS", 1800)
     ADMIN_URL_PREFIX = _str("ADMIN_URL_PREFIX", "ops-sylhet")
     ADMIN_IP_ALLOWLIST = _csv("ADMIN_IP_ALLOWLIST")
@@ -301,6 +306,16 @@ class TestConfig(BaseConfig):
     RATELIMIT_HEADERS_ENABLED = True
     ADMIN_2FA_REQUIRED = False
     BCRYPT_LOG_ROUNDS = 4  # deliberately cheap: 12 makes a suite crawl
+
+    # HERMETIC, AND EXPLICITLY SO.
+    # The base config reads this from the environment, and `.env` is loaded everywhere
+    # except production — so a developer who had set ADMIN_IP_ALLOWLIST for their own
+    # machine would see every admin test fail with a 403 that says nothing about the
+    # behaviour under test. It did exactly that the first time these tests ran. The
+    # allowlist tests in test_session_policy.py set it themselves, deliberately.
+    ADMIN_IP_ALLOWLIST = ()
+    SESSION_IDLE_SECONDS = 1800
+    PERMANENT_SESSION_LIFETIME = 28800
     ALLOWED_HOSTS: tuple[str, ...] = ()
     STATS_CACHE_TIMEOUT = 0
 

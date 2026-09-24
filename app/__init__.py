@@ -228,7 +228,20 @@ def _configure_paths(app: Flask) -> None:
 
 
 def _before_request(app: Flask, config_class: type[BaseConfig]) -> None:
-    """Locale, request logging for the admin, and maintenance mode (§9.2)."""
+    """Maintenance mode (§9.2), the admin IP allowlist (4.4), and session policy (4.2).
+
+    Registered in that order deliberately. Maintenance answers first so a closed site
+    does not also reveal whether an admin is signed in; the allowlist is the cheapest
+    refusal and belongs before any session work; the session policy runs last because
+    it is the only one of the three that touches state.
+    """
+
+    # Imported locally because the handlers below are the only consumers of these in
+    # this module, and this module is imported very early in the process.
+    import time
+
+    from flask import flash, redirect, session, url_for
+    from flask_login import current_user, logout_user
 
     @app.before_request
     def _maintenance() -> Response | None:
@@ -250,6 +263,127 @@ def _before_request(app: Flask, config_class: type[BaseConfig]) -> None:
             503,
             {"Retry-After": "3600"},
         )
+
+    @app.before_request
+    def _admin_ip_allowlist() -> Response | None:
+        """Step 4.4 — an optional CIDR allowlist over the admin surface.
+
+        AN EMPTY LIST MEANS OFF, NOT "DENY EVERYTHING". The setting is documented as
+        recommended-once-live (§12.1), so an unset value has to leave the site exactly
+        as it was. Reading it the other way round would lock the admin out of a
+        deployment that had never configured it, with the only fix being a shell on
+        the server.
+
+        A MALFORMED ENTRY DENIES RATHER THAN RAISES. A typo in `ADMIN_IP_ALLOWLIST`
+        must not 500 every admin request — that turns a configuration mistake into an
+        outage of the surface used to fix it. It denies, logs, and `check-config`
+        reports it.
+
+        `/login` IS COVERED. Leaving the login form reachable from anywhere while
+        protecting the pages behind it protects nothing, since the form is where the
+        credentials would be sent.
+        """
+        allowlist = app.config.get("ADMIN_IP_ALLOWLIST") or []
+        if not allowlist:
+            return None
+
+        prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
+        if not (request.path.startswith(prefix) or request.path == "/login"):
+            return None
+
+        client = _forwarded_client_ip()
+        if client and _ip_in_any(client, allowlist):
+            return None
+
+        app.logger.warning("admin refused for %s: not in ADMIN_IP_ALLOWLIST", client)
+        return make_response(render_template("errors/403.html"), 403)
+
+    @app.before_request
+    def _session_policy() -> Response | None:
+        """Step 4.2 — 30 minutes idle, 8 hours absolute.
+
+        TWO DIFFERENT LIMITS, AND ONLY ONE OF THEM IS FLASK'S. `PERMANENT_SESSION_LIFETIME`
+        is honoured by the cookie's own expiry — but that expiry is recomputed from the
+        moment of the last WRITE, and the server writes to the session on every
+        authenticated request. Left at that, an admin who clicked something every 7
+        hours would never be signed out, and the setting would be a lie.
+
+        So the absolute limit is enforced here, from a timestamp taken once at login
+        and never refreshed. The cookie may keep sliding; the decision does not.
+
+        APPPLIED ONLY TO AUTHENTICATED REQUESTS. The public site has no login, and
+        stamping a session onto every anonymous visitor would set a cookie — and so
+        defeat caching — for readers who will never have a session.
+        """
+        if not current_user.is_authenticated:
+            return None
+
+        now = time.time()
+        idle_limit = int(app.config["SESSION_IDLE_SECONDS"])
+        absolute_limit = int(app.config["PERMANENT_SESSION_LIFETIME"])
+
+        started_at = session.get("session_started_at")
+        if started_at is None:
+            # A session that predates this policy. Adopt it rather than expiring it,
+            # so deploying this does not sign the admin out mid-task.
+            session["session_started_at"] = now
+            started_at = now
+
+        last_seen = session.get("last_seen")
+        idle_for = now - float(last_seen) if last_seen is not None else 0.0
+        alive_for = now - float(started_at)
+
+        if idle_for > idle_limit or alive_for > absolute_limit:
+            reason = "নিষ্ক্রিয়তার কারণে" if idle_for > idle_limit else "সর্বোচ্চ সময় পার হওয়ায়"
+            logout_user()
+            session.clear()
+            flash(f"{reason} নিরাপত্তার জন্য সেশন শেষ করা হয়েছে। আবার প্রবেশ করুন।", "info")
+            # `make_response`, not a bare `redirect`: `redirect` returns a werkzeug
+            # Response, and the handler is annotated `Response | None` with Flask's
+            # Response. The same wrap the maintenance handler above uses, for the same
+            # reason — keeping the annotation true rather than loosening it.
+            return make_response(redirect(url_for("auth.login")))
+
+        session["last_seen"] = now
+        return None
+
+
+def _forwarded_client_ip() -> str | None:
+    """The client address, honouring Passenger's forwarding header.
+
+    The same rule as `auth._client_ip` and `audit._current_ip`. Duplicated rather than
+    shared because those two live in modules that import this one, so importing them
+    from here would be circular.
+    """
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:45]
+    return request.remote_addr or None
+
+
+def _ip_in_any(client: str, allowlist: list[str]) -> bool:
+    """True when `client` falls inside any CIDR (or bare address) in `allowlist`.
+
+    `strict=False` so that `10.0.0.5` written without a prefix length is accepted as a
+    single host instead of raising. An unparseable client address is False, not an
+    exception: behind a proxy that sends something unexpected, refusing is the safe
+    answer.
+    """
+    import ipaddress
+
+    try:
+        address = ipaddress.ip_address(client)
+    except ValueError:
+        return False
+
+    for entry in allowlist:
+        try:
+            if address in ipaddress.ip_network(entry, strict=False):
+                return True
+        except ValueError:
+            # See the docstring of _admin_ip_allowlist: a typo denies, it does not 500.
+            continue
+    return False
 
 
 def _setting_maintenance() -> bool:
