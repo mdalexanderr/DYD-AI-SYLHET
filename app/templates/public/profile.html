@@ -1,0 +1,109 @@
+{#
+  =============================================================================
+  public/profile.html — one participant. plan.md §5.5, step 3.16.
+
+  THERE IS NO PHOTOGRAPH HERE, AND NO PLACE FOR ONE
+  §5.2 / S2: photographs of participants are never published. So there is no <img>,
+  no avatar, no silhouette, no initials-in-a-circle, and no empty bordered box
+  standing in for a portrait. An image placeholder is not neutral — it says "a
+  picture belongs here and is missing", which invites somebody to add one later.
+  The page is designed to be complete without a face: the name is the largest thing
+  on it and the ruled label-value pairs carry the content. Step 3.16's "Done when"
+  is exactly this, so do not add a placeholder to "balance" the layout.
+
+  EVERY VALUE IS ALREADY AN ALLOWLIST
+  `participant_service.to_profile()` builds this context. It never hands over a
+  `Participant`, so `consent_notes`, `consent_source`, `search_blob`, the audit trail
+  and `batch` internals are not merely unused here — they are unreachable.
+
+  THE QUOTE IS ALREADY PERMISSION-CHECKED
+  `p.quote_bn` is None unless the participant gave SEPARATE permission to be quoted
+  (§5.3 rule 5). The `{% if %}` below is therefore about layout, not about consent;
+  the consent decision was made in the service and is not re-litigated here.
+  =============================================================================
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import document_rule %}
+
+{% block title %}{{ p.name_bn }} · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}{{ p.name_bn }}{% if p.outcome_label %} — {{ p.outcome_label }}{% endif %}। {{ batch_line }}।{% endblock %}
+
+{% block content %}
+<article class="container-site py-12 sm:py-16">
+
+  <header class="max-w-3xl">
+    <p class="text-sm font-medium tracking-wide text-ink-500" lang="bn">প্রশিক্ষণার্থী</p>
+    <h1 class="mt-2 font-display text-4xl font-bold text-ink-900 sm:text-5xl"
+        lang="bn">{{ p.name_bn }}</h1>
+    {% if p.name_en %}
+      <p class="mt-2 text-lg text-ink-500" lang="en">{{ p.name_en }}</p>
+    {% endif %}
+  </header>
+
+  {{ document_rule('mt-8') }}
+
+  {# The four publishable facts of §5.2, as a description list so a screen reader
+     reads them as label/value pairs rather than as a run of loose text. Each row is
+     dropped entirely when unset — an empty <dd> with a visible label reads as
+     "we know this and are hiding it". #}
+  <dl class="mt-8 grid max-w-3xl gap-x-12 gap-y-6 sm:grid-cols-2">
+    {% if p.education_label %}
+      <div class="border-t border-line-strong pt-3">
+        <dt class="text-sm text-ink-500" lang="bn">শিক্ষাগত যোগ্যতা</dt>
+        <dd class="mt-1 text-ink-900" lang="bn">{{ p.education_label }}</dd>
+      </div>
+    {% endif %}
+    {% if p.occupation_before %}
+      <div class="border-t border-line-strong pt-3">
+        <dt class="text-sm text-ink-500" lang="bn">প্রশিক্ষণের আগে</dt>
+        <dd class="mt-1 text-ink-900" lang="bn">{{ p.occupation_before }}</dd>
+      </div>
+    {% endif %}
+    {% if p.outcome_label %}
+      <div class="border-t border-line-strong pt-3">
+        <dt class="text-sm text-ink-500" lang="bn">প্রশিক্ষণের পরে</dt>
+        <dd class="mt-1 text-ink-900" lang="bn">{{ p.outcome_label }}</dd>
+      </div>
+    {% endif %}
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">ব্যাচ</dt>
+      <dd class="mt-1 text-ink-900" lang="bn">{{ batch_line }}</dd>
+    </div>
+  </dl>
+
+  {% if p.outcome_text %}
+    <p class="mt-8 max-w-3xl text-lg text-ink-700" lang="bn">{{ p.outcome_text }}</p>
+  {% endif %}
+
+  {% if p.quote_bn %}
+    <blockquote class="mt-10 max-w-3xl border-l-2 border-line-strong pl-6">
+      <p class="font-display text-xl text-ink-900" lang="bn">“{{ p.quote_bn }}”</p>
+      <footer class="mt-3 text-sm text-ink-500" lang="bn">— {{ batch_line }}</footer>
+    </blockquote>
+  {% endif %}
+
+  <footer class="mt-12 border-t border-line pt-6">
+    <p class="text-sm text-ink-500" lang="bn">{{ batch_line }}</p>
+  </footer>
+
+  {# Prev/next over the PUBLISHED set only, so neither link can lead to a 404. #}
+  <nav class="mt-8 flex flex-wrap items-center justify-between gap-4"
+       aria-label="অন্য প্রশিক্ষণার্থীদের প্রোফাইল">
+    <div>
+      {% if p.prev %}
+        <a class="btn btn-ghost btn-sm" href="/batch-1/{{ p.prev.slug }}" rel="prev">
+          <span lang="bn">পূর্ববর্তী: {{ p.prev.name_bn }}</span>
+        </a>
+      {% endif %}
+    </div>
+    <a class="btn btn-ghost btn-sm" href="/batch-1" lang="bn">সবার তালিকায় ফিরে যান</a>
+    <div>
+      {% if p.next %}
+        <a class="btn btn-ghost btn-sm" href="/batch-1/{{ p.next.slug }}" rel="next">
+          <span lang="bn">পরবর্তী: {{ p.next.name_bn }}</span>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+</article>
+{% endblock %}

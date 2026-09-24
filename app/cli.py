@@ -43,6 +43,7 @@ def register_cli(app) -> None:
     app.cli.add_command(seed)
     app.cli.add_command(create_admin)
     app.cli.add_command(seed_demo_participants)
+    app.cli.add_command(publish_pages)
     app.cli.add_command(admin_reset_2fa)
     app.cli.add_command(check_db)
     app.cli.add_command(css_status)
@@ -334,6 +335,65 @@ def seed_demo_participants(count: int, consent_rate: float, batch: int, yes: boo
     for key, value in participant_counts().items():
         _out(f"  {key:<24} {value}")
     _out()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+@click.command("publish-pages")
+@click.option("--slug", default=None, help="Publish one page by slug (default: all of them).")
+@with_appcontext
+def publish_pages(slug: str | None) -> None:
+    """Publish seeded pages so the public site can be reviewed (step 3.5).
+
+    THE SEEDER LEAVES EVERY PAGE UNPUBLISHED, ON PURPOSE
+        A half-written page going live on the first deploy is what the draft state
+        exists to prevent (§11.2), so `seed` writes `is_published = False` and an
+        editor publishes deliberately. That default is correct — and it is also why
+        this command exists. Reviewing the public site, or running the Phase 3 exit
+        gate, needs the pages live, and GETTING them live should be a deliberate act
+        with a name rather than a side effect of seeding.
+
+    IT RESPECTS `can_publish`
+        That gate refuses a page with no visible sections, or one whose sections fail
+        their schema. A command that bypassed it would be a supported way to publish
+        exactly the broken page the gate exists to stop, so it is checked per page and
+        the run reports which page was refused and why.
+    """
+    from sqlalchemy import select
+
+    from app.extensions import db
+    from app.models import Page
+
+    stmt = select(Page).order_by(Page.sort_order, Page.id)
+    if slug:
+        stmt = stmt.where(Page.slug == slug)
+    pages = list(db.session.execute(stmt).scalars())
+
+    if not pages:
+        _out()
+        _fail(f"no page matched {slug!r}" if slug else "no pages found — run `flask seed` first")
+        _out()
+        raise SystemExit(1)
+
+    _out()
+    published = 0
+    refused = 0
+    for page in pages:
+        ok, reason = page.can_publish
+        if not ok:
+            _warn(f"{page.slug:<10} refused — {reason}")
+            refused += 1
+            continue
+        page.publish()
+        _ok(f"{page.slug:<10} published")
+        published += 1
+
+    db.session.commit()
+    _out()
+    _out(f"  {published} published, {refused} refused")
+    _out()
+    if refused:
+        _fail("at least one page was refused — fix its sections and run again")
+        raise SystemExit(1)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

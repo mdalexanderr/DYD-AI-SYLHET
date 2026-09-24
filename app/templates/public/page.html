@@ -1,0 +1,53 @@
+{#
+  =============================================================================
+  public/page.html — every CMS-composed public page.
+  plan.md §6.2, §9.3, step 3.5.
+
+  SEVEN OF THE EIGHT PUBLIC ROUTES USE THIS ONE TEMPLATE
+  `/`, `/course`, `/batch-1`, `/gallery`, `/about`, `/contact` and `/privacy` are all
+  a `pages` row plus its ordered sections. Giving each its own template would mean
+  seven places to change whenever the section loop changes, and the eighth is the one
+  that gets forgotten.
+
+  WHY THE SECTION LOOP LIVES HERE AND NOT IN page_service
+  §9.3 rule 4 says an invisible section is skipped ENTIRELY. That filtering happens in
+  `page_service.visible_sections()`, in Python, so no version of this response can
+  contain one. By the time the loop below runs, everything in `sections` is meant to
+  be shown — so there is no `{% if section.is_visible %}` here, deliberately: a check
+  at this layer would suggest the filtering is a template concern.
+
+  `problems` IS DELIBERATELY NOT DRAWN
+  A section that failed validation is dropped and its Bangla reason is recorded on
+  `PageRender.problems`. That list belongs on the admin screen (§11.2) and in the test
+  that asserts it — not on the public page, where it would tell a visitor the site is
+  half-broken and describe the schema to anyone reading the response.
+  =============================================================================
+#}
+{% extends "layouts/base.html" %}
+{% from "components/base.html" import empty_state %}
+
+{% block title %}{{ page.title_bn }} · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}{{ page.meta_description_bn or brand.tagline_bn }}{% endblock %}
+
+{% block content %}
+{% if is_empty %}
+  {# Step 3.4's "Done when" — an honest empty state, not a blank layout that looks
+     broken. A published page with no visible sections is a content mistake, and
+     saying so is more useful than rendering nothing at all. #}
+  <div class="container-site py-16">
+    {{ empty_state('এই পৃষ্ঠায় এখনো কোনো বিষয়বস্তু যোগ করা হয়নি',
+                   'বিষয়বস্তু প্রস্তুত করা হচ্ছে। অনুগ্রহ করে পরে আবার দেখুন।',
+                   'হোমপেজে ফিরে যান', '/') }}
+  </div>
+{% else %}
+  {% for section in sections %}
+    {# `{% set context = … %}` is safe here: Jinja prefixes loop-local assignments
+       (l_0_context), so this does not clobber the render frame's own `context`.
+       Verified, not assumed — naming it `context` is what keeps the 13 section
+       templates readable, since each is an adapter that reads `context.*` and calls
+       one Phase 1 macro. #}
+    {% set context = section.context %}
+    {% include section.template %}
+  {% endfor %}
+{% endif %}
+{% endblock %}
