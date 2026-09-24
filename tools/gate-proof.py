@@ -281,6 +281,20 @@ def proof_render_check_is_strict() -> None:
             "render-check swaps StrictUndefined in"
         )
     except Exception as exc:  # noqa: BLE001
+        # THE TRACEBACK IS PRINTED ON PURPOSE, AND SHOULD STAY.
+        #
+        # This branch has failed INTERMITTENTLY in development — maybe one run in
+        # eight, always with "descriptor '__getitem__' requires a 'typing.Union'
+        # object but received a 'tuple'", never once reproduced on demand. With only
+        # the one-line `bad()` message, CI logs would show a red gate and no way to
+        # find out why, which is worse than the flake itself.
+        #
+        # Printing the traceback costs nothing on the passing path (it never runs) and
+        # turns the next occurrence into an actionable report. Do not "tidy" this into
+        # a shorter message.
+        import traceback
+
+        traceback.print_exc()
         bad(f"could not build the app to inspect its Jinja environment: {exc}")
 
 
