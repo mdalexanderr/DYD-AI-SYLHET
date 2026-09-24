@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from flask import Blueprint, abort, render_template, request
 
-from app.services import page_service, participant_service
+from app.services import media_service, page_service, participant_service
 
 public_bp = Blueprint("public", __name__)
 URL_PREFIX = None
@@ -92,4 +92,20 @@ def participant_profile(slug: str):
         "public/profile.html",
         p=participant_service.to_profile(participant, prev=prev, next_=next_),
         batch_line=participant_service.batch_line(participant),
+    )
+
+
+@public_bp.get("/media/<path:filename>")
+def media(filename: str):
+    """Route 13 — serve an upload from outside the webroot, behind a signature.
+
+    The work is in `media_service.serve`, which owns the traversal check, the
+    extension allow list, the signature check and the response headers. This view
+exists only to bind the URL shape to that function — there is no policy here to
+    drift away from the policy there.
+
+    Every refusal is a 404, never a 403: see the module docstring of media_service.
+    """
+    return media_service.serve(
+        filename, request.args.get(media_service.SIGNATURE_PARAM)
     )

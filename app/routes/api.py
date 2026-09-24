@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, abort, current_app, jsonify
 from sqlalchemy import text
 
 api_bp = Blueprint("api", __name__)
@@ -51,23 +51,7 @@ def health():
     )
 
 
-@api_bp.get("/robots.txt")
-def robots_unavailable():
-    """Placeholder — the real robots.txt is built in seo.py (Phase 3).
-
-    Defined as a 404 rather than omitted so that a request for it during
-    development fails visibly instead of landing on the public catch-all.
-
-    The body is real plain text with an explicit `text/plain` content type, not an
-    empty string. Flask types an empty body as `text/html` by default, which makes
-    this look like a broken HTML page to anything inspecting content type — and a
-    404 that says nothing is indistinguishable from a routing bug.
-
-    A 404 for robots.txt is the safe answer: crawlers treat a missing file as
-    "no restrictions stated", and nothing is disallowed by accident.
-    """
-    return (
-        "# robots.txt is not served yet; the real file is built in Phase 3 (seo.py).\n",
-        404,
-        {"Content-Type": "text/plain; charset=utf-8"},
-    )
+@api_bp.get("/manifest.json")
+def manifest():
+    """Route 12 — the PWA manifest. Built in step 3.11."""
+    abort(404)
