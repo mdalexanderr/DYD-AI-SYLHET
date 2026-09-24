@@ -1,20 +1,27 @@
 {#
   =============================================================================
-  admin/index.html — the authenticated landing page. plan.md §12.1, steps 4.1, 4.5.
+  admin/index.html — route 16, the dashboard. plan.md §11.1, step 4.6.
 
-  WHAT THIS IS NOT
-  It is not the §4.6 dashboard. It shows nothing that needs a query, so it can never
-  be the reason a login fails, and it cannot be mistaken for a finished dashboard —
-  every panel it lacks is visibly absent rather than drawn as an empty card. It
-  exists to prove the session works, to prove the shell renders, and to give the
-  admin a way out.
+  THE COUNTS ADD UP, AND THAT IS THE FEATURE
+  Six buckets, five of which are states and one of which is the total, and the five
+  sum to it. Anyone can see at a glance that nobody has been lost between the
+  categories — which is the only reason to trust the number next to "awaiting
+  consent" enough to act on it.
 
-  IT OVERRIDES EXACTLY TWO BLOCKS
-  `admin_title` and `admin_content`. Everything else — the header, the navigation,
-  the breadcrumb trail, the sign-out form, the page heading and the inherited flash
-  region — comes from `admin/layout.html`. That is what step 4.5's "Done when" means
-  by consistent: the screen does not provide its own chrome, so it cannot provide
-  chrome that differs.
+  `consent_missing_date` IS SHOWN PROMINENTLY, NOT BURIED
+  Those are the people who believe they have consented while nothing publishes them.
+  It is the only consent state that is both invisible and blocking, and it is the one
+  state no other figure on this page would mention. §5.6 asks for it first for the
+  same reason.
+
+  EVERY NUMBER IS A BANGLA NUMERAL
+  Via the `bn_num` filter, not a local digit map, so the one place that knows how to
+  render a numeral in Bangla stays the one place.
+
+  AN EMPTY SYSTEM SHOWS ZEROS
+  Every panel is a count, and a count over nothing is 0. The recent-activity panel is
+  the only one that can be genuinely empty, and it says so in words rather than
+  rendering a blank box that looks broken.
   =============================================================================
 #}
 {% extends "admin/layout.html" %}
@@ -27,30 +34,126 @@
 {% endblock %}
 
 {% block admin_content %}
-<dl class="mt-8 grid max-w-lg gap-y-4">
-  <div class="border-t border-line-strong pt-3">
-    <dt class="text-sm text-ink-500" lang="bn">প্রবেশ করেছেন</dt>
-    <dd class="mt-1 text-ink-900" lang="bn">
-      {{ current_user.full_name_bn or current_user.email }}
-    </dd>
-  </div>
-  <div class="border-t border-line-strong pt-3">
-    <dt class="text-sm text-ink-500" lang="bn">সর্বশেষ প্রবেশ</dt>
-    <dd class="mt-1 num text-ink-900">
-      {# Shown only when it is known. A placeholder date here would read as a fact,
-         and "never signed in before" is a real and different state. #}
-      {{ current_user.last_login_at.strftime('%Y-%m-%d %H:%M') if current_user.last_login_at else '—' }}
-    </dd>
-  </div>
-  <div class="border-t border-line-strong pt-3">
-    <dt class="text-sm text-ink-500" lang="bn">২-ধাপ যাচাই</dt>
-    <dd class="mt-1 text-ink-900" lang="bn">
-      {{ 'চালু' if current_user.twofa_enabled else 'বন্ধ' }}
-    </dd>
-  </div>
-</dl>
 
-<p class="mt-10 max-w-lg text-sm text-ink-500" lang="bn">
-  পৃষ্ঠা, প্রশিক্ষণার্থী ও মিডিয়া ব্যবস্থাপনার স্ক্রিনগুলো এই ধাপে তৈরি হচ্ছে।
-</p>
+{# ── §5.3 — the consent states ─────────────────────────────────────────────── #}
+<section class="mt-8" aria-labelledby="consent-heading">
+  <h2 id="consent-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
+    প্রশিক্ষণার্থী ও সম্মতি
+  </h2>
+
+  <dl class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">মোট প্রশিক্ষণার্থী</dt>
+      <dd class="stat-figure mt-1">{{ counts.total | bn_num }}</dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">প্রকাশিত</dt>
+      <dd class="stat-figure mt-1">{{ counts.published | bn_num }}</dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">সম্মতি আছে, প্রকাশের অপেক্ষায়</dt>
+      <dd class="stat-figure mt-1">{{ counts.ready_unpublished | bn_num }}</dd>
+    </div>
+
+    {# Deliberately not styled like the others: this is the one that needs action. #}
+    <div class="border-t-2 border-line-strong pt-3">
+      <dt class="text-sm font-bold text-ink-900" lang="bn">সম্মতি আছে, তারিখ নেই</dt>
+      <dd class="stat-figure mt-1">{{ counts.consent_missing_date | bn_num }}</dd>
+      <p class="mt-1 text-xs text-ink-500" lang="bn">
+        এঁদের সম্মতির তারিখ লিপিবদ্ধ করা হয়নি, তাই নাম প্রকাশিত হচ্ছে না।
+      </p>
+    </div>
+
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">সম্মতির অপেক্ষায়</dt>
+      <dd class="stat-figure mt-1">{{ counts.awaiting_consent | bn_num }}</dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">সম্মতি প্রত্যাহার</dt>
+      <dd class="stat-figure mt-1">{{ counts.withdrawn | bn_num }}</dd>
+    </div>
+  </dl>
+
+  <p class="mt-4 text-xs text-ink-500" lang="bn">
+    পাঁচটি অবস্থার যোগফল মোটের সমান:
+    <span class="num">{{ buckets_total | bn_num }}</span> —
+    কোনো প্রশিক্ষণার্থী কোনো অবস্থার বাইরে নেই।
+  </p>
+</section>
+
+{# ── pages ─────────────────────────────────────────────────────────────────── #}
+<section class="mt-12" aria-labelledby="pages-heading">
+  <h2 id="pages-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
+    পৃষ্ঠা
+  </h2>
+  <dl class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">প্রকাশিত</dt>
+      <dd class="stat-figure mt-1">{{ pages_published | bn_num }}</dd>
+    </div>
+    <div class="border-t border-line-strong pt-3">
+      <dt class="text-sm text-ink-500" lang="bn">খসড়া</dt>
+      <dd class="stat-figure mt-1">{{ pages_draft | bn_num }}</dd>
+    </div>
+  </dl>
+</section>
+
+{# ── recent activity ───────────────────────────────────────────────────────── #}
+<section class="mt-12" aria-labelledby="activity-heading">
+  <h2 id="activity-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
+    সাম্প্রতিক কার্যক্রম
+  </h2>
+
+  {% if recent_activity %}
+    <div class="table-scroll mt-4">
+      <table class="table-ruled">
+        <caption class="sr-only" lang="bn">সর্বশেষ দশটি প্রশাসনিক পরিবর্তন</caption>
+        <thead>
+          <tr>
+            <th scope="col" lang="bn">সময়</th>
+            <th scope="col" lang="bn">কার্যক্রম</th>
+            <th scope="col" lang="bn">বিষয়</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in recent_activity %}
+            <tr>
+              <td class="num">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td><code>{{ row.action }}</code></td>
+              <td>{{ row.entity_type or '—' }}{% if row.entity_id %} <span class="num">#{{ row.entity_id }}</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="mt-3 text-sm text-ink-500" lang="bn">
+      এখনো কোনো প্রশাসনিক পরিবর্তন হয়নি। পরিবর্তন হলে এখানে দেখা যাবে।
+    </p>
+  {% endif %}
+</section>
+
+{# ── backup status ─────────────────────────────────────────────────────────── #}
+<section class="mt-12" aria-labelledby="backup-heading">
+  <h2 id="backup-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
+    ব্যাকআপ
+  </h2>
+  {% if latest_backup %}
+    <dl class="mt-4 max-w-lg grid gap-y-4">
+      <div class="border-t border-line-strong pt-3">
+        <dt class="text-sm text-ink-500" lang="bn">সর্বশেষ</dt>
+        <dd class="mt-1 text-ink-900">
+          <span class="num">{{ latest_backup.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          · <span lang="bn">{{ latest_backup.status.value }}</span>
+          · <span lang="bn">{{ 'অফসাইটে সংরক্ষিত' if latest_backup.offsite_ok else 'কেবল সার্ভারে' }}</span>
+        </dd>
+      </div>
+    </dl>
+  {% else %}
+    <p class="mt-3 text-sm text-ink-500" lang="bn">
+      এখনো কোনো ব্যাকআপ নেওয়া হয়নি। ব্যাকআপ সেটআপ ধাপ ৮-এ যুক্ত হবে।
+    </p>
+  {% endif %}
+</section>
+
 {% endblock %}

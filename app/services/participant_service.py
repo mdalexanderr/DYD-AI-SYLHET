@@ -272,3 +272,68 @@ def education_choices() -> list[tuple[str, str]]:
 def outcome_choices() -> list[tuple[str, str]]:
     """The FIVE filterable outcomes. `other` is deliberately not offered (§6.4)."""
     return [(member.value, OUTCOME_LABELS[member]) for member in FILTERABLE_OUTCOMES]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The admin-side exact counts (step 4.6)
+# ─────────────────────────────────────────────────────────────────────────────
+def consent_breakdown() -> dict[str, int]:
+    """Exact counts of every consent state, for the admin dashboard (§11.1, step 4.6).
+
+    NOT `stats_service`. That module feeds the PUBLIC site, where any figure derived
+    from fewer than five records is suppressed (§5.4, S6). The admin must see the true
+    numbers — suppressing a count on the screen whose whole job is to say how many
+    people are still waiting would be absurd — and it must see them exactly, because
+    these are the numbers that decide what gets chased next.
+
+    THE BUCKETS SUM TO `total`. That is not decoration. A dashboard whose parts do not
+    add up to its whole is a dashboard people quietly stop trusting, and the rows it
+    fails to account for are precisely the ones nobody goes looking for. Getting this
+    right is why there are five buckets rather than the four the plan names:
+
+        published             consented, dated, not withdrawn, published
+        ready_unpublished     consented and dated, but not yet published
+        consent_missing_date  consented with NO recorded date — §5.3 rule 3
+        awaiting_consent      never consented, not withdrawn
+        withdrawn             consent withdrawn (whenever it was given)
+
+    `consent_missing_date` is a bucket rather than a rounding error because it is the
+    one state that is both invisible and blocking: those people believe they have
+    consented, nothing publishes them, and no other count on this screen would
+    mention them. §5.6 puts this list first for the same reason.
+
+    Rows that are withdrawn are counted there and NOWHERE ELSE, so a withdrawal can
+    never inflate a category it has left.
+    """
+    from app.extensions import db
+    from app.models import Participant
+
+    withdrawn = Participant.consent_withdrawn_at.is_not(None)
+    never_consented = Participant.consent_publication.isnot(True)
+    dated = Participant.consent_date.is_not(None)
+    is_published = Participant.is_published.is_(True)
+
+    def _count(*conditions) -> int:
+        stmt = select(func.count(Participant.id))
+        for condition in conditions:
+            stmt = stmt.where(condition)
+        return int(db.session.execute(stmt).scalar_one())
+
+    return {
+        "total": _count(),
+        "published": _count(~withdrawn, dated, is_published),
+        "ready_unpublished": _count(~withdrawn, dated, ~is_published),
+        "consent_missing_date": _count(~withdrawn, ~never_consented, ~dated),
+        "awaiting_consent": _count(~withdrawn, never_consented),
+        "withdrawn": _count(withdrawn),
+    }
+
+
+def breakdown_totals(breakdown: dict[str, int]) -> int:
+    """The sum of the five state buckets, excluding `total` itself.
+
+    Lives here so the dashboard template has no arithmetic in it, and so the test that
+    asserts the buckets reconcile asserts on the same function the screen uses —
+    rather than on a second implementation of the same sum that could drift from it.
+    """
+    return sum(value for key, value in breakdown.items() if key != "total")
