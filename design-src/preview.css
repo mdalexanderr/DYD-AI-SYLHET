@@ -17,11 +17,15 @@
 
 /* Only the hand-written harness feeds the preview.
    `source.css` imports Tailwind with `source(none)`, so automatic content
-   detection is off everywhere in this project — the @source directives below are
-   the whole input list. That matters here especially: `preview.out.css` is
-   generated and sits in this same directory, and a build that scans its own
+   detection is off everywhere in this project — the @source directives are the
+   whole input list. That matters here especially: `kitchen-sink.html` is
+   GENERATED and sits in this same directory, and a build that scans its own
    output eats itself, because every class name in it becomes a candidate on the
-   next run. */
-@source "./kitchen-sink/";
-@source not "./preview.out.css";
+   next run.
+
+   The target is the source FILE, not a directory. An earlier version pointed at
+   `./kitchen-sink/`, which does not exist — so the harness was never scanned,
+   nothing it alone uses compiled, and the colour swatches rendered as blank
+   hairlines with no error anywhere. Point at the file. */
+@source "./kitchen-sink-src.html";
 

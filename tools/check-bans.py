@@ -114,6 +114,20 @@ SKIP_DIR_PARTS = {
 
 SKIP_FILENAMES = {"package-lock.json"}
 
+# `|safe` is banned everywhere EXCEPT on the output of the rich-text sanitiser
+# (§9.3 rule 3). That exception is real and unavoidable: sanitised HTML must be
+# rendered as HTML. It is not free, so it costs two things:
+#
+#   1. the piped expression must be named `*_html`, which is the sanitiser's
+#      contract — the value came through the bleach allowlist, not from a form;
+#   2. the line must carry `check-bans:ignore <reason>`, so the exception is
+#      visible in the diff and nobody has to guess whether it was intended.
+#
+# An earlier version banned `|safe` outright. It failed on the four legitimate
+# uses and would have been switched off within a week — a gate nobody can satisfy
+# is a gate nobody keeps. See SAFE_EXPR below.
+SAFE_EXPR_RE = re.compile(r"\b\w+_html\s*\|\s*safe\b")
+
 # GENERATED files. These are build output: Tailwind's own emitter legitimately
 # contains the strings `rounded-full`, `backdrop-blur` and `backdrop-filter`
 # whether or not a template uses them, so scanning them produces permanent false
@@ -256,8 +270,13 @@ def check_text(text: str, path: Path) -> list[Violation]:
 
         if is_template:
             for token, why in BANNED_TEMPLATE_TOKENS:
-                if token in line:
-                    out.append(Violation(rel, n, f"banned template token “{token}”", why))
+                if token not in line:
+                    continue
+                # The one sanctioned `|safe`: sanitiser output, named `*_html`,
+                # and explicitly marked. Anything else still fails.
+                if token == "|safe" and SAFE_EXPR_RE.search(line):
+                    continue
+                out.append(Violation(rel, n, f"banned template token “{token}”", why))
 
         # Review marker left behind
         if "TODO" in line or "FIXME" in line:

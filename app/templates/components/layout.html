@@ -1,0 +1,168 @@
+{# =============================================================================
+   components/layout.html — SiteHeader, SiteFooter, SiteNav, RoundelBrand.
+   plan.md §6.3 (navigation), §7.5 (signature elements), §7.8 (accessibility).
+
+   NO JAVASCRIPT IS REQUIRED TO NAVIGATE. The mobile menu is a <details>
+   disclosure, not a JS toggle. §15.1 caps first-load JS at 30 KB and asks for no
+   framework; a menu that needs a script to open is also a menu that is unreachable
+   when the script fails. <details> is keyboard-operable, announces itself as a
+   disclosure, and works in every browser that will ever load this page.
+
+   Header nav labels are the six from §6.3. The footer carries the full link list
+   plus the official DYD identity block.
+   ============================================================================= #}
+
+{% from "components/base.html" import icon, btn, document_rule, skip_link %}
+
+
+{# ── The roundel, at whatever size the container gives it (§7.5 element 2) ─── #}
+{% macro roundel(size=10, class='') -%}
+<img src="{{ static_url('img/roundel.svg') }}" alt="" aria-hidden="true"
+     class="size-{{ size }} {{ class }}" width="{{ size * 4 }}" height="{{ size * 4 }}">
+{%- endmacro %}
+
+
+{# ── Navigation items. Marked with aria-current, never with colour alone. ──── #}
+{% macro site_nav(items, current_slug=None, variant='header') %}
+  {%- set gap = 'gap-6' if variant == 'header' else 'gap-2' -%}
+  {%- set base = 'text-sm border-b-2 border-transparent' if variant == 'header'
+                 else 'admin-nav-link' -%}
+  <ul class="flex {{ 'flex-col' if variant != 'header' else 'flex-wrap items-center' }} {{ gap }}">
+    {% for item in items %}
+    <li>
+      <a href="{{ item.href }}"
+         class="{{ base }} py-1 transition-colors
+                {% if item.slug|default(none) == current_slug %}
+                  {{ 'border-green-700 text-green-700 font-semibold' if variant == 'header'
+                     else '' }}
+                {% else %}
+                  {{ 'text-ink-700 hover:border-green-500 hover:text-green-700' if variant == 'header'
+                     else '' }}
+                {% endif %}"
+         {% if item.slug|default(none) == current_slug %}aria-current="page"{% endif %}
+         {% if not item.label.isascii() %}lang="bn"{% endif %}>{{ item.label }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+
+
+{% macro site_header(nav_items, current_slug=None, site_title_bn='এআই সিলেট',
+                     site_tagline_bn=None) %}
+<header class="sticky top-0 z-50 border-b border-line bg-paper/95">
+  <div class="container-site header-bar flex items-center gap-4">
+
+    <a href="/" class="flex items-center gap-3 focus-visible:outline-2">
+      {{ roundel(9) }}
+      <span class="flex flex-col leading-tight">
+        <span class="font-display text-lg font-bold text-ink-900" lang="bn">{{ site_title_bn }}</span>
+        {% if site_tagline_bn %}
+        <span class="text-xs text-ink-500" lang="bn">{{ site_tagline_bn }}</span>
+        {% endif %}
+      </span>
+    </a>
+
+    {# Desktop: a plain horizontal list. No hover-only menus, no mega-menu. #}
+    <nav class="ml-auto hidden md:block" aria-label="প্রধান মেনু">
+      {{ site_nav(nav_items, current_slug) }}
+    </nav>
+
+    {# Mobile: a disclosure that needs no script, sitting at the end of the bar. #}
+    <details class="ml-auto md:hidden">
+      <summary class="btn btn-secondary btn-sm list-none" aria-label="মেনু খুলুন">
+        <svg class="size-4" aria-hidden="true" focusable="false">
+          <use href="{{ static_url('img/sprite.svg') }}#menu"></use>
+        </svg>
+        <span>মেনু</span>
+      </summary>
+      <nav class="container-site py-4" aria-label="মোবাইল মেনু">
+        {{ site_nav(nav_items, current_slug) }}
+      </nav>
+    </details>
+  </div>
+</header>
+{% endmacro %}
+
+
+{% macro site_footer(nav_items=None, hotline='+88 02-8091188', mobile='01550-666900',
+                     email='info@elaeltd.com', address_bn=None,
+                     facebook_url=None, privacy_href='/privacy',
+                     copyright_year_bn='২০২৬') %}
+<footer class="relative mt-20 bg-green-900 text-green-100">
+  {# §7.5 element 3, dark colourway. Dark ground, so the light band. #}
+  <div class="contour-band-dark absolute inset-x-0 bottom-0 h-28 pointer-events-none"
+       aria-hidden="true"></div>
+
+  <div class="container-site relative py-14">
+    <div class="grid gap-10 md:grid-cols-4">
+
+      <div class="md:col-span-1">
+        {{ roundel(14) }}
+        <p class="mt-4 font-display text-lg font-bold text-paper" lang="bn">এআই সিলেট</p>
+        <p class="mt-1 text-sm text-green-100/80" lang="bn">
+          যুব উন্নয়ন অধিদপ্তর — তথ্যপ্রযুক্তি জ্ঞানসম্পন্ন যুবদের কৃত্রিম বুদ্ধিমত্তা প্রযুক্তির
+          মাধ্যমে দক্ষতা উন্নয়ন কর্মসূচি।
+        </p>
+      </div>
+
+      {% if nav_items %}
+      <nav aria-label="ফুটার মেনু">
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">সাইট</h2>
+        <ul class="mt-3 flex flex-col gap-2">
+          {% for item in nav_items %}
+          <li><a href="{{ item.href }}" class="text-sm text-green-100/85 hover:text-paper"
+                 {% if not item.label.isascii() %}lang="bn"{% endif %}>{{ item.label }}</a></li>
+          {% endfor %}
+          <li><a href="{{ privacy_href }}" class="text-sm text-green-100/85 hover:text-paper"
+                 lang="bn">প্রাইভেসি পলিসি</a></li>
+        </ul>
+      </nav>
+      {% endif %}
+
+      <div>
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">যোগাযোগ</h2>
+        <ul class="mt-3 flex flex-col gap-3">
+          <li class="flex items-start gap-2">
+            {{ icon('phone', 4, class='mt-0.5 text-green-100/70') }}
+            <span class="num text-sm" dir="ltr">{{ hotline }}<br>{{ mobile }}</span>
+          </li>
+          <li class="flex items-start gap-2">
+            {{ icon('mail', 4, class='mt-0.5 text-green-100/70') }}
+            <a href="mailto:{{ email }}" class="text-sm text-green-100/85 hover:text-paper"
+               dir="ltr">{{ email }}</a>
+          </li>
+          {% if address_bn %}
+          <li class="flex items-start gap-2">
+            {{ icon('map-pin', 4, class='mt-0.5 text-green-100/70') }}
+            <span class="text-sm text-green-100/85" lang="bn">{{ address_bn }}</span>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">সরকারি প্রতিষ্ঠান</h2>
+        <p class="mt-3 text-sm text-green-100/85" lang="bn">
+          যুব উন্নয়ন অধিদপ্তর<br>
+          যুব ও ক্রীড়া মন্ত্রণালয়<br>
+          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার
+        </p>
+        {% if facebook_url %}
+        <a href="{{ facebook_url }}" class="btn btn-secondary btn-sm mt-4"
+           style="border-color: rgb(227 240 233 / .3); color: #E3F0E9"
+           rel="noopener" target="_blank">
+          {{ icon('facebook', 4) }} <span>ফেসবুক</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {{ document_rule('mt-12 opacity-30') }}
+
+    <div class="mt-6 flex flex-col gap-2 text-xs text-green-100/70 md:flex-row md:justify-between">
+      <p lang="bn">© {{ copyright_year_bn }} যুব উন্নয়ন অধিদপ্তর। সর্বস্বত্ব সংরক্ষিত।</p>
+      <p class="num" dir="ltr">AI Sylhet · Batch 1</p>
+    </div>
+  </div>
+</footer>
+{% endmacro %}

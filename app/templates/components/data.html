@@ -1,0 +1,195 @@
+{# =============================================================================
+   components/data.html — StatStrip, StatTable, FactList, DataTable, KpiCard,
+   Pagination. plan.md §5.4 (statistics), §7.5 elements 5 & 6, §7.7.
+
+   THE SMALL-CELL RULE IS NOT ENFORCED HERE.
+   §5.4 says a figure derived from fewer than 5 records must not be published.
+   These macros render `—` when handed a `None` value, but the SUPPRESSION itself
+   belongs in stats_service (step 6.8), because a value that should be suppressed
+   must never reach the template context in the first place. Formatting around a
+   leak is not a fix for the leak.
+   ============================================================================= #}
+
+{% from "components/base.html" import icon, btn, document_rule, section_heading, empty_state %}
+
+
+{# ── §7.5 element 6 — Bangla numerals set at display size. Not a floating card:
+      a ruled figure with a label, the way a printed statistical table reads. ── #}
+{% macro stat_strip(stats, heading=None, subtext=None, columns=None) %}
+{% if heading %}{{ section_heading(heading, subtext) }}{% endif %}
+<dl class="grid gap-x-8 gap-y-6 {{ columns or 'sm:grid-cols-2 lg:grid-cols-4' }}">
+  {% for stat in stats %}
+  <div class="border-t border-line-strong pt-4">
+    <dt class="text-sm text-ink-500" {% if not stat.label.isascii() %}lang="bn"{% endif %}>
+      {{ stat.label }}
+    </dt>
+    <dd class="stat-figure mt-1">
+      {% if stat.value|default(none) is none %}
+        {# §5.4 — a cell from fewer than five records #}
+        <span aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড থেকে গণনা করা">—</span>
+      {% else %}
+        <span class="num">{{ stat.value }}</span>
+        {% if stat.unit|default(none) %}<span class="ml-1 text-lg text-ink-500"
+          {% if not stat.unit.isascii() %}lang="bn"{% endif %}>{{ stat.unit }}</span>{% endif %}
+      {% endif %}
+    </dd>
+    {% if stat.note|default(none) %}
+    <p class="mt-1 text-xs text-ink-500" {% if not stat.note.isascii() %}lang="bn"{% endif %}>
+      {{ stat.note }}
+    </p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</dl>
+{% endmacro %}
+
+
+{# ── §7.5 element 5 — a real ruled table, not a set of stat cards. This is where
+      the outcome breakdown lives, and it is where the `<5` cells appear. ────── #}
+{% macro stat_table(rows, columns, caption=None, numeric_from=1, total_label=None,
+                    totals=None) %}
+<div class="table-scroll">
+<table class="table-ruled">
+  {% if caption %}<caption>{{ caption }}</caption>{% endif %}
+  <thead>
+    <tr>
+      {% for col in columns %}
+      <th scope="col" {% if loop.index0 + 1 > numeric_from %}class="numeric"{% endif %}
+          {% if not col.isascii() %}lang="bn"{% endif %}>{{ col }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      {% for cell in row %}
+      {% if loop.first %}
+      <th scope="row" class="font-normal text-ink-900"
+          {% if not cell.isascii() %}lang="bn"{% endif %}>{{ cell }}</th>
+      {% else %}
+      <td class="numeric">
+        {% if cell is none %}
+        <span class="text-ink-300" aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড">—</span>
+        {% else %}{{ cell }}{% endif %}
+      </td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if total_label and totals %}
+  {# The totals arrive pre-computed from stats_service, which counts only consented
+     records. They are deliberately NOT summed here: the cells are display strings,
+     and a total derived by adding rendered figures would be a privacy leak waiting
+     to happen — a suppressed `—` cell would silently contribute zero. #}
+  <tfoot>
+    <tr>
+      <th scope="row" class="border-t border-line-strong"
+          {% if not total_label.isascii() %}lang="bn"{% endif %}>{{ total_label }}</th>
+      {% for total in totals %}
+      <td class="numeric border-t border-line-strong">
+        {% if total is none %}
+        <span class="text-ink-300" aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড">—</span>
+        {% else %}{{ total }}{% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+</div>
+{% endmacro %}
+
+
+{# ── Label/value pairs. The Course page's facts and the participant profile's
+      attributes both use this, so they cannot drift apart. ─────────────────── #}
+{% macro fact_list(items, layout='stack', heading=None) %}
+{% if heading %}{{ section_heading(heading) }}{% endif %}
+<dl class="{{ 'grid gap-x-8 gap-y-4 sm:grid-cols-2' if layout == 'grid' else 'divide-y divide-line' }}">
+  {% for item in items %}
+  <div class="{{ 'border-t border-line pt-3' if layout == 'grid' else 'flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3' }}">
+    <dt class="text-sm text-ink-500 {{ '' if layout == 'grid' else 'min-w-40' }}"
+        {% if not item.label.isascii() %}lang="bn"{% endif %}>{{ item.label }}</dt>
+    <dd class="text-ink-900 {{ 'mt-1' if layout == 'grid' }}"
+        {% if not item.value.isascii() %}lang="bn"{% endif %}>{{ item.value }}</dd>
+  </div>
+  {% endfor %}
+</dl>
+{% endmacro %}
+
+
+{# ── Admin DataTable. Dense, sticky header via .admin-scope. The caller supplies
+      rows as templates through a block to keep this generic. ────────────────── #}
+{% macro data_table(columns, caption=None, empty_title='কোনো তথ্য নেই',
+                    empty_body=None) %}
+<div class="table-scroll">
+<table class="table-ruled w-full">
+  {% if caption %}<caption>{{ caption }}</caption>{% endif %}
+  <thead>
+    <tr>
+      {% for col in columns %}
+      <th scope="col" {% if col.numeric|default(false) %}class="numeric"{% endif %}
+          {% if not col.label.isascii() %}lang="bn"{% endif %}>
+        {% if col.sort_href|default(none) %}
+        <a href="{{ col.sort_href }}" class="inline-flex items-center gap-1 hover:text-green-700">
+          {{ col.label }}
+          {{ icon(col.sort_icon|default('chevron-down'), 3, class='text-ink-300') }}
+        </a>
+        {% else %}{{ col.label }}{% endif %}
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {{ caller() }}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+
+{% macro kpi_card(label, value, note=None, tone='default') %}
+<div class="kpi-card"
+     {% if tone == 'warn' %}style="border-block-start-color: var(--color-warn)"{% endif %}
+     {% if tone == 'alert' %}style="border-block-start-color: var(--color-flag-red)"{% endif %}>
+  <span class="kpi-label" {% if not label.isascii() %}lang="bn"{% endif %}>{{ label }}</span>
+  <span class="kpi-value">{{ value if value is not none else '—' }}</span>
+  {% if note %}
+  <span class="text-xs text-ink-500" {% if not note.isascii() %}lang="bn"{% endif %}>{{ note }}</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ── Pagination. Every link is a real URL so pages are shareable and the back
+      button behaves (§6.4). Never a JS-only control. ───────────────────────── #}
+{% macro pagination(page, total_pages, base_url, query=None) %}
+{% if total_pages and total_pages > 1 %}
+{%- set q = query or {} -%}
+{%- macro page_href(n) -%}
+{{ base_url }}?{% for k, v in q.items() %}{{ k }}={{ v|urlencode }}&{% endfor %}page={{ n }}
+{%- endmacro -%}
+<nav class="mt-10 flex items-center justify-between gap-4" aria-label="পৃষ্ঠা পরিবর্তন">
+  <div>
+    {% if page > 1 %}
+    <a class="btn btn-secondary btn-sm" href="{{ page_href(page - 1) }}" rel="prev">
+      {{ icon('chevron-left', 4) }} <span lang="bn">পূর্ববর্তী</span>
+    </a>
+    {% endif %}
+  </div>
+
+  <p class="num text-sm text-ink-500" aria-live="polite">
+    <span class="sr-only" lang="bn">পৃষ্ঠা</span>
+    {{ page }} / {{ total_pages }}
+  </p>
+
+  <div>
+    {% if page < total_pages %}
+    <a class="btn btn-secondary btn-sm" href="{{ page_href(page + 1) }}" rel="next">
+      <span lang="bn">পরবর্তী</span> {{ icon('chevron-right', 4) }}
+    </a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endmacro %}

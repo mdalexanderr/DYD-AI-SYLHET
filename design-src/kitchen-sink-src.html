@@ -1,0 +1,409 @@
+{#
+  =============================================================================
+  design-src/kitchen-sink-src.html — the design harness (plan.md step 1.7).
+
+  NOT SHIPPED. design-src/ is in deploy.sh's sync excludes and the compiled
+  preview.out.css is gitignored. This file exists to be looked at by a human.
+
+  Build:  npm run design:render && npm run design:build
+  Open:   design-src/kitchen-sink.html
+
+  It renders the REAL macros from app/templates/components/, with StrictUndefined,
+  so a broken macro fails here rather than in production. Every demo block carries
+  an id="kb-<component>" so tools/render-design.py can assert that all 29 of the
+  §7.7 components actually appeared — a harness that silently drops a component is
+  worse than no harness.
+
+  States shown, not just the happy path: disabled, focus-visible, invalid, empty,
+  suppressed, withdrawn, and the admin density skin. Those are the cases that get
+  skipped when a design is judged on a screenshot of the homepage.
+  =============================================================================
+#}
+{# ── Imports. Jinja does NOT re-export macros that a template merely imported,
+   so there is deliberately no components/index.html aggregator: every template
+   imports from the specific file it needs. The six files and what they hold:
+
+     base.html         icon, btn, icon_btn, badge, card, document_rule,
+                       section_heading, breadcrumb, empty_state, skip_link
+     layout.html       roundel, site_nav, site_header, site_footer
+     data.html         stat_strip, stat_table, fact_list, data_table, kpi_card,
+                       pagination
+     participants.html consent_badge, participant_card, participant_grid,
+                       result_count, filter_bar
+     content.html      hero, media_figure, rich_text, media_feature, module_grid,
+                       gallery_strip, quote_block, timeline, institution_card,
+                       faq_accordion, cta_band
+     forms.html        field, textarea_field, select_field, checkbox_field,
+                       error_summary, contact_form, toast, toast_stack, modal
+   ─────────────────────────────────────────────────────────────────────────── #}
+{% from "components/base.html" import icon, btn, icon_btn, badge, card,
+    document_rule, section_heading, breadcrumb, empty_state, skip_link with context %}
+{% from "components/layout.html" import roundel, site_nav, site_header,
+    site_footer with context %}
+{% from "components/data.html" import stat_strip, stat_table, fact_list,
+    data_table, kpi_card, pagination with context %}
+{% from "components/participants.html" import consent_badge, participant_card,
+    participant_grid, result_count, filter_bar with context %}
+{% from "components/content.html" import hero, media_figure, rich_text,
+    media_feature, module_grid, gallery_strip, quote_block, timeline,
+    institution_card, faq_accordion, cta_band with context %}
+{% from "components/forms.html" import field, textarea_field, select_field,
+    checkbox_field, error_summary, contact_form, toast, toast_stack, modal with context %}
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ডিজাইন কিটচেন সিংক — এআই সিলেট</title>
+  <link rel="stylesheet" href="./preview.out.css">
+  {# Harness-only. Production forbids inline script by CSP (§12.3), and the app
+     wires the modal from app/static/js/app.js instead. #}
+  <script>
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-modal-open]');
+      if (t) { var d = document.getElementById(t.dataset.modalOpen); if (d) d.showModal(); }
+    });
+  </script>
+</head>
+<body>
+{{ site_header(nav, 'home', site_title_bn='এআই সিলেট', site_tagline_bn='যুব উন্নয়ন অধিদপ্তর') }}
+
+<main id="main" class="pb-20">
+
+  {# ── masthead ───────────────────────────────────────────────────────────── #}
+  <div class="container-site border-b border-line py-10">
+    {{ breadcrumb([{'label': 'হোম', 'href': '/'}, {'label': 'ডিজাইন কিটচেন সিংক'}]) }}
+    <h1 class="font-display text-4xl font-bold text-ink-900">ডিজাইন সিস্টেম — কিটচেন সিংক</h1>
+    <p class="prose-bn mt-3 text-ink-700">
+      「সুরমা প্রোটোকল」 · প্রতিটি কম্পোনেন্ট তার বাস্তব অবস্থায়। উপরের মেনু, নিচের ফুটার
+      এবং প্রতিটি ব্লক প্রকৃত Jinja ম্যাক্রো থেকে রেন্ডার করা।
+    </p>
+    <p class="mt-4 text-sm text-ink-500">
+      Tailwind v4 · টোকেন: <span class="num">44</span> কাস্টম প্রপার্টি ·
+      ফন্ট: স্ব-হোস্টেড, কোনো CDN নয়
+    </p>
+  </div>
+
+  {# ── kb-site_header / kb-document_rule ──────────────────────────────────── #}
+  <section id="kb-site_header" class="container-site py-10">
+    <h2 class="font-display text-2xl font-bold">SiteHeader</h2>
+    <p class="mt-2 text-sm text-ink-500">পৃষ্ঠার উপরে স্থির (sticky), উচ্চতা <span class="num">68px</span>। মোবাইলে <span class="num">&lt;details&gt;</span> — কোনো জাভাস্ক্রিপ্ট ছাড়াই খোলে।</p>
+  </section>
+
+  <section id="kb-document_rule" class="container-site pb-10">
+    <h2 class="font-display mb-6 text-2xl font-bold">DocumentRule &amp; SectionHeading</h2>
+    {{ document_rule() }}
+    <p class="prose-bn mt-4 text-sm text-ink-500">
+      §৭.৫ উপাদান ১ — <span class="num">1px</span> হেয়ারলাইন ও <span class="num">6×6px</span> বর্গাকার টিক।
+      সাইটের একমাত্র কাঠামোগত মোটিফ; ছায়ার বদলে নিয়ম।
+    </p>
+    {{ section_heading('সেকশন শিরোনাম', 'এই শিরোনামের নিচে একটি ব্যাখ্যা থাকে।') }}
+  </section>
+
+  <section id="kb-section_heading" class="container-site pb-10">
+    <h2 class="font-display mb-4 text-2xl font-bold">SectionHeading — স্তর ২ ও ৩</h2>
+    {{ section_heading('স্তর ২ শিরোনাম', '১৭px মূল পাঠ্য, ১.৭৫ লাইন-হাইট।', level=2) }}
+    {{ section_heading('স্তর ৩ শিরোনাম', level=3) }}
+  </section>
+
+  {# ── kb-breadcrumb, kb-hero ─────────────────────────────────────────────── #}
+  <section id="kb-breadcrumb" class="container-site pb-4">
+    <h2 class="font-display mb-4 text-2xl font-bold">Breadcrumb</h2>
+    {{ breadcrumb([{'label': 'হোম', 'href': '/'}, {'label': 'ব্যাচ ১', 'href': '/batch-1'},
+                    {'label': 'রূপা আক্তার'}]) }}
+  </section>
+
+  <div id="kb-hero">
+    {{ hero('সিলেটের যুবকদের জন্য কৃত্রিম বুদ্ধিমত্তার প্রশিক্ষণ',
+            'ব্যাচ ১-এর প্রশিক্ষণার্থীদের গল্প, কোর্সের পাঠ্যক্রম এবং ফলাফল — একটি ডকুমেন্টারি আর্কাইভ।',
+            {'label': 'ব্যাচ ১ দেখুন', 'href': '/batch-1'},
+            {'label': 'কোর্স পরিচিতি', 'href': '/course'}) }}
+  </div>
+
+  {# ── kb-stat_strip ──────────────────────────────────────────────────────── #}
+  <section id="kb-stat_strip" class="container-site py-12">
+    {{ stat_strip(stats, 'এক নজরে', 'সব সংখ্যা কেবল সম্মতিপ্রাপ্ত রেকর্ড থেকে গণনা করা।') }}
+    <p class="mt-4 text-sm text-flag-red">
+      লক্ষ্য করুন: শেষ ঘরটি <span class="num">—</span> — কারণ এটি ৫টির কম রেকর্ড থেকে এসেছে (§৫.৪)।
+    </p>
+  </section>
+
+  {# ── kb-stat_table ──────────────────────────────────────────────────────── #}
+  <section id="kb-stat_table" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">StatTable — ফলাফলের বিভাজন</h2>
+    {{ stat_table(stat_rows, stat_cols, caption='সম্মতিপ্রাপ্ত রেকর্ড অনুযায়ী',
+                  total_label='মোট', totals=['১১১', '৯৪%']) }}
+    <p class="mt-4 text-sm text-ink-500">
+      সর্বমোট সারিটি <span class="num">stats_service</span> থেকে হিসাব করা — ছকে দেখানো
+      সংখ্যা যোগ করে নয়। কারণ <span class="num">—</span> যোগ করলে শূন্য হয়ে যেত,
+      অর্থাৎ একটি গোপনীয়তা ফাঁস হতো।
+    </p>
+  </section>
+
+  {# ── kb-fact_list ───────────────────────────────────────────────────────── #}
+  <section id="kb-fact_list" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">FactList</h2>
+    {{ fact_list(facts, layout='grid') }}
+  </section>
+
+  {# ── kb-module_grid ─────────────────────────────────────────────────────── #}
+  <div id="kb-module_grid">
+    {{ module_grid(modules, 'পাঠ্যক্রম', 'ছয়টি মডিউল, মোট ৩০০ ঘণ্টা।') }}
+  </div>
+
+  {# ── kb-quote_block ─────────────────────────────────────────────────────── #}
+  <section id="kb-quote_block" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">QuoteBlock</h2>
+    {{ quote_block('কোর্সটি আমার কাছে নতুন একটি পেশার দরজা খুলে দিয়েছে।', 'রূপা আক্তার, ব্যাচ ১') }}
+    <p class="mt-4 text-sm text-ink-500">
+      কেবল <span class="num">quote_consented = true</span> হলে রেন্ডার হয় (§৫.৩ নিয়ম ৫)।
+    </p>
+  </section>
+
+  {# ── kb-timeline ────────────────────────────────────────────────────────── #}
+  <div id="kb-timeline">{{ timeline(timeline_items, 'সময়রেখা') }}</div>
+
+  {# ── kb-media_feature ───────────────────────────────────────────────────── #}
+  <section id="kb-media_feature" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">MediaFeature — left / right / full</h2>
+  </section>
+  {{ media_feature('কেন এই কোর্স', '<p>মডিউলগুলো সরাসরি চাকরির বাজারের চাহিদা অনুযায়ী সাজানো। প্রতিটি মডিউলে হাতে-কলমে কাজ থাকে।</p>',
+      {'kind': 'image', 'url': 'about:blank', 'alt_bn': 'প্রশিক্ষণ কক্ষ', 'caption_bn': 'ব্যাচ ১ — ক্লাস',
+       'width': 1600, 'height': 900}, layout='right') }}
+
+  {# ── kb-gallery_strip ───────────────────────────────────────────────────── #}
+  <div id="kb-gallery_strip">{{ gallery_strip(gallery, 'গ্যালারি — কেবল প্রশিক্ষণের ছবি', columns=3) }}</div>
+
+  {# ── kb-participant_card + kb-participant_grid ──────────────────────────── #}
+  <section id="kb-participant_card" class="container-site pb-12">
+    <h2 class="font-display mb-2 text-2xl font-bold">ParticipantCard</h2>
+    <p class="mb-8 text-sm text-ink-500">
+      ছবি নেই, ছায়া নেই — নামটাই সবচেয়ে বড় উপাদান। কার্ডটি একটি রেজিস্টার-ভুক্তির মতো পড়া যায় (§৭.৫)।
+    </p>
+    <div class="max-w-sm">{{ participant_card(participants[0]) }}</div>
+  </section>
+
+  <section id="kb-participant_grid" class="container-site pb-12">
+    <h2 class="font-display mb-8 text-2xl font-bold">ParticipantGrid</h2>
+    {{ participant_grid(participants) }}
+    <p class="mt-6 text-sm text-ink-500">
+      দ্বিতীয় কার্ডে যুক্তাক্ষর (<span lang="bn">বিষ্ণুপ্রসাদ</span>), তৃতীয়টিতে কোনো
+      <span class="num">outcome_text</span> নেই। দুটোই ইচ্ছাকৃত।
+    </p>
+  </section>
+
+  {# ── kb-consent_badge ───────────────────────────────────────────────────── #}
+  <section id="kb-consent_badge" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">ConsentBadge — চারটি অবস্থা</h2>
+    <div class="flex flex-wrap items-center gap-3">
+      {{ consent_badge('published') }}
+      {{ consent_badge('unpublished') }}
+      {{ consent_badge('withdrawn') }}
+      {{ consent_badge('pending') }}
+    </div>
+    <p class="mt-4 text-sm text-ink-500">
+      <span class="num">unpublished</span> নিরপেক্ষ — এটি স্বাভাবিক অবস্থা, ত্রুটি নয়।
+      <span class="num">withdrawn</span> লাল, কারণ এটি একটি ব্যবস্থাপনার প্রয়োজন।
+    </p>
+  </section>
+
+  {# ── kb-filter_bar ──────────────────────────────────────────────────────── #}
+  <section id="kb-filter_bar" class="pb-12">
+    <div class="container-site">
+      <h2 class="font-display mb-4 text-2xl font-bold">FilterBar</h2>
+      <p class="text-sm text-ink-500">
+        সম্পূর্ণ <span class="num">GET</span> ফর্ম — জাভাস্ক্রিপ্ট বন্ধ থাকলেও কাজ করে (§৬.৪)।
+      </p>
+    </div>
+    {{ filter_bar() }}
+  </section>
+
+  {# ── kb-pagination ──────────────────────────────────────────────────────── #}
+  <section id="kb-pagination" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Pagination</h2>
+    {{ pagination(3, 6, '/batch-1', {'outcome': 'freelancing'}) }}
+  </section>
+
+  {# ── kb-empty_state ─────────────────────────────────────────────────────── #}
+  <section id="kb-empty_state" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">EmptyState</h2>
+    {{ empty_state('কোনো প্রশিক্ষণার্থী পাওয়া যায়নি', 'এই ফিল্টারে কোনো ফলাফল নেই।', 'ফিল্টার মুছুন', '/batch-1') }}
+  </section>
+
+  {# ── kb-rich_text ───────────────────────────────────────────────────────── #}
+  <div id="kb-rich_text">
+    {{ rich_text('<p>এটি <strong>স্যানিটাইজড</strong> রিচ টেক্সট। সংযোগের উদাহরণ: <a href="/course">কোর্স পাতা</a>।</p><ul><li>প্রথম আইটেম</li><li>দ্বিতীয় আইটেম</li></ul><blockquote>উদ্ধৃতি শৈলী।</blockquote>',
+        'RichText', 'বাংলা লিংকে আন্ডারলাইন নেই — মাত্রার সাথে সংঘর্ষ করে, নিচে বর্ডার ব্যবহার করা হয় (§১৪.৩)।') }}
+  </div>
+
+  {# ── kb-institution_card ────────────────────────────────────────────────── #}
+  <div id="kb-institution_card">{{ institution_card(institution, 'প্রতিষ্ঠান') }}</div>
+
+  {# ── kb-faq_accordion ───────────────────────────────────────────────────── #}
+  <div id="kb-faq_accordion">{{ faq_accordion(faqs, 'সাধারণ জিজ্ঞাসা', 'উত্তরগুলো DOM-এ থাকে, তাই FAQPage স্ট্রাকচার্ড ডেটা মেলে।') }}</div>
+
+  {# ── kb-cta_band ────────────────────────────────────────────────────────── #}
+  <div id="kb-cta_band">
+    {{ cta_band('ব্যাচ ১-এর প্রশিক্ষণার্থীদের দেখুন', '১২৪ জন প্রশিক্ষণার্থীর মধ্যে ১১৮ জনের সম্মতি আছে।',
+        'ব্যাচ ১ দেখুন', '/batch-1') }}
+  </div>
+
+  {# ── kb-toast ───────────────────────────────────────────────────────────── #}
+  <section id="kb-toast" class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Toast — চারটি টোন</h2>
+    <div class="flex max-w-xl flex-col gap-3">
+      {{ toast('তথ্য: সংরক্ষণ করা হয়েছে।', 'info') }}
+      {{ toast('সফল: পাতা প্রকাশিত হয়েছে।', 'success') }}
+      {{ toast('সতর্কতা: ৩টি রেকর্ডে সম্মতির তারিখ নেই।', 'warn') }}
+      {{ toast('ত্রুটি: সংরক্ষণ করা যায়নি।', 'error') }}
+    </div>
+  </section>
+
+  {# ── kb-modal ───────────────────────────────────────────────────────────── #}
+  <section id="kb-modal" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Modal — নেটিভ &lt;dialog&gt;</h2>
+    {{ btn('মোডাল খুলুন', variant='secondary', extra_class='') }}
+    <button class="btn btn-secondary" data-modal-open="kb-modal-demo">মোডাল খুলুন</button>
+    {{ modal('kb-modal-demo', 'সম্মতি প্রত্যাহার করবেন?',
+        '<p>এই রেকর্ডটি সাথে সাথে অপ্রকাশিত হবে এবং ক্যাশ একই ট্রানজেকশনে বাতিল হবে। সারিটি মুছে ফেলা হবে না।</p>',
+        confirm_label='প্রত্যাহার করুন', cancel_label='বাতিল', tone='danger') }}
+  </section>
+
+  {# ── kb-contact_form ────────────────────────────────────────────────────── #}
+  <section id="kb-contact_form" class="border-y border-line bg-paper-2">
+    <div class="container-site pt-12">
+      <h2 class="font-display text-2xl font-bold">ContactForm — ত্রুটি অবস্থাসহ</h2>
+      <p class="mt-2 text-sm text-ink-500">
+        হানিপট, স্বাক্ষরিত সময়-টোকেন ও Turnstile — তিনটিই মার্কআপে উপস্থিত (§১২.২)।
+      </p>
+    </div>
+    {{ contact_form(contact_errors, {'name': '', 'email': 'bad-email', 'subject': 'সাধারণ জিজ্ঞাসা',
+        'message': ''}, t_open='design-harness-token') }}
+  </section>
+
+  {# ── kb-field primitives ────────────────────────────────────────────────── #}
+  <section class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Field primitives — normal / hint / error / disabled</h2>
+    <div class="grid max-w-3xl gap-6 sm:grid-cols-2">
+      {{ field('demo_name', 'নাম', value='রূপা আক্তার') }}
+      {{ field('demo_hint', 'ইমেইল', type='email', hint='কখনো কারও সাথে শেয়ার করা হবে না।', dir='ltr') }}
+      {{ field('demo_error', 'বিষয়', value='', error='বিষয় আবশ্যক', required=True) }}
+      {{ select_field('demo_select', 'ফলাফল', [('', 'নির্বাচন করুন'), ('employment', 'কর্মসংস্থান'), ('freelancing', 'ফ্রিল্যান্সিং')]) }}
+      {{ checkbox_field('demo_check', 'উদ্ধৃতি প্রকাশে সম্মতি', hint='নাম প্রকাশের চেয়ে শক্তিশালী একটি কাজ (§৫.৩)।') }}
+    </div>
+  </section>
+
+  {# ── admin density ──────────────────────────────────────────────────────── #}
+  <section class="border-t border-line bg-paper-2 py-12">
+    <div class="admin-scope container-wide">
+      <h2 class="mb-6 text-xl font-bold">Admin density skin</h2>
+      <p class="mb-6 text-ink-500">
+        একই স্টাইলশিট, দুটি ঘনত্ব — <span class="num">.admin-scope</span> (১৩px ভিত্তি, DataTable-প্রথম)।
+      </p>
+
+      <div id="kb-kpi_card" class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {{ kpi_card('মোট রেকর্ড', '১২৪') }}
+        {{ kpi_card('প্রকাশিত', '১১৮', 'সম্মতিসহ') }}
+        {{ kpi_card('সম্মতি নেই', '৬', 'প্রকাশ করা হয়নি', tone='warn') }}
+        {{ kpi_card('প্রত্যাহৃত', '২', 'কার্যক্রম প্রয়োজন', tone='alert') }}
+      </div>
+
+      <div id="kb-data_table">
+        <h3 class="mb-3 font-semibold">DataTable</h3>
+        {% call data_table([
+            {'label': 'নাম'}, {'label': 'শিক্ষা'}, {'label': 'ফলাফল'},
+            {'label': 'অবস্থা'}, {'label': 'যোগদান', 'numeric': True}]) %}
+          <tr>
+            <td lang="bn">রূপা আক্তার</td><td lang="bn">এইচএসসি</td>
+            <td lang="bn">ফ্রিল্যান্সিং</td><td>{{ consent_badge('published') }}</td>
+            <td class="numeric">২০২৬-০৩-০১</td>
+          </tr>
+          <tr>
+            <td lang="bn">বিষ্ণুপ্রসাদ দাশ</td><td lang="bn">স্নাতক</td>
+            <td lang="bn">শিক্ষকতা</td><td>{{ consent_badge('unpublished') }}</td>
+            <td class="numeric">২০২৬-০৩-০১</td>
+          </tr>
+          <tr>
+            <td lang="bn">নুসরাত জাহান</td><td lang="bn">সম্মান</td>
+            <td lang="bn">ব্যবসা</td><td>{{ consent_badge('withdrawn') }}</td>
+            <td class="numeric">২০২৬-০৩-০২</td>
+          </tr>
+        {% endcall %}
+      </div>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        {{ btn('নতুন যোগ করুন', variant='primary', icon_name='plus') }}
+        {{ btn('CSV আমদানি', variant='secondary', icon_name='upload') }}
+        {{ btn('এক্সপোর্ট', variant='ghost', icon_name='download') }}
+        {{ btn('মুছুন', variant='danger', icon_name='trash') }}
+        {{ btn('নিষ্ক্রিয়', variant='primary', disabled=True) }}
+        {{ icon_btn('পূর্বাবস্থায় ফেরান', 'refresh', variant='ghost') }}
+        {{ badge('প্রকাশিত') }}
+        {{ badge('খসড়া', variant='neutral') }}
+      </div>
+    </div>
+  </section>
+
+  {# ── tokens & type scale ────────────────────────────────────────────────── #}
+  <section class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Surfaces, ink &amp; accents</h2>
+    {# Classes must be LITERAL here. `bg-{{ '{{' }} name {{ '}}' }}` renders correctly but is
+       invisible to Tailwind's scanner, so the utility is never generated — the
+       swatch would look empty while the page reported no error at all. #}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+      <div><div class="h-14 border border-line bg-paper"></div><p class="num mt-1 text-xs text-ink-500">paper</p></div>
+      <div><div class="h-14 border border-line bg-paper-2"></div><p class="num mt-1 text-xs text-ink-500">paper-2</p></div>
+      <div><div class="h-14 border border-line bg-paper-3"></div><p class="num mt-1 text-xs text-ink-500">paper-3</p></div>
+      <div><div class="h-14 border border-line bg-surface"></div><p class="num mt-1 text-xs text-ink-500">surface</p></div>
+      <div><div class="h-14 border border-line bg-green-900"></div><p class="num mt-1 text-xs text-ink-500">green-900</p></div>
+      <div><div class="h-14 border border-line bg-green-700"></div><p class="num mt-1 text-xs text-ink-500">green-700</p></div>
+      <div><div class="h-14 border border-line bg-green-500"></div><p class="num mt-1 text-xs text-ink-500">green-500</p></div>
+      <div><div class="h-14 border border-line bg-green-100"></div><p class="num mt-1 text-xs text-ink-500">green-100</p></div>
+      <div><div class="h-14 border border-line bg-flag-red"></div><p class="num mt-1 text-xs text-ink-500">flag-red</p></div>
+      <div><div class="h-14 border border-line bg-gold"></div><p class="num mt-1 text-xs text-ink-500">gold</p></div>
+      <div><div class="h-14 border border-line bg-info"></div><p class="num mt-1 text-xs text-ink-500">info</p></div>
+      <div><div class="h-14 border border-line bg-warn"></div><p class="num mt-1 text-xs text-ink-500">warn</p></div>
+    </div>
+    <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div><div class="h-10 bg-ink-900"></div><p class="num mt-1 text-xs text-ink-500">ink-900</p></div>
+      <div><div class="h-10 bg-ink-700"></div><p class="num mt-1 text-xs text-ink-500">ink-700</p></div>
+      <div><div class="h-10 bg-ink-500"></div><p class="num mt-1 text-xs text-ink-500">ink-500</p></div>
+      <div><div class="h-10 bg-ink-300"></div><p class="num mt-1 text-xs text-ink-500">ink-300</p></div>
+    </div>
+  </section>
+
+  <section class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Type scale (Bangla)</h2>
+    <div class="space-y-4">
+      <p class="font-display text-5xl font-bold">5xl — শিরোনাম</p>
+      <p class="font-display text-4xl font-bold">4xl — শিরোনাম</p>
+      <p class="font-display text-3xl font-bold">3xl — শিরোনাম</p>
+      <p class="font-display text-2xl font-bold">2xl — শিরোনাম</p>
+      <p class="font-display text-xl font-bold">xl — শিরোনাম</p>
+      <p class="text-lg">lg — বড় পাঠ্য</p>
+      <p class="text-base">base — মূল পাঠ্য, ১৭px, লাইন-হাইট ১.৭৫</p>
+      <p class="text-sm">sm — ছোট পাঠ্য, ১৫px</p>
+      <p class="text-xs">xs — ক্যাপশন, ১৩px</p>
+      <p class="num text-base">num — ০১২৩৪৫৬৭৮৯ · 1234567890 · ট্যাবুলার</p>
+    </div>
+  </section>
+
+  <section class="container-site pb-16">
+    <h2 class="font-display mb-6 text-2xl font-bold">States</h2>
+    <div class="flex flex-wrap items-center gap-4">
+      {{ btn('Default', variant='primary') }}
+      {{ btn('Hover (হোভার করুন)', variant='primary', extra_class='hover:bg-green-600') }}
+      <button class="btn btn-secondary focus-visible:outline-2">Focus-visible</button>
+      {{ btn('Disabled', variant='primary', disabled=True) }}
+      {{ icon_btn('আইকন বাটন — বিকল্প পাঠ্য আবশ্যক', 'settings', variant='secondary') }}
+    </div>
+  </section>
+</main>
+
+<div id="kb-site_footer">
+  {{ site_footer(nav, address_bn='খাজা আইটি পার্ক (২য়–৬ষ্ঠ তলা), ০৭ দক্ষিণ কল্যাণপুর, মিরপুর রোড, ঢাকা-১২০৭') }}
+</div>
+
+<div class="sr-only" aria-hidden="true">{{ toast_stack([]) }}</div>
+</body>
+</html>

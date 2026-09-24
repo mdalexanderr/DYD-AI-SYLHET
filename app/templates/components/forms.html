@@ -1,0 +1,268 @@
+{# =============================================================================
+   components/forms.html — form primitives, ContactForm, Toast, Modal.
+   plan.md §7.7, §12.2 (spam and XSS controls), §7.8 (accessibility).
+
+   ACCESSIBILITY RULES BAKED IN
+     · every field macro requires a `name` and a visible `label` — an input
+       without an associated label is the single most common a11y defect, so
+       there is no macro that can produce one;
+     · errors are linked with aria-describedby and mirrored into a summary at the
+       top of the form with focus moved there (§7.8);
+     · inputs are never `required` in HTML alone: the server validates, and the
+       attribute is only a convenience. A client-side check is not a control.
+
+   The Modal is a native <dialog>. It gets Escape-to-close, focus trapping and
+   the top layer from the browser instead of from a script, which is both less
+   code and less to get wrong.
+   ============================================================================= #}
+
+{% from "components/base.html" import icon, btn %}
+
+
+{% macro field(name, label, type='text', value='', hint=None, error=None,
+               required=False, placeholder=None, dir=None, autocomplete=None,
+               inputmode=None, extra_class='') %}
+{%- set eid = 'err-' ~ name -%}
+<div class="field {{ extra_class }}">
+  <label class="label {{ 'label-required' if required }}" for="f-{{ name }}">
+    <span {% if not label.isascii() %}lang="bn"{% endif %}>{{ label }}</span>
+  </label>
+
+  <input class="input" type="{{ type }}" id="f-{{ name }}" name="{{ name }}"
+         value="{{ value }}"
+         {% if dir %}dir="{{ dir }}"{% endif %}
+         {% if inputmode %}inputmode="{{ inputmode }}"{% endif %}
+         {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+         {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+         {% if error %}aria-invalid="true" aria-describedby="{{ eid }}"{% endif %}
+         {% if required %}required{% endif %}>
+
+  {% if hint and not error %}
+  <p class="hint" id="hint-{{ name }}" {% if not hint.isascii() %}lang="bn"{% endif %}>{{ hint }}</p>
+  {% endif %}
+
+  {% if error %}
+  <p class="error-text" id="{{ eid }}">
+    {{ icon('alert', 3) }} <span lang="bn">{{ error }}</span>
+  </p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro textarea_field(name, label, value='', hint=None, error=None,
+                        required=False, rows=6, placeholder=None) %}
+{%- set eid = 'err-' ~ name -%}
+<div class="field">
+  <label class="label {{ 'label-required' if required }}" for="f-{{ name }}">
+    <span {% if not label.isascii() %}lang="bn"{% endif %}>{{ label }}</span>
+  </label>
+  <textarea class="textarea" id="f-{{ name }}" name="{{ name }}" rows="{{ rows }}"
+            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+            {% if error %}aria-invalid="true" aria-describedby="{{ eid }}"{% endif %}
+            {% if required %}required{% endif %}>{{ value }}</textarea>
+  {% if hint and not error %}
+  <p class="hint" {% if not hint.isascii() %}lang="bn"{% endif %}>{{ hint }}</p>
+  {% endif %}
+  {% if error %}
+  <p class="error-text" id="{{ eid }}">
+    {{ icon('alert', 3) }} <span lang="bn">{{ error }}</span>
+  </p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro select_field(name, label, options, selected='', hint=None, error=None,
+                      required=False) %}
+{%- set eid = 'err-' ~ name -%}
+<div class="field">
+  <label class="label {{ 'label-required' if required }}" for="f-{{ name }}">
+    <span {% if not label.isascii() %}lang="bn"{% endif %}>{{ label }}</span>
+  </label>
+  <select class="select" id="f-{{ name }}" name="{{ name }}"
+          {% if error %}aria-invalid="true" aria-describedby="{{ eid }}"{% endif %}
+          {% if required %}required{% endif %}>
+    {% for value, opt_label in options %}
+    <option value="{{ value }}" {% if value|string == selected|string %}selected{% endif %}
+            {% if not opt_label.isascii() %}lang="bn"{% endif %}>{{ opt_label }}</option>
+    {% endfor %}
+  </select>
+  {% if hint and not error %}
+  <p class="hint" {% if not hint.isascii() %}lang="bn"{% endif %}>{{ hint }}</p>
+  {% endif %}
+  {% if error %}
+  <p class="error-text" id="{{ eid }}">
+    {{ icon('alert', 3) }} <span lang="bn">{{ error }}</span>
+  </p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro checkbox_field(name, label, checked=False, hint=None, required=False) %}
+<div class="field flex-row items-start gap-3">
+  <input type="checkbox" id="f-{{ name }}" name="{{ name }}" value="1"
+         class="mt-1 size-5 shrink-0 accent-green-700"
+         {% if checked %}checked{% endif %} {% if required %}required{% endif %}>
+  <div>
+    <label class="label cursor-pointer" for="f-{{ name }}">
+      <span {% if not label.isascii() %}lang="bn"{% endif %}>{{ label }}</span>
+    </label>
+    {% if hint %}
+    <p class="hint" {% if not hint.isascii() %}lang="bn"{% endif %}>{{ hint }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+
+{# ── Error summary. Focus is moved here on a failed submit so a screen-reader
+      user hears what went wrong before the fields (§7.8). ─────────────────── #}
+{% macro error_summary(errors) %}
+{% if errors %}
+<div class="border border-flag-red bg-flag-red-100 p-4 rounded-sm" role="alert"
+     tabindex="-1" id="form-errors">
+  <p class="flex items-center gap-2 font-semibold text-flag-red">
+    {{ icon('alert', 4) }} <span lang="bn">ফর্মটি পাঠানো যায়নি</span>
+  </p>
+  <ul class="mt-2 list-disc space-y-1 ps-6 text-sm text-ink-900">
+    {% for field_name, message in errors.items() %}
+    <li><a href="#f-{{ field_name }}" class="underline" lang="bn">{{ message }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{# ── The contact form. Spam controls are all present in the markup so the
+      backend cannot forget them (§12.2):
+        · honeypot  — hidden from humans, irresistible to naive bots
+        · t_open    — a signed timestamp; a submission faster than 3 s is refused
+        · Turnstile — a placeholder div the provider's script upgrades
+      Turnstile is a progressive enhancement: with JS off the form still submits
+      and the honeypot plus the timing check still apply. ───────────────────── #}
+{% macro contact_form(errors=None, values=None, t_open='', site_key=None,
+                      turnstile_enabled=True, action='/contact') %}
+{%- set v = values or {} -%}
+<section class="container-site py-12">
+  <div class="max-w-2xl">
+
+    {{ error_summary(errors) }}
+
+    <form method="post" action="{{ action }}" class="mt-6 space-y-6" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
+      <input type="hidden" name="t_open" value="{{ t_open }}">
+
+      {# Honeypot. Hidden with CSS the way a spam bot does not read, and marked
+         aria-hidden so a screen reader never announces it to a real person. #}
+      <div class="sr-only" aria-hidden="true">
+        <label for="f-website">ওয়েবসাইট</label>
+        <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2">
+        {{ field('name', 'নাম', value=v.get('name', ''),
+                 error=(errors or {}).get('name'), required=True) }}
+        {{ field('email', 'ইমেইল', type='email', value=v.get('email', ''),
+                 error=(errors or {}).get('email'), required=True,
+                 dir='ltr', autocomplete='email', inputmode='email') }}
+      </div>
+
+      {{ field('phone', 'ফোন (ঐচ্ছিক)', type='tel', value=v.get('phone', ''),
+               error=(errors or {}).get('phone'), dir='ltr',
+               inputmode='tel', autocomplete='tel',
+               hint='ঐচ্ছিক — তবে দ্রুত যোগাযোগের জন্য সহায়ক।') }}
+
+      {{ field('subject', 'বিষয়', value=v.get('subject', ''),
+               error=(errors or {}).get('subject'), required=True) }}
+
+      {{ textarea_field('message', 'বার্তা', value=v.get('message', ''),
+                        error=(errors or {}).get('message'), required=True,
+                        rows=7, placeholder='আপনার প্রশ্ন বা মন্তব্য লিখুন…') }}
+
+      {% if turnstile_enabled %}
+      <div class="cf-turnstile" data-sitekey="{{ site_key or '' }}"
+           data-action="contact"></div>
+      <noscript>
+        <p class="hint" lang="bn">
+          যাচাইকরণ স্ক্রিপ্ট ছাড়া ফর্ম পাঠানো সম্ভব নয়। অনুগ্রহ করে জাভাস্ক্রিপ্ট চালু করুন।
+        </p>
+      </noscript>
+      {% endif %}
+
+      <div class="flex flex-wrap items-center gap-4">
+        {{ btn('বার্তা পাঠান', variant='primary', type='submit', icon_name='mail') }}
+        <p class="hint" lang="bn">
+          আপনার তথ্য শুধুমাত্র যোগাযোগের জন্য ব্যবহৃত হবে।
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endmacro %}
+
+
+{# ── Toast. role="status" for polite news, role="alert" for failures. Politeness
+      is not decoration: an alert interrupts a screen reader mid-sentence. ──── #}
+{% macro toast(message, tone='info', dismissible=True) %}
+{%- set tones = {
+      'info':    ('bg-green-50 border-line-green text-green-900', 'info'),
+      'success': ('bg-green-50 border-line-green text-green-900', 'check'),
+      'warn':    ('bg-gold-100 border-gold text-ink-900', 'alert'),
+      'error':   ('bg-flag-red-100 border-flag-red text-flag-red', 'alert')
+    } -%}
+{%- set cls, ic = tones.get(tone, tones['info']) -%}
+<div class="flex items-start gap-3 border {{ cls }} rounded-sm px-4 py-3"
+     role="{{ 'alert' if tone in ('error', 'warn') else 'status' }}">
+  {{ icon(ic, 4, class='mt-0.5') }}
+  <p class="flex-1 text-sm" {% if not message.isascii() %}lang="bn"{% endif %}>{{ message }}</p>
+  {% if dismissible %}
+  <button type="button" class="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="বন্ধ করুন">{{ icon('close', 4) }}</button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro toast_stack(toasts) %}
+<div class="fixed bottom-4 end-4 z-50 flex w-80 flex-col gap-2" aria-live="polite">
+  {% for t in toasts %}{{ toast(t.message, t.tone) }}{% endfor %}
+</div>
+{% endmacro %}
+
+
+{# ── Native <dialog>. Escape, focus trapping, inertness of the page behind and
+      the top layer all come from the platform. `showModal()` is the only script
+      needed, and the dialog is unusable-but-closed without it, never broken. ── #}
+{% macro modal(id, title, body_html=None, confirm_label='নিশ্চিত করুন',
+               cancel_label='বাতিল', tone='default') %}
+<dialog id="{{ id }}" class="backdrop:bg-ink-900/40 max-w-lg w-full rounded-md p-0
+                              border border-line bg-surface text-ink-700">
+  <div class="p-6">
+    <div class="flex items-start justify-between gap-4">
+      <h2 class="font-display text-lg font-bold text-ink-900" lang="bn">{{ title }}</h2>
+      <form method="dialog">
+        <button class="opacity-60 hover:opacity-100" aria-label="বন্ধ করুন">
+          {{ icon('close', 4) }}
+        </button>
+      </form>
+    </div>
+
+    {% if body_html %}
+    <div class="prose-bn mt-4 text-sm" lang="bn">{{ body_html|safe }}</div> {# check-bans:ignore — sanitiser output, §9.3 rule 3 #}
+    {% elif caller is defined %}
+    <div class="mt-4 text-sm">{{ caller() }}</div>
+    {% endif %}
+
+    <div class="mt-6 flex flex-wrap justify-end gap-2">
+      <form method="dialog">
+        <button class="btn btn-secondary btn-sm">{{ cancel_label }}</button>
+      </form>
+      <button class="btn {{ 'btn-danger' if tone == 'danger' else 'btn-primary' }} btn-sm"
+              data-modal-confirm>{{ confirm_label }}</button>
+    </div>
+  </div>
+</dialog>
+{% endmacro %}

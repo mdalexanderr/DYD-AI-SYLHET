@@ -1,0 +1,303 @@
+{# =============================================================================
+   components/content.html — Hero, RichText, MediaFeature, ModuleGrid,
+   GalleryStrip, QuoteBlock, Timeline, InstitutionCard, FaqAccordion, CtaBand.
+   plan.md §7.5 (signature elements), §7.7, §4.2 (the section library).
+
+   These are the render targets for the 13 section types in §4.2. One macro per
+   visual block means the section modules in app/sections/ stay thin (§9.3):
+   they validate a payload and hand it here, and the template never decides
+   anything about safety or structure.
+
+   TWO RULES THAT SHAPE EVERYTHING BELOW
+     1. There are no photographs of people (§5.2). Visual weight comes from
+        typography, rules and tabular figures — so these macros lean on the
+        document rule and the ruled table rather than on imagery or shadows.
+     2. Bangla is never letter-spaced or uppercased (§14.3). Where a heading
+        looks like it wants tracking, it gets leading instead.
+   ============================================================================= #}
+
+{% from "components/base.html" import icon, btn, document_rule, section_heading %}
+
+
+{# ── Hero. The only place a large display serif appears at full size. The contour
+      band sits behind it at very low contrast (§7.5 element 3). ───────────── #}
+{% macro hero(heading_bn, subheading_bn=None, primary_cta=None, secondary_cta=None,
+              media=None, size='default', band=True) %}
+<section class="relative overflow-hidden border-b border-line">
+  {% if band %}
+  <div class="contour-band absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+       aria-hidden="true"></div>
+  {% endif %}
+
+  <div class="container-site relative {{ 'py-16 md:py-24' if size == 'default' else 'py-12 md:py-16' }}">
+    <h1 class="font-display max-w-4xl text-4xl font-bold text-ink-900 md:text-5xl"
+        lang="bn">{{ heading_bn }}</h1>
+
+    {% if subheading_bn %}
+    <p class="prose-bn mt-5 text-lg text-ink-700" lang="bn">{{ subheading_bn }}</p>
+    {% endif %}
+
+    {% if primary_cta or secondary_cta %}
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      {% if primary_cta %}
+      {{ btn(primary_cta.label, primary_cta.href, variant='primary',
+             icon_name='arrow-right', icon_side='end') }}
+      {% endif %}
+      {% if secondary_cta %}
+      {{ btn(secondary_cta.label, secondary_cta.href, variant='secondary') }}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if media %}
+    <div class="mt-10">
+      {{ media_figure(media, priority=True) }}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endmacro %}
+
+
+{# ── A figure with explicit dimensions (no layout shift, §15.1) and a mandatory
+      alt text (§13.2). `priority` marks the one above-the-fold image. ──────── #}
+{% macro media_figure(media, priority=False, ratio='16 / 9', extra_class='') %}
+<figure class="{{ extra_class }}">
+  {% if media.kind|default('image') == 'video_link' %}
+  <div class="relative overflow-hidden rounded-md border border-line"
+       style="aspect-ratio: {{ ratio }}">
+    <iframe src="{{ media.external_url|default('') }}" title="{{ media.alt_bn }}"
+            class="absolute inset-0 size-full" loading="lazy"
+            allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+  {% else %}
+  <img src="{{ media.url|default('') }}" alt="{{ media.alt_bn }}"
+       width="{{ media.width|default(1600) }}" height="{{ media.height|default(900) }}"
+       {% if priority %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}
+       class="w-full rounded-md border border-line object-cover"
+       style="aspect-ratio: {{ ratio }}">
+  {% endif %}
+  {% if media.caption_bn|default(none) %}
+  <figcaption class="mt-2 text-sm text-ink-500" lang="bn">{{ media.caption_bn }}</figcaption>
+  {% endif %}
+</figure>
+{% endmacro %}
+
+
+{# ── Sanitised rich text (§9.3 rule 3). Marked `|safe` HERE and only here,
+      because the body has already passed through the bleach allowlist on save
+      and again on render. Nothing else in any template may use `|safe`. ────── #}
+{% macro rich_text(body_html, heading=None, subtext=None, narrow=True) %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading, subtext) }}{% endif %}
+  <div class="prose-bn {{ 'max-w-prose' if narrow else '' }} text-ink-700" lang="bn">
+    {{ body_html|safe }} {# check-bans:ignore — sanitiser output, §9.3 rule 3 #}
+  </div>
+</section>
+{% endmacro %}
+
+
+{# ── Media beside text. `layout` is left / right / full (§4.2). ───────────── #}
+{% macro media_feature(heading=None, body_html=None, media=None, layout='right') %}
+<section class="container-site py-12">
+  {% if layout == 'full' %}
+    {% if heading %}{{ section_heading(heading) }}{% endif %}
+    {{ media_figure(media) }}
+    {% if body_html %}<div class="prose-bn mt-6 text-ink-700" lang="bn">{{ body_html|safe }}</div>{% endif %} {# check-bans:ignore — sanitiser output, §9.3 rule 3 #}
+  {% else %}
+  <div class="grid items-start gap-10 md:grid-cols-2">
+    <div class="{{ 'md:order-2' if layout == 'right' else '' }}">
+      {% if heading %}{{ section_heading(heading) }}{% endif %}
+      {% if body_html %}
+      <div class="prose-bn text-ink-700" lang="bn">{{ body_html|safe }}</div> {# check-bans:ignore — sanitiser output, §9.3 rule 3 #}
+      {% endif %}
+    </div>
+    <div class="{{ 'md:order-1' if layout == 'right' else '' }}">
+      {{ media_figure(media) }}
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endmacro %}
+
+
+{# ── The curriculum. Real module names, hours as tabular figures, and the module
+      order exactly as stored — this is a syllabus, not a feature grid. ─────── #}
+{% macro module_grid(modules, heading=None, subtext=None, columns='sm:grid-cols-2 lg:grid-cols-3') %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading, subtext) }}{% endif %}
+  <ol class="grid gap-x-8 gap-y-8 {{ columns }}">
+    {% for m in modules %}
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">{{ m.title_bn }}</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          {{ m.hours }}<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      {% if m.description_bn|default(none) %}
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">{{ m.description_bn }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endmacro %}
+
+
+{# ── Training-session photographs only (§13.3). Never captioned with a
+      participant's full name. ──────────────────────────────────────────────── #}
+{% macro gallery_strip(items, heading=None, columns=3) %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading) }}{% endif %}
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-{{ columns }}">
+    {% for item in items %}
+    <li>{{ media_figure(item, ratio='4 / 3') }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endmacro %}
+
+
+{# ── A pull quote. §5.3 rule 5: publishing someone's words is a stronger act than
+      publishing their name, so a quote only ever renders when quote_consented is
+      set — and the caller is responsible for that, not this macro. ─────────── #}
+{% macro quote_block(quote_bn, attribution_bn=None) %}
+<figure class="border-s-2 border-green-500 ps-5 py-1">
+  <blockquote class="font-display text-xl leading-relaxed text-ink-900" lang="bn">
+    {{ quote_bn }}
+  </blockquote>
+  {% if attribution_bn %}
+  <figcaption class="mt-3 text-sm text-ink-500">
+    <span lang="bn">— {{ attribution_bn }}</span>
+  </figcaption>
+  {% endif %}
+</figure>
+{% endmacro %}
+
+
+{# ── The course timeline. Dates are pre-formatted Bangla strings; storage stays
+      ISO so nothing is ever stored formatted (§14.1). ─────────────────────── #}
+{% macro timeline(items, heading=None, subtext=None) %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading, subtext) }}{% endif %}
+  <ol class="relative">
+    {% for item in items %}
+    <li class="relative border-s border-line ps-6 pb-8 last:pb-0">
+      <span class="absolute start-0 top-1.5 size-2.5 -translate-x-1/2 bg-green-700"
+            aria-hidden="true"></span>
+      <p class="num text-xs text-ink-500" lang="bn">{{ item.date_bn }}</p>
+      <h3 class="font-display mt-1 text-lg font-bold text-ink-900"
+          {% if not item.title_bn.isascii() %}lang="bn"{% endif %}>{{ item.title_bn }}</h3>
+      {% if item.body_bn|default(none) %}
+      <p class="prose-bn mt-1 text-sm text-ink-700" lang="bn">{{ item.body_bn }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endmacro %}
+
+
+{# ── The institution, presented as a record rather than a logo lockup: name,
+      role, address, contact. Name and address come from Q2 and must be correct
+      before launch (R11). ──────────────────────────────────────────────────── #}
+{% macro institution_card(inst, heading=None) %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading) }}{% endif %}
+  <div class="card p-6 md:p-8">
+    <div class="flex flex-wrap items-start gap-6">
+      {% if inst.logo_url|default(none) %}
+      <img src="{{ inst.logo_url }}" alt="{{ inst.name_bn }}" width="72" height="72"
+           class="size-18 object-contain">
+      {% endif %}
+      <div class="min-w-64 flex-1">
+        <h3 class="font-display text-xl font-bold text-ink-900" lang="bn">{{ inst.name_bn }}</h3>
+        {% if inst.name_en|default(none) %}
+        <p class="mt-0.5 text-sm text-ink-500" dir="ltr">{{ inst.name_en }}</p>
+        {% endif %}
+        {% if inst.role_bn|default(none) %}
+        <p class="mt-3"><span class="badge" lang="bn">{{ inst.role_bn }}</span></p>
+        {% endif %}
+        {% if inst.description_bn|default(none) %}
+        <p class="prose-bn mt-4 text-ink-700" lang="bn">{{ inst.description_bn }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {{ document_rule('my-6') }}
+
+    <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-3">
+      {% if inst.address_bn|default(none) %}
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ঠিকানা</dt>
+        <dd class="mt-1 text-sm text-ink-900" lang="bn">{{ inst.address_bn }}</dd>
+      </div>
+      {% endif %}
+      {% if inst.contact_phone|default(none) %}
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ফোন</dt>
+        <dd class="num mt-1 text-sm text-ink-900" dir="ltr">{{ inst.contact_phone }}</dd>
+      </div>
+      {% endif %}
+      {% if inst.contact_email|default(none) %}
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ইমেইল</dt>
+        <dd class="mt-1 text-sm"><a href="mailto:{{ inst.contact_email }}"
+            class="border-b border-line text-green-600" dir="ltr">{{ inst.contact_email }}</a></dd>
+      </div>
+      {% endif %}
+    </dl>
+  </div>
+</section>
+{% endmacro %}
+
+
+{# ── FAQ. A native <details> disclosure: no JavaScript, keyboard-operable, and
+      the answers stay in the DOM so the FAQPage JSON-LD matches what is visible
+      (§15.3 — structured data must describe real content). ─────────────────── #}
+{% macro faq_accordion(faqs, heading=None, subtext=None) %}
+<section class="container-site py-12">
+  {% if heading %}{{ section_heading(heading, subtext) }}{% endif %}
+  <div class="divide-y divide-line border-y border-line">
+    {% for f in faqs %}
+    <details class="group py-1">
+      <summary class="flex cursor-pointer items-center justify-between gap-4 py-4
+                      font-display text-base font-semibold text-ink-900
+                      hover:text-green-700" lang="bn">
+        {{ f.question_bn }}
+        <span class="shrink-0 text-ink-300 group-open:hidden" aria-hidden="true">
+          {{ icon('plus', 4) }}
+        </span>
+        <span class="hidden shrink-0 text-ink-300 group-open:inline" aria-hidden="true">
+          {{ icon('close', 4) }}
+        </span>
+      </summary>
+      <div class="prose-bn pb-5 text-ink-700" lang="bn">{{ f.answer_bn }}</div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endmacro %}
+
+
+{# ── The closing band. One primary action, on a dark ground, at the end of a
+      page — the only place besides the footer where green-900 appears. ────── #}
+{% macro cta_band(heading_bn, body_bn=None, cta_label=None, cta_href=None) %}
+<section class="mt-16 bg-green-900 text-green-100">
+  <div class="container-site py-14">
+    <h2 class="font-display max-w-2xl text-2xl font-bold text-paper" lang="bn">{{ heading_bn }}</h2>
+    {% if body_bn %}
+    <p class="prose-bn mt-3 text-green-100/85" lang="bn">{{ body_bn }}</p>
+    {% endif %}
+    {% if cta_label and cta_href %}
+    <div class="mt-6">
+      <a class="btn btn-sm" href="{{ cta_href }}"
+         style="background-color: var(--color-paper); color: var(--color-green-900); border-color: var(--color-paper)">
+        {{ cta_label }} {{ icon('arrow-right', 4) }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endmacro %}

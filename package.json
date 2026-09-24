@@ -15,6 +15,7 @@
     "design:build": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --minify",
     "design:watch": "tailwindcss -i design-src/preview.css -o design-src/preview.out.css --watch",
     "design:render": "python tools/render-design.py",
+    "design:serve": "python -m http.server 8099",
     "gates": "npm run css:build && npm run css:check && npm run bans"
   },
   "devDependencies": {

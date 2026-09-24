@@ -1,0 +1,150 @@
+{# =============================================================================
+   components/participants.html — ConsentBadge, ParticipantCard, ParticipantGrid,
+   ResultCount, FilterBar. plan.md §5.3, §5.5, §6.4, §7.5 element 4.
+
+   NO PHOTOGRAPH, ANYWHERE. Not a placeholder, not a silhouette, not an initials
+   avatar. §5.2 decided this and §13.3 reinforces it. With no portrait, the name is
+   set large in the display serif and the facts sit on a ruled meta line beneath —
+   so the card reads as a register entry, which is exactly what it is. If a card
+   ever looks unfinished here, the answer is better typography, never an image.
+   ============================================================================= #}
+
+{% from "components/base.html" import icon, btn, empty_state %}
+
+
+{# ── Consent state. §5.3 rule 3 — records without consent are stored and badged,
+      not silently deleted, so the admin total stays honest. `unpublished` is
+      deliberately NEUTRAL, not red: it is a normal state, not an error. ─────── #}
+{% macro consent_badge(state, label=None) %}
+  {%- set map = {
+        'published':   ('',            'প্রকাশিত',        'check'),
+        'unpublished': ('unpublished', 'প্রকাশ করা হয়নি', 'eye-off'),
+        'withdrawn':   ('withdrawn',   'সম্মতি প্রত্যাহৃত', 'alert'),
+        'pending':     ('neutral',     'সম্মতি নেই',      'alert')
+      } -%}
+  {%- set variant, default_label, ic = map.get(state, ('neutral', state, None)) -%}
+  <span class="badge {{ 'badge-' ~ variant if variant else '' }}">
+    {% if ic %}{{ icon(ic, 3) }}{% endif %}
+    <span lang="bn">{{ label or default_label }}</span>
+  </span>
+{% endmacro %}
+
+
+{# ── §7.5 element 4 — the name-first register entry. ───────────────────────── #}
+{% macro participant_card(p) %}
+<article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="{{ p.href }}" class="text-ink-900 hover:text-green-700">{{ p.name_bn }}</a>
+  </h3>
+
+  {% if p.name_en|default(none) %}
+  <p class="num mt-0.5 text-xs text-ink-500" dir="ltr">{{ p.name_en }}</p>
+  {% endif %}
+
+  {% if p.meta|default(none) %}
+  <p class="meta-line mt-2">
+    {% for m in p.meta %}
+    <span {% if not m.isascii() %}lang="bn"{% endif %}>{{ m }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  {% if p.outcome_text|default(none) %}
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">{{ p.outcome_text }}</p>
+  {% endif %}
+
+  {% if p.outcome_label|default(none) %}
+  <p class="mt-3">
+    <span class="badge" lang="bn">{{ p.outcome_label }}</span>
+  </p>
+  {% endif %}
+</article>
+{% endmacro %}
+
+
+{% macro participant_grid(participants, columns='sm:grid-cols-2 lg:grid-cols-3',
+                          empty_title='কোনো প্রশিক্ষণার্থী পাওয়া যায়নি',
+                          empty_body='ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।',
+                          empty_action_label='ফিল্টার মুছুন',
+                          empty_action_href='/batch-1') %}
+{% if participants %}
+<ul class="grid gap-x-8 gap-y-10 {{ columns }}">
+  {% for p in participants %}
+  <li>{{ participant_card(p) }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+{{ empty_state(empty_title, empty_body, empty_action_label, empty_action_href) }}
+{% endif %}
+{% endmacro %}
+
+
+{# ── The result count. Bangla numerals, and it always reflects the ACTIVE
+      filters rather than the cohort total (§6.4). ──────────────────────────── #}
+{% macro result_count(count_bn, has_filters=False, clear_href=None) %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <p class="num text-sm text-ink-700" aria-live="polite">
+    <span class="font-display text-lg font-bold text-ink-900">{{ count_bn }}</span>
+    <span lang="bn">জন প্রশিক্ষণার্থী</span>
+  </p>
+  {% if has_filters and clear_href %}
+  <a href="{{ clear_href }}" class="btn btn-ghost btn-sm">
+    {{ icon('close', 3) }} <span lang="bn">ফিল্টার মুছুন</span>
+  </a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ── §6.4 — the only genuinely interactive public surface.
+      Every control is a query parameter and the form is a plain GET, so
+      filtering, sorting and paging all work with JavaScript switched off. JS
+      only enhances (debounced search, no full reload) — it is never required,
+      which is why this is a <form method="get"> and not a script. ─────────── #}
+{% macro filter_bar(action='/batch-1', query='', outcome='', sort='name',
+                    outcomes=None, sorts=None, search_label='নাম খুঁজুন') %}
+{%- set outcome_options = outcomes or [
+      ('', 'সব ফলাফল'), ('employment', 'কর্মসংস্থান'), ('freelancing', 'ফ্রিল্যান্সিং'),
+      ('further_study', 'আরও পড়াশোনা'), ('business', 'ব্যবসা'), ('teaching', 'শিক্ষকতা')
+    ] -%}
+{%- set sort_options = sorts or [
+      ('name', 'নাম অনুযায়ী'), ('recent', 'সাম্প্রতিক যোগ')
+    ] -%}
+<form method="get" action="{{ action }}" role="search"
+      class="border-y border-line bg-paper-2 px-4 py-4">
+  <div class="container-site flex flex-wrap items-end gap-4">
+
+    <div class="field min-w-56 flex-1">
+      <label class="label" for="filter-q" lang="bn">{{ search_label }}</label>
+      <div class="flex items-center gap-2">
+        {{ icon('search', 4, class='text-ink-300') }}
+        <input class="input" type="search" id="filter-q" name="q" value="{{ query }}"
+               autocomplete="off" lang="bn"
+               placeholder="বাংলা বা ইংরেজিতে লিখুন">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="filter-outcome" lang="bn">ফলাফল</label>
+      <select class="select" id="filter-outcome" name="outcome">
+        {% for value, label in outcome_options %}
+        <option value="{{ value }}" {% if value == outcome %}selected{% endif %}
+                lang="bn">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label" for="filter-sort" lang="bn">সাজান</label>
+      <select class="select" id="filter-sort" name="sort">
+        {% for value, label in sort_options %}
+        <option value="{{ value }}" {% if value == sort %}selected{% endif %}
+                lang="bn">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {{ btn('দেখুন', variant='primary', type='submit', icon_name='filter') }}
+  </div>
+</form>
+{% endmacro %}

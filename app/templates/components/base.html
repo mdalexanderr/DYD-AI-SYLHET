@@ -1,0 +1,160 @@
+{# =============================================================================
+   components/base.html — the primitives every other component is built from.
+   plan.md §7.7, §9.1 ("Jinja macros (button, card, table, filter bar, badge)").
+
+   REQUIRED GLOBALS (set by the app factory in Phase 2, and by
+   tools/render-design.py for the kitchen sink):
+       static_url('img/sprite.svg')  -> an ordinary static path
+       asset_url('css/app.css')      -> with the ?v=<sha256[:8]> cache-buster
+   They are injected rather than imported so the same macros render inside Flask
+   and inside the design harness, which has no request context.
+
+   Every macro takes DISPLAY-READY strings. Number and date formatting is a view
+   concern applied before the call (`bn_num` / `bn_date`, §9.2) — not something a
+   presentation macro should reach back for. That also means the harness needs no
+   copy of those filters, which is one fewer place for them to drift.
+
+   Icons always come from the single inlined sprite (§7.6.1 — no emoji, no icon
+   font). Icon-only controls carry a Bangla label (§7.8).
+   ============================================================================= #}
+
+
+{% macro icon(name, size=5, label=None, class='') -%}
+<svg class="size-{{ size }} shrink-0 {{ class }}"
+     {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true" focusable="false"{% endif %}>
+  <use href="{{ static_url('img/sprite.svg') }}#{{ name }}"></use>
+</svg>
+{%- endmacro %}
+
+
+{# ── Button. Renders <a> when given an href, <button> otherwise ───────────── #}
+{% macro btn(label, href=None, variant='primary', size='', icon_name=None,
+             icon_side='start', type='button', aria_label=None, disabled=False,
+             extra_class='') %}
+  {%- set cls = 'btn btn-' ~ variant ~ (' btn-sm' if size == 'sm' else '') ~ ' ' ~ extra_class -%}
+  {% if href %}
+  <a class="{{ cls }}" href="{{ href }}"
+     {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
+     {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
+    {% if icon_name and icon_side == 'start' %}{{ icon(icon_name, 4) }}{% endif %}
+    <span>{{ label }}</span>
+    {% if icon_name and icon_side == 'end' %}{{ icon(icon_name, 4) }}{% endif %}
+  </a>
+  {% else %}
+  <button class="{{ cls }}" type="{{ type }}"
+          {% if disabled %}disabled{% endif %}
+          {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
+    {% if icon_name and icon_side == 'start' %}{{ icon(icon_name, 4) }}{% endif %}
+    <span>{{ label }}</span>
+    {% if icon_name and icon_side == 'end' %}{{ icon(icon_name, 4) }}{% endif %}
+  </button>
+  {% endif %}
+{% endmacro %}
+
+
+{# ── Icon-only control. The label is mandatory: an unlabelled icon button is
+      invisible to a screen reader, and §7.8 requires Bangla labels. ────────── #}
+{% macro icon_btn(label, icon_name, variant='ghost', size='sm', href=None,
+                  type='button', extra_class='') %}
+  {%- set cls = 'btn btn-' ~ variant ~ (' btn-sm' if size == 'sm' else '') ~ ' ' ~ extra_class -%}
+  {% if href %}
+  <a class="{{ cls }}" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}">
+    {{ icon(icon_name, 4) }}
+  </a>
+  {% else %}
+  <button class="{{ cls }}" type="{{ type }}" aria-label="{{ label }}" title="{{ label }}">
+    {{ icon(icon_name, 4) }}
+  </button>
+  {% endif %}
+{% endmacro %}
+
+
+{% macro badge(text, variant='', icon_name=None) -%}
+<span class="badge {{ 'badge-' ~ variant if variant else '' }}">
+  {%- if icon_name %}{{ icon(icon_name, 3) }}{% endif -%}
+  {{ text }}
+</span>
+{%- endmacro %}
+
+
+{# ── Card. Called as a block so the body stays in the caller's template. ───── #}
+{% macro card(extra_class='', flat=False) -%}
+<div class="{{ 'card-flat' if flat else 'card' }} {{ extra_class }}">
+  {{ caller() }}
+</div>
+{%- endmacro %}
+
+
+{# ── §7.5 element 1 — the document rule. A hairline with a 6x6px square tick.
+      This is the site's one structural motif: it replaces the shadow and the
+      rounded box that a generic design would reach for. ─────────────────────── #}
+{% macro document_rule(extra_class='') -%}
+<hr class="document-rule {{ extra_class }}">
+{%- endmacro %}
+
+
+{# ── Section heading, always preceded by the rule so every section on the site
+      is marked the same way. `id` makes it the target of aria-labelledby. ──── #}
+{% macro section_heading(text, subtext=None, level=2, id=None, extra_class='') %}
+{# Size follows the level. An earlier version hard-coded text-2xl, so a level-3
+   heading looked identical to a level-2 one — the hierarchy existed in the
+   markup and nowhere on the page. #}
+{%- set size = {1: 'text-3xl', 2: 'text-2xl', 3: 'text-lg', 4: 'text-base'}.get(level, 'text-2xl') -%}
+<div class="mb-6 {{ extra_class }}">
+  {{ document_rule('mb-4') }}
+  <h{{ level }} class="font-display {{ size }} font-bold text-ink-900"
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if not text.isascii() %}lang="bn"{% endif %}>{{ text }}</h{{ level }}>
+  {% if subtext %}
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+     {% if not subtext.isascii() %}lang="bn"{% endif %}>{{ subtext }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro breadcrumb(items) %}
+<nav aria-label="ব্রেডক্রাম্ব" class="mb-6">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-500">
+    {% for item in items %}
+    <li class="flex items-center gap-2">
+      {% if not loop.first %}{{ icon('chevron-right', 3, class='text-ink-300') }}{% endif %}
+      {# The current page is the last crumb and deliberately has no href — which is
+         why this reads `item.href|default(none)` rather than `item.href`. #}
+      {% if item.href|default(none) and not loop.last %}
+      <a href="{{ item.href }}" class="border-b border-line text-green-600
+         hover:border-green-700 hover:text-green-700">{{ item.label }}</a>
+      {% else %}
+      <span aria-current="page" class="text-ink-700">{{ item.label }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endmacro %}
+
+
+{# ── Empty state. Implemented once so no page can ship a blank area where
+      content should be — §19.4 requires an empty state on every list. ──────── #}
+{% macro empty_state(title, body=None, action_label=None, action_href=None,
+                     icon_name='search') %}
+<div class="empty-state">
+  {{ icon(icon_name, 6, class='text-ink-300') }}
+  <p class="font-display text-lg font-semibold text-ink-900"
+     {% if not title.isascii() %}lang="bn"{% endif %}>{{ title }}</p>
+  {% if body %}
+  <p class="prose-bn text-sm">
+    <span {% if not body.isascii() %}lang="bn"{% endif %}>{{ body }}</span>
+  </p>
+  {% endif %}
+  {% if action_label and action_href %}
+  {{ btn(action_label, action_href, variant='secondary', size='sm') }}
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ── Skip link (§7.8). The first focusable thing on every page. ───────────── #}
+{% macro skip_link(target='#main') -%}
+<a class="skip-link" href="{{ target }}">মূল বক্তব্যে যান</a>
+{%- endmacro %}

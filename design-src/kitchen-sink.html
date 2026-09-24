@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ডিজাইন কিটচেন সিংক — এআই সিলেট</title>
+  <link rel="stylesheet" href="./preview.out.css">
+  <script>
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-modal-open]');
+      if (t) { var d = document.getElementById(t.dataset.modalOpen); if (d) d.showModal(); }
+    });
+  </script>
+</head>
+<body>
+<header class="sticky top-0 z-50 border-b border-line bg-paper/95">
+  <div class="container-site header-bar flex items-center gap-4">
+
+    <a href="/" class="flex items-center gap-3 focus-visible:outline-2">
+      <img src="../app/static/img/roundel.svg" alt="" aria-hidden="true"
+     class="size-9 " width="36" height="36">
+      <span class="flex flex-col leading-tight">
+        <span class="font-display text-lg font-bold text-ink-900" lang="bn">এআই সিলেট</span>
+        <span class="text-xs text-ink-500" lang="bn">যুব উন্নয়ন অধিদপ্তর</span>
+      </span>
+    </a>
+
+    <nav class="ml-auto hidden md:block" aria-label="প্রধান মেনু">
+      <ul class="flex flex-wrap items-center gap-6">
+    <li>
+      <a href="/"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  border-green-700 text-green-700 font-semibold
+"
+aria-current="page"lang="bn">হোম</a>
+    </li>
+    <li>
+      <a href="/course"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">কোর্স</a>
+    </li>
+    <li>
+      <a href="/batch-1"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">ব্যাচ ১</a>
+    </li>
+    <li>
+      <a href="/gallery"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">গ্যালারি</a>
+    </li>
+    <li>
+      <a href="/about"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">আমাদের সম্পর্কে</a>
+    </li>
+    <li>
+      <a href="/contact"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">যোগাযোগ</a>
+    </li>
+  </ul>
+
+    </nav>
+
+    <details class="ml-auto md:hidden">
+      <summary class="btn btn-secondary btn-sm list-none" aria-label="মেনু খুলুন">
+        <svg class="size-4" aria-hidden="true" focusable="false">
+          <use href="../app/static/img/sprite.svg#menu"></use>
+        </svg>
+        <span>মেনু</span>
+      </summary>
+      <nav class="container-site py-4" aria-label="মোবাইল মেনু">
+        <ul class="flex flex-wrap items-center gap-6">
+    <li>
+      <a href="/"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  border-green-700 text-green-700 font-semibold
+"
+aria-current="page"lang="bn">হোম</a>
+    </li>
+    <li>
+      <a href="/course"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">কোর্স</a>
+    </li>
+    <li>
+      <a href="/batch-1"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">ব্যাচ ১</a>
+    </li>
+    <li>
+      <a href="/gallery"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">গ্যালারি</a>
+    </li>
+    <li>
+      <a href="/about"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">আমাদের সম্পর্কে</a>
+    </li>
+    <li>
+      <a href="/contact"
+         class="text-sm border-b-2 border-transparent py-1 transition-colors
+                  text-ink-700 hover:border-green-500 hover:text-green-700
+"
+lang="bn">যোগাযোগ</a>
+    </li>
+  </ul>
+
+      </nav>
+    </details>
+  </div>
+</header>
+
+
+<main id="main" class="pb-20">
+
+  <div class="container-site border-b border-line py-10">
+    <nav aria-label="ব্রেডক্রাম্ব" class="mb-6">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-500">
+    <li class="flex items-center gap-2">
+      <a href="/" class="border-b border-line text-green-600
+         hover:border-green-700 hover:text-green-700">হোম</a>
+    </li>
+    <li class="flex items-center gap-2">
+<svg class="size-3 shrink-0 text-ink-300"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#chevron-right"></use>
+</svg>      <span aria-current="page" class="text-ink-700">ডিজাইন কিটচেন সিংক</span>
+    </li>
+  </ol>
+</nav>
+
+    <h1 class="font-display text-4xl font-bold text-ink-900">ডিজাইন সিস্টেম — কিটচেন সিংক</h1>
+    <p class="prose-bn mt-3 text-ink-700">
+      「সুরমা প্রোটোকল」 · প্রতিটি কম্পোনেন্ট তার বাস্তব অবস্থায়। উপরের মেনু, নিচের ফুটার
+      এবং প্রতিটি ব্লক প্রকৃত Jinja ম্যাক্রো থেকে রেন্ডার করা।
+    </p>
+    <p class="mt-4 text-sm text-ink-500">
+      Tailwind v4 · টোকেন: <span class="num">44</span> কাস্টম প্রপার্টি ·
+      ফন্ট: স্ব-হোস্টেড, কোনো CDN নয়
+    </p>
+  </div>
+
+  <section id="kb-site_header" class="container-site py-10">
+    <h2 class="font-display text-2xl font-bold">SiteHeader</h2>
+    <p class="mt-2 text-sm text-ink-500">পৃষ্ঠার উপরে স্থির (sticky), উচ্চতা <span class="num">68px</span>। মোবাইলে <span class="num">&lt;details&gt;</span> — কোনো জাভাস্ক্রিপ্ট ছাড়াই খোলে।</p>
+  </section>
+
+  <section id="kb-document_rule" class="container-site pb-10">
+    <h2 class="font-display mb-6 text-2xl font-bold">DocumentRule &amp; SectionHeading</h2>
+    <hr class="document-rule ">
+    <p class="prose-bn mt-4 text-sm text-ink-500">
+      §৭.৫ উপাদান ১ — <span class="num">1px</span> হেয়ারলাইন ও <span class="num">6×6px</span> বর্গাকার টিক।
+      সাইটের একমাত্র কাঠামোগত মোটিফ; ছায়ার বদলে নিয়ম।
+    </p>
+    <div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">সেকশন শিরোনাম</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">এই শিরোনামের নিচে একটি ব্যাখ্যা থাকে।</p>
+</div>
+
+  </section>
+
+  <section id="kb-section_heading" class="container-site pb-10">
+    <h2 class="font-display mb-4 text-2xl font-bold">SectionHeading — স্তর ২ ও ৩</h2>
+    <div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">স্তর ২ শিরোনাম</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">১৭px মূল পাঠ্য, ১.৭৫ লাইন-হাইট।</p>
+</div>
+
+    <div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h3 class="font-display text-lg font-bold text-ink-900"
+lang="bn">স্তর ৩ শিরোনাম</h3>
+</div>
+
+  </section>
+
+  <section id="kb-breadcrumb" class="container-site pb-4">
+    <h2 class="font-display mb-4 text-2xl font-bold">Breadcrumb</h2>
+    <nav aria-label="ব্রেডক্রাম্ব" class="mb-6">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-500">
+    <li class="flex items-center gap-2">
+      <a href="/" class="border-b border-line text-green-600
+         hover:border-green-700 hover:text-green-700">হোম</a>
+    </li>
+    <li class="flex items-center gap-2">
+<svg class="size-3 shrink-0 text-ink-300"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#chevron-right"></use>
+</svg>      <a href="/batch-1" class="border-b border-line text-green-600
+         hover:border-green-700 hover:text-green-700">ব্যাচ ১</a>
+    </li>
+    <li class="flex items-center gap-2">
+<svg class="size-3 shrink-0 text-ink-300"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#chevron-right"></use>
+</svg>      <span aria-current="page" class="text-ink-700">রূপা আক্তার</span>
+    </li>
+  </ol>
+</nav>
+
+  </section>
+
+  <div id="kb-hero">
+    <section class="relative overflow-hidden border-b border-line">
+  <div class="contour-band absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+       aria-hidden="true"></div>
+
+  <div class="container-site relative py-16 md:py-24">
+    <h1 class="font-display max-w-4xl text-4xl font-bold text-ink-900 md:text-5xl"
+        lang="bn">সিলেটের যুবকদের জন্য কৃত্রিম বুদ্ধিমত্তার প্রশিক্ষণ</h1>
+
+    <p class="prose-bn mt-5 text-lg text-ink-700" lang="bn">ব্যাচ ১-এর প্রশিক্ষণার্থীদের গল্প, কোর্সের পাঠ্যক্রম এবং ফলাফল — একটি ডকুমেন্টারি আর্কাইভ।</p>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+        <a class="btn btn-primary " href="/batch-1"
+>
+    <span>ব্যাচ ১ দেখুন</span>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#arrow-right"></use>
+</svg>  </a>
+
+        <a class="btn btn-secondary " href="/course"
+>
+    <span>কোর্স পরিচিতি</span>
+  </a>
+
+    </div>
+
+  </div>
+</section>
+
+  </div>
+
+  <section id="kb-stat_strip" class="container-site py-12">
+    <div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">এক নজরে</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">সব সংখ্যা কেবল সম্মতিপ্রাপ্ত রেকর্ড থেকে গণনা করা।</p>
+</div>
+<dl class="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="border-t border-line-strong pt-4">
+    <dt class="text-sm text-ink-500" lang="bn">
+      মোট প্রশিক্ষণার্থী
+    </dt>
+    <dd class="stat-figure mt-1">
+        <span class="num">১২৪</span>
+    </dd>
+  </div>
+  <div class="border-t border-line-strong pt-4">
+    <dt class="text-sm text-ink-500" lang="bn">
+      সম্মতি দিয়েছেন
+    </dt>
+    <dd class="stat-figure mt-1">
+        <span class="num">১১৮</span>
+    </dd>
+  </div>
+  <div class="border-t border-line-strong pt-4">
+    <dt class="text-sm text-ink-500" lang="bn">
+      কোর্সের মেয়াদ
+    </dt>
+    <dd class="stat-figure mt-1">
+        <span class="num">৩০০</span>
+<span class="ml-1 text-lg text-ink-500"
+lang="bn">ঘণ্টা</span>    </dd>
+    <p class="mt-1 text-xs text-ink-500" lang="bn">
+      প্রতিদিন ৬ ঘণ্টা
+    </p>
+  </div>
+  <div class="border-t border-line-strong pt-4">
+    <dt class="text-sm text-ink-500" lang="bn">
+      সমাপ্তকারী
+    </dt>
+    <dd class="stat-figure mt-1">
+        <span aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড থেকে গণনা করা">—</span>
+    </dd>
+    <p class="mt-1 text-xs text-ink-500" lang="bn">
+      ৫টির কম রেকর্ড থেকে গণনা করা, তাই প্রকাশ করা হয়নি
+    </p>
+  </div>
+</dl>
+
+    <p class="mt-4 text-sm text-flag-red">
+      লক্ষ্য করুন: শেষ ঘরটি <span class="num">—</span> — কারণ এটি ৫টির কম রেকর্ড থেকে এসেছে (§৫.৪)।
+    </p>
+  </section>
+
+  <section id="kb-stat_table" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">StatTable — ফলাফলের বিভাজন</h2>
+    <div class="table-scroll">
+<table class="table-ruled">
+<caption>সম্মতিপ্রাপ্ত রেকর্ড অনুযায়ী</caption>  <thead>
+    <tr>
+      <th scope="col" lang="bn">ফলাফল</th>
+      <th scope="col" class="numeric"lang="bn">সংখ্যা</th>
+      <th scope="col" class="numeric"lang="bn">শতকরা</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" class="font-normal text-ink-900"
+lang="bn">কর্মসংস্থান</th>
+      <td class="numeric">
+৪১      </td>
+      <td class="numeric">
+৩৫%      </td>
+    </tr>
+    <tr>
+      <th scope="row" class="font-normal text-ink-900"
+lang="bn">ফ্রিল্যান্সিং</th>
+      <td class="numeric">
+৩৮      </td>
+      <td class="numeric">
+৩২%      </td>
+    </tr>
+    <tr>
+      <th scope="row" class="font-normal text-ink-900"
+lang="bn">আরও পড়াশোনা</th>
+      <td class="numeric">
+২০      </td>
+      <td class="numeric">
+১৭%      </td>
+    </tr>
+    <tr>
+      <th scope="row" class="font-normal text-ink-900"
+lang="bn">ব্যবসা</th>
+      <td class="numeric">
+১২      </td>
+      <td class="numeric">
+১০%      </td>
+    </tr>
+    <tr>
+      <th scope="row" class="font-normal text-ink-900"
+lang="bn">শিক্ষকতা</th>
+      <td class="numeric">
+        <span class="text-ink-300" aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড">—</span>
+      </td>
+      <td class="numeric">
+        <span class="text-ink-300" aria-label="প্রকাশযোগ্য নয়" title="৫টির কম রেকর্ড">—</span>
+      </td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="row" class="border-t border-line-strong"
+lang="bn">মোট</th>
+      <td class="numeric border-t border-line-strong">
+১১১      </td>
+      <td class="numeric border-t border-line-strong">
+৯৪%      </td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+    <p class="mt-4 text-sm text-ink-500">
+      সর্বমোট সারিটি <span class="num">stats_service</span> থেকে হিসাব করা — ছকে দেখানো
+      সংখ্যা যোগ করে নয়। কারণ <span class="num">—</span> যোগ করলে শূন্য হয়ে যেত,
+      অর্থাৎ একটি গোপনীয়তা ফাঁস হতো।
+    </p>
+  </section>
+
+  <section id="kb-fact_list" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">FactList</h2>
+    <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">কোর্সের নাম</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">জেনারেটিভ এআই দক্ষতা উন্নয়ন</dd>
+  </div>
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">মেয়াদ</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">৩০০ ঘণ্টা / ৫০ দিন</dd>
+  </div>
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">দৈনিক সময়</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">৬ ঘণ্টা</dd>
+  </div>
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">যোগ্যতা</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">এইচএসসি বা সমমূল্য, বয়স ১৮–৩৫</dd>
+  </div>
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">খরচ</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">সম্পূর্ণ বিনামূল্যে</dd>
+  </div>
+  <div class="border-t border-line pt-3">
+    <dt class="text-sm text-ink-500 "
+lang="bn">সনদ</dt>
+    <dd class="text-ink-900 mt-1"
+lang="bn">সরকারি প্রশিক্ষণ সনদ</dd>
+  </div>
+</dl>
+
+  </section>
+
+  <div id="kb-module_grid">
+    <section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">পাঠ্যক্রম</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">ছয়টি মডিউল, মোট ৩০০ ঘণ্টা।</p>
+</div>
+  <ol class="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">প্রম্পট ইঞ্জিনিয়ারিং</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৪০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">কার্যকর প্রম্পট লেখা ও পরিমার্জন।</p>
+    </li>
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">এআই কনটেন্ট ক্রিয়েশন</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৫০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">লেখা, ছবি ও ভিডিও কনটেন্ট তৈরি।</p>
+    </li>
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">জেনারেটিভ এআই টুলস</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৫০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">প্রচলিত জেনারেটিভ মডেল ও তাদের ব্যবহার।</p>
+    </li>
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">এআই প্রোডাক্টিভিটি</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৪০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">দৈনন্দিন কাজে এআই সহায়ক ব্যবহার।</p>
+    </li>
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">ডেটা অ্যানালাইসিস</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৫০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">ডেটা বিশ্লেষণ ও ভিজুয়ালাইজেশন।</p>
+    </li>
+    <li class="border-t border-line-strong pt-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 class="font-display text-lg font-bold text-ink-900" lang="bn">এআই ফ্রিল্যান্সিং</h3>
+        <span class="num shrink-0 text-sm text-ink-500" title="ঘণ্টা">
+          ৭০<span class="ml-1" lang="bn">ঘণ্টা</span>
+        </span>
+      </div>
+      <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">অনলাইন মার্কেটপ্লেসে এআই সেবা বিক্রি।</p>
+    </li>
+  </ol>
+</section>
+
+  </div>
+
+  <section id="kb-quote_block" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">QuoteBlock</h2>
+    <figure class="border-s-2 border-green-500 ps-5 py-1">
+  <blockquote class="font-display text-xl leading-relaxed text-ink-900" lang="bn">
+    কোর্সটি আমার কাছে নতুন একটি পেশার দরজা খুলে দিয়েছে।
+  </blockquote>
+  <figcaption class="mt-3 text-sm text-ink-500">
+    <span lang="bn">— রূপা আক্তার, ব্যাচ ১</span>
+  </figcaption>
+</figure>
+
+    <p class="mt-4 text-sm text-ink-500">
+      কেবল <span class="num">quote_consented = true</span> হলে রেন্ডার হয় (§৫.৩ নিয়ম ৫)।
+    </p>
+  </section>
+
+  <div id="kb-timeline"><section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">সময়রেখা</h2>
+</div>
+  <ol class="relative">
+    <li class="relative border-s border-line ps-6 pb-8 last:pb-0">
+      <span class="absolute start-0 top-1.5 size-2.5 -translate-x-1/2 bg-green-700"
+            aria-hidden="true"></span>
+      <p class="num text-xs text-ink-500" lang="bn">১০ জানুয়ারি ২০২৬</p>
+      <h3 class="font-display mt-1 text-lg font-bold text-ink-900"
+lang="bn">আবেদন আহ্বান</h3>
+      <p class="prose-bn mt-1 text-sm text-ink-700" lang="bn">অনলাইনে আবেদন গ্রহণ শুরু।</p>
+    </li>
+    <li class="relative border-s border-line ps-6 pb-8 last:pb-0">
+      <span class="absolute start-0 top-1.5 size-2.5 -translate-x-1/2 bg-green-700"
+            aria-hidden="true"></span>
+      <p class="num text-xs text-ink-500" lang="bn">২ ফেব্রুয়ারি ২০২৬</p>
+      <h3 class="font-display mt-1 text-lg font-bold text-ink-900"
+lang="bn">নির্বাচন সম্পন্ন</h3>
+      <p class="prose-bn mt-1 text-sm text-ink-700" lang="bn">যোগ্য প্রার্থীদের বাছাই ও নিশ্চিতকরণ।</p>
+    </li>
+    <li class="relative border-s border-line ps-6 pb-8 last:pb-0">
+      <span class="absolute start-0 top-1.5 size-2.5 -translate-x-1/2 bg-green-700"
+            aria-hidden="true"></span>
+      <p class="num text-xs text-ink-500" lang="bn">১ মার্চ ২০২৬</p>
+      <h3 class="font-display mt-1 text-lg font-bold text-ink-900"
+lang="bn">প্রশিক্ষণ শুরু</h3>
+      <p class="prose-bn mt-1 text-sm text-ink-700" lang="bn">ব্যাচ ১-এর ক্লাস শুরু।</p>
+    </li>
+    <li class="relative border-s border-line ps-6 pb-8 last:pb-0">
+      <span class="absolute start-0 top-1.5 size-2.5 -translate-x-1/2 bg-green-700"
+            aria-hidden="true"></span>
+      <p class="num text-xs text-ink-500" lang="bn">৩০ এপ্রিল ২০২৬</p>
+      <h3 class="font-display mt-1 text-lg font-bold text-ink-900"
+lang="bn">প্রশিক্ষণ সমাপ্ত</h3>
+      <p class="prose-bn mt-1 text-sm text-ink-700" lang="bn">চূড়ান্ত মূল্যায়ন ও সনদ প্রদান।</p>
+    </li>
+  </ol>
+</section>
+</div>
+
+  <section id="kb-media_feature" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">MediaFeature — left / right / full</h2>
+  </section>
+  <section class="container-site py-12">
+  <div class="grid items-start gap-10 md:grid-cols-2">
+    <div class="md:order-2">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">কেন এই কোর্স</h2>
+</div>
+      <div class="prose-bn text-ink-700" lang="bn"><p>মডিউলগুলো সরাসরি চাকরির বাজারের চাহিদা অনুযায়ী সাজানো। প্রতিটি মডিউলে হাতে-কলমে কাজ থাকে।</p></div>     </div>
+    <div class="md:order-1">
+      <figure class="">
+  <img src="about:blank" alt="প্রশিক্ষণ কক্ষ"
+       width="1600" height="900"
+loading="lazy" decoding="async"       class="w-full rounded-md border border-line object-cover"
+       style="aspect-ratio: 16 / 9">
+  <figcaption class="mt-2 text-sm text-ink-500" lang="bn">ব্যাচ ১ — ক্লাস</figcaption>
+</figure>
+
+    </div>
+  </div>
+</section>
+
+
+  <div id="kb-gallery_strip"><section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">গ্যালারি — কেবল প্রশিক্ষণের ছবি</h2>
+</div>
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <li><figure class="">
+  <img src="about:blank" alt="প্রশিক্ষণ কক্ষে ক্লাস চলছে"
+       width="1600" height="1200"
+loading="lazy" decoding="async"       class="w-full rounded-md border border-line object-cover"
+       style="aspect-ratio: 4 / 3">
+  <figcaption class="mt-2 text-sm text-ink-500" lang="bn">ব্যাচ ১ — দ্বিতীয় সপ্তাহ</figcaption>
+</figure>
+</li>
+    <li><figure class="">
+  <img src="about:blank" alt="কম্পিউটার ল্যাবে কাজ করছেন প্রশিক্ষণার্থীরা"
+       width="1600" height="1200"
+loading="lazy" decoding="async"       class="w-full rounded-md border border-line object-cover"
+       style="aspect-ratio: 4 / 3">
+</figure>
+</li>
+    <li><figure class="">
+  <div class="relative overflow-hidden rounded-md border border-line"
+       style="aspect-ratio: 4 / 3">
+    <iframe src="" title="প্রশিক্ষণ কার্যক্রমের ভিডিও"
+            class="absolute inset-0 size-full" loading="lazy"
+            allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+</figure>
+</li>
+  </ul>
+</section>
+</div>
+
+  <section id="kb-participant_card" class="container-site pb-12">
+    <h2 class="font-display mb-2 text-2xl font-bold">ParticipantCard</h2>
+    <p class="mb-8 text-sm text-ink-500">
+      ছবি নেই, ছায়া নেই — নামটাই সবচেয়ে বড় উপাদান। কার্ডটি একটি রেজিস্টার-ভুক্তির মতো পড়া যায় (§৭.৫)।
+    </p>
+    <div class="max-w-sm"><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/rupa-akter" class="text-ink-900 hover:text-green-700">রূপা আক্তার</a>
+  </h3>
+
+  <p class="num mt-0.5 text-xs text-ink-500" dir="ltr">Rupa Akter</p>
+
+  <p class="meta-line mt-2">
+    <span lang="bn">এইচএসসি</span>
+    <span lang="bn">এর আগে: শিক্ষার্থী</span>
+  </p>
+
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">বর্তমানে অনলাইন মার্কেটপ্লেসে কাজ করছেন।</p>
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">ফ্রিল্যান্সিং</span>
+  </p>
+</article>
+</div>
+  </section>
+
+  <section id="kb-participant_grid" class="container-site pb-12">
+    <h2 class="font-display mb-8 text-2xl font-bold">ParticipantGrid</h2>
+    <ul class="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/rupa-akter" class="text-ink-900 hover:text-green-700">রূপা আক্তার</a>
+  </h3>
+
+  <p class="num mt-0.5 text-xs text-ink-500" dir="ltr">Rupa Akter</p>
+
+  <p class="meta-line mt-2">
+    <span lang="bn">এইচএসসি</span>
+    <span lang="bn">এর আগে: শিক্ষার্থী</span>
+  </p>
+
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">বর্তমানে অনলাইন মার্কেটপ্লেসে কাজ করছেন।</p>
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">ফ্রিল্যান্সিং</span>
+  </p>
+</article>
+</li>
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/bishnuprasad-das" class="text-ink-900 hover:text-green-700">বিষ্ণুপ্রসাদ দাশ</a>
+  </h3>
+
+
+  <p class="meta-line mt-2">
+    <span lang="bn">স্নাতক</span>
+    <span lang="bn">এর আগে: কৃষি</span>
+  </p>
+
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">স্থানীয় একটি প্রতিষ্ঠানে প্রশিক্ষক হিসেবে যোগ দিয়েছেন।</p>
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">শিক্ষকতা</span>
+  </p>
+</article>
+</li>
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/saiful-islam-chowdhury" class="text-ink-900 hover:text-green-700">সাইফুল ইসলাম চৌধুরী</a>
+  </h3>
+
+
+  <p class="meta-line mt-2">
+    <span lang="bn">ডিপ্লোমা</span>
+  </p>
+
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">কর্মসংস্থান</span>
+  </p>
+</article>
+</li>
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/nusrat-jahan" class="text-ink-900 hover:text-green-700">নুসরাত জাহান</a>
+  </h3>
+
+  <p class="num mt-0.5 text-xs text-ink-500" dir="ltr">Nusrat Jahan</p>
+
+  <p class="meta-line mt-2">
+    <span lang="bn">সম্মান</span>
+    <span lang="bn">এর আগে: গৃহিণী</span>
+  </p>
+
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">নিজের একটি ছোট ব্যবসা শুরু করেছেন।</p>
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">ব্যবসা</span>
+  </p>
+</article>
+</li>
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/abdul-karim" class="text-ink-900 hover:text-green-700">মোঃ আব্দুল করিম</a>
+  </h3>
+
+
+  <p class="meta-line mt-2">
+    <span lang="bn">এইচএসসি</span>
+  </p>
+
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">আরও পড়াশোনা</span>
+  </p>
+</article>
+</li>
+  <li><article class="border-t border-line-strong pt-4">
+  <h3 class="font-display text-xl font-bold leading-snug" lang="bn">
+    <a href="/batch-1/tanjila-akter" class="text-ink-900 hover:text-green-700">তানজিলা আক্তার</a>
+  </h3>
+
+
+  <p class="meta-line mt-2">
+    <span lang="bn">স্নাতক</span>
+    <span lang="bn">এর আগে: শিক্ষার্থী</span>
+  </p>
+
+  <p class="prose-bn mt-2 text-sm text-ink-700" lang="bn">ফ্রিল্যান্স প্ল্যাটফর্মে এআই কনটেন্ট ডিজাইনার হিসেবে কাজ করছেন।</p>
+
+  <p class="mt-3">
+    <span class="badge" lang="bn">ফ্রিল্যান্সিং</span>
+  </p>
+</article>
+</li>
+</ul>
+
+    <p class="mt-6 text-sm text-ink-500">
+      দ্বিতীয় কার্ডে যুক্তাক্ষর (<span lang="bn">বিষ্ণুপ্রসাদ</span>), তৃতীয়টিতে কোনো
+      <span class="num">outcome_text</span> নেই। দুটোই ইচ্ছাকৃত।
+    </p>
+  </section>
+
+  <section id="kb-consent_badge" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">ConsentBadge — চারটি অবস্থা</h2>
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="badge ">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#check"></use>
+</svg>    <span lang="bn">প্রকাশিত</span>
+  </span>
+
+      <span class="badge badge-unpublished">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#eye-off"></use>
+</svg>    <span lang="bn">প্রকাশ করা হয়নি</span>
+  </span>
+
+      <span class="badge badge-withdrawn">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg>    <span lang="bn">সম্মতি প্রত্যাহৃত</span>
+  </span>
+
+      <span class="badge badge-neutral">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg>    <span lang="bn">সম্মতি নেই</span>
+  </span>
+
+    </div>
+    <p class="mt-4 text-sm text-ink-500">
+      <span class="num">unpublished</span> নিরপেক্ষ — এটি স্বাভাবিক অবস্থা, ত্রুটি নয়।
+      <span class="num">withdrawn</span> লাল, কারণ এটি একটি ব্যবস্থাপনার প্রয়োজন।
+    </p>
+  </section>
+
+  <section id="kb-filter_bar" class="pb-12">
+    <div class="container-site">
+      <h2 class="font-display mb-4 text-2xl font-bold">FilterBar</h2>
+      <p class="text-sm text-ink-500">
+        সম্পূর্ণ <span class="num">GET</span> ফর্ম — জাভাস্ক্রিপ্ট বন্ধ থাকলেও কাজ করে (§৬.৪)।
+      </p>
+    </div>
+    <form method="get" action="/batch-1" role="search"
+      class="border-y border-line bg-paper-2 px-4 py-4">
+  <div class="container-site flex flex-wrap items-end gap-4">
+
+    <div class="field min-w-56 flex-1">
+      <label class="label" for="filter-q" lang="bn">নাম খুঁজুন</label>
+      <div class="flex items-center gap-2">
+        <svg class="size-4 shrink-0 text-ink-300"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#search"></use>
+</svg>
+        <input class="input" type="search" id="filter-q" name="q" value=""
+               autocomplete="off" lang="bn"
+               placeholder="বাংলা বা ইংরেজিতে লিখুন">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="filter-outcome" lang="bn">ফলাফল</label>
+      <select class="select" id="filter-outcome" name="outcome">
+        <option value="" selected                lang="bn">সব ফলাফল</option>
+        <option value="employment"                 lang="bn">কর্মসংস্থান</option>
+        <option value="freelancing"                 lang="bn">ফ্রিল্যান্সিং</option>
+        <option value="further_study"                 lang="bn">আরও পড়াশোনা</option>
+        <option value="business"                 lang="bn">ব্যবসা</option>
+        <option value="teaching"                 lang="bn">শিক্ষকতা</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label" for="filter-sort" lang="bn">সাজান</label>
+      <select class="select" id="filter-sort" name="sort">
+        <option value="name" selected                lang="bn">নাম অনুযায়ী</option>
+        <option value="recent"                 lang="bn">সাম্প্রতিক যোগ</option>
+      </select>
+    </div>
+
+      <button class="btn btn-primary " type="submit"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#filter"></use>
+</svg>    <span>দেখুন</span>
+  </button>
+
+  </div>
+</form>
+
+  </section>
+
+  <section id="kb-pagination" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Pagination</h2>
+    <nav class="mt-10 flex items-center justify-between gap-4" aria-label="পৃষ্ঠা পরিবর্তন">
+  <div>
+    <a class="btn btn-secondary btn-sm" href="/batch-1?outcome=freelancing&page=2" rel="prev">
+      <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#chevron-left"></use>
+</svg> <span lang="bn">পূর্ববর্তী</span>
+    </a>
+  </div>
+
+  <p class="num text-sm text-ink-500" aria-live="polite">
+    <span class="sr-only" lang="bn">পৃষ্ঠা</span>
+    3 / 6
+  </p>
+
+  <div>
+    <a class="btn btn-secondary btn-sm" href="/batch-1?outcome=freelancing&page=4" rel="next">
+      <span lang="bn">পরবর্তী</span> <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#chevron-right"></use>
+</svg>
+    </a>
+  </div>
+</nav>
+
+  </section>
+
+  <section id="kb-empty_state" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">EmptyState</h2>
+    <div class="empty-state">
+  <svg class="size-6 shrink-0 text-ink-300"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#search"></use>
+</svg>
+  <p class="font-display text-lg font-semibold text-ink-900"
+lang="bn">কোনো প্রশিক্ষণার্থী পাওয়া যায়নি</p>
+  <p class="prose-bn text-sm">
+    <span lang="bn">এই ফিল্টারে কোনো ফলাফল নেই।</span>
+  </p>
+    <a class="btn btn-secondary btn-sm " href="/batch-1"
+>
+    <span>ফিল্টার মুছুন</span>
+  </a>
+
+</div>
+
+  </section>
+
+  <div id="kb-rich_text">
+    <section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+>RichText</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">বাংলা লিংকে আন্ডারলাইন নেই — মাত্রার সাথে সংঘর্ষ করে, নিচে বর্ডার ব্যবহার করা হয় (§১৪.৩)।</p>
+</div>
+  <div class="prose-bn max-w-prose text-ink-700" lang="bn">
+    <p>এটি <strong>স্যানিটাইজড</strong> রিচ টেক্সট। সংযোগের উদাহরণ: <a href="/course">কোর্স পাতা</a>।</p><ul><li>প্রথম আইটেম</li><li>দ্বিতীয় আইটেম</li></ul><blockquote>উদ্ধৃতি শৈলী।</blockquote>   </div>
+</section>
+
+  </div>
+
+  <div id="kb-institution_card"><section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">প্রতিষ্ঠান</h2>
+</div>
+  <div class="card p-6 md:p-8">
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="min-w-64 flex-1">
+        <h3 class="font-display text-xl font-bold text-ink-900" lang="bn">সিলেট বিইউটিটিসি</h3>
+        <p class="mt-0.5 text-sm text-ink-500" dir="ltr">Sylhet BUTTC</p>
+        <p class="mt-3"><span class="badge" lang="bn">প্রশিক্ষণ প্রতিষ্ঠান</span></p>
+        <p class="prose-bn mt-4 text-ink-700" lang="bn">সিলেট বিভাগে প্রশিক্ষণ বাস্তবায়নকারী প্রতিষ্ঠান।</p>
+      </div>
+    </div>
+
+    <hr class="document-rule my-6">
+
+    <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-3">
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ঠিকানা</dt>
+        <dd class="mt-1 text-sm text-ink-900" lang="bn">সিলেট, বাংলাদেশ</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ফোন</dt>
+        <dd class="num mt-1 text-sm text-ink-900" dir="ltr">+880 821 000000</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-ink-500" lang="bn">ইমেইল</dt>
+        <dd class="mt-1 text-sm"><a href="mailto:info@example.gov.bd"
+            class="border-b border-line text-green-600" dir="ltr">info@example.gov.bd</a></dd>
+      </div>
+    </dl>
+  </div>
+</section>
+</div>
+
+  <div id="kb-faq_accordion"><section class="container-site py-12">
+<div class="mb-6 ">
+  <hr class="document-rule mb-4">
+  <h2 class="font-display text-2xl font-bold text-ink-900"
+lang="bn">সাধারণ জিজ্ঞাসা</h2>
+  <p class="prose-bn mt-2 text-sm text-ink-500"
+lang="bn">উত্তরগুলো DOM-এ থাকে, তাই FAQPage স্ট্রাকচার্ড ডেটা মেলে।</p>
+</div>
+  <div class="divide-y divide-line border-y border-line">
+    <details class="group py-1">
+      <summary class="flex cursor-pointer items-center justify-between gap-4 py-4
+                      font-display text-base font-semibold text-ink-900
+                      hover:text-green-700" lang="bn">
+        কোর্সে ভর্তি হতে কী যোগ্যতা লাগবে?
+        <span class="shrink-0 text-ink-300 group-open:hidden" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#plus"></use>
+</svg>
+        </span>
+        <span class="hidden shrink-0 text-ink-300 group-open:inline" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg>
+        </span>
+      </summary>
+      <div class="prose-bn pb-5 text-ink-700" lang="bn">ন্যূনতম এইচএসসি বা সমমূল্য পাশ এবং বয়স ১৮ থেকে ৩৫ বছরের মধ্যে হতে হবে।</div>
+    </details>
+    <details class="group py-1">
+      <summary class="flex cursor-pointer items-center justify-between gap-4 py-4
+                      font-display text-base font-semibold text-ink-900
+                      hover:text-green-700" lang="bn">
+        কোর্স কি বিনামূল্যে?
+        <span class="shrink-0 text-ink-300 group-open:hidden" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#plus"></use>
+</svg>
+        </span>
+        <span class="hidden shrink-0 text-ink-300 group-open:inline" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg>
+        </span>
+      </summary>
+      <div class="prose-bn pb-5 text-ink-700" lang="bn">হ্যাঁ। প্রশিক্ষণ সম্পূর্ণ বিনামূল্যে, সাথে দৈনিক ভাতা ও দুপুরের খাবার দেওয়া হয়।</div>
+    </details>
+    <details class="group py-1">
+      <summary class="flex cursor-pointer items-center justify-between gap-4 py-4
+                      font-display text-base font-semibold text-ink-900
+                      hover:text-green-700" lang="bn">
+        কোর্স শেষে সনদ পাওয়া যাবে কি?
+        <span class="shrink-0 text-ink-300 group-open:hidden" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#plus"></use>
+</svg>
+        </span>
+        <span class="hidden shrink-0 text-ink-300 group-open:inline" aria-hidden="true">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg>
+        </span>
+      </summary>
+      <div class="prose-bn pb-5 text-ink-700" lang="bn">সফলভাবে সম্পন্নকারীদের সরকারি সনদ প্রদান করা হয়।</div>
+    </details>
+  </div>
+</section>
+</div>
+
+  <div id="kb-cta_band">
+    <section class="mt-16 bg-green-900 text-green-100">
+  <div class="container-site py-14">
+    <h2 class="font-display max-w-2xl text-2xl font-bold text-paper" lang="bn">ব্যাচ ১-এর প্রশিক্ষণার্থীদের দেখুন</h2>
+    <p class="prose-bn mt-3 text-green-100/85" lang="bn">১২৪ জন প্রশিক্ষণার্থীর মধ্যে ১১৮ জনের সম্মতি আছে।</p>
+    <div class="mt-6">
+      <a class="btn btn-sm" href="/batch-1"
+         style="background-color: var(--color-paper); color: var(--color-green-900); border-color: var(--color-paper)">
+        ব্যাচ ১ দেখুন <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#arrow-right"></use>
+</svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+  </div>
+
+  <section id="kb-toast" class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Toast — চারটি টোন</h2>
+    <div class="flex max-w-xl flex-col gap-3">
+      <div class="flex items-start gap-3 border bg-green-50 border-line-green text-green-900 rounded-sm px-4 py-3"
+     role="status">
+  <svg class="size-4 shrink-0 mt-0.5"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#info"></use>
+</svg>
+  <p class="flex-1 text-sm" lang="bn">তথ্য: সংরক্ষণ করা হয়েছে।</p>
+  <button type="button" class="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="বন্ধ করুন"><svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg></button>
+</div>
+
+      <div class="flex items-start gap-3 border bg-green-50 border-line-green text-green-900 rounded-sm px-4 py-3"
+     role="status">
+  <svg class="size-4 shrink-0 mt-0.5"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#check"></use>
+</svg>
+  <p class="flex-1 text-sm" lang="bn">সফল: পাতা প্রকাশিত হয়েছে।</p>
+  <button type="button" class="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="বন্ধ করুন"><svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg></button>
+</div>
+
+      <div class="flex items-start gap-3 border bg-gold-100 border-gold text-ink-900 rounded-sm px-4 py-3"
+     role="alert">
+  <svg class="size-4 shrink-0 mt-0.5"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg>
+  <p class="flex-1 text-sm" lang="bn">সতর্কতা: ৩টি রেকর্ডে সম্মতির তারিখ নেই।</p>
+  <button type="button" class="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="বন্ধ করুন"><svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg></button>
+</div>
+
+      <div class="flex items-start gap-3 border bg-flag-red-100 border-flag-red text-flag-red rounded-sm px-4 py-3"
+     role="alert">
+  <svg class="size-4 shrink-0 mt-0.5"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg>
+  <p class="flex-1 text-sm" lang="bn">ত্রুটি: সংরক্ষণ করা যায়নি।</p>
+  <button type="button" class="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="বন্ধ করুন"><svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg></button>
+</div>
+
+    </div>
+  </section>
+
+  <section id="kb-modal" class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Modal — নেটিভ &lt;dialog&gt;</h2>
+      <button class="btn btn-secondary " type="button"
+>
+    <span>মোডাল খুলুন</span>
+  </button>
+
+    <button class="btn btn-secondary" data-modal-open="kb-modal-demo">মোডাল খুলুন</button>
+    <dialog id="kb-modal-demo" class="backdrop:bg-ink-900/40 max-w-lg w-full rounded-md p-0
+                              border border-line bg-surface text-ink-700">
+  <div class="p-6">
+    <div class="flex items-start justify-between gap-4">
+      <h2 class="font-display text-lg font-bold text-ink-900" lang="bn">সম্মতি প্রত্যাহার করবেন?</h2>
+      <form method="dialog">
+        <button class="opacity-60 hover:opacity-100" aria-label="বন্ধ করুন">
+          <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#close"></use>
+</svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="prose-bn mt-4 text-sm" lang="bn"><p>এই রেকর্ডটি সাথে সাথে অপ্রকাশিত হবে এবং ক্যাশ একই ট্রানজেকশনে বাতিল হবে। সারিটি মুছে ফেলা হবে না।</p></div> 
+    <div class="mt-6 flex flex-wrap justify-end gap-2">
+      <form method="dialog">
+        <button class="btn btn-secondary btn-sm">বাতিল</button>
+      </form>
+      <button class="btn btn-danger btn-sm"
+              data-modal-confirm>প্রত্যাহার করুন</button>
+    </div>
+  </div>
+</dialog>
+
+  </section>
+
+  <section id="kb-contact_form" class="border-y border-line bg-paper-2">
+    <div class="container-site pt-12">
+      <h2 class="font-display text-2xl font-bold">ContactForm — ত্রুটি অবস্থাসহ</h2>
+      <p class="mt-2 text-sm text-ink-500">
+        হানিপট, স্বাক্ষরিত সময়-টোকেন ও Turnstile — তিনটিই মার্কআপে উপস্থিত (§১২.২)।
+      </p>
+    </div>
+    <section class="container-site py-12">
+  <div class="max-w-2xl">
+
+    <div class="border border-flag-red bg-flag-red-100 p-4 rounded-sm" role="alert"
+     tabindex="-1" id="form-errors">
+  <p class="flex items-center gap-2 font-semibold text-flag-red">
+    <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg> <span lang="bn">ফর্মটি পাঠানো যায়নি</span>
+  </p>
+  <ul class="mt-2 list-disc space-y-1 ps-6 text-sm text-ink-900">
+    <li><a href="#f-name" class="underline" lang="bn">নাম আবশ্যক</a></li>
+    <li><a href="#f-email" class="underline" lang="bn">ইমেইল ঠিকানাটি সঠিক নয়</a></li>
+    <li><a href="#f-message" class="underline" lang="bn">বার্তা আবশ্যক</a></li>
+  </ul>
+</div>
+
+
+    <form method="post" action="/contact" class="mt-6 space-y-6" novalidate>
+      <input type="hidden" name="csrf_token" value="&lt;function build_env.&lt;locals&gt;.&lt;lambda&gt; at 0x000001489CBF8720&gt;">
+      <input type="hidden" name="t_open" value="design-harness-token">
+
+      <div class="sr-only" aria-hidden="true">
+        <label for="f-website">ওয়েবসাইট</label>
+        <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2">
+        <div class="field ">
+  <label class="label label-required" for="f-name">
+    <span lang="bn">নাম</span>
+  </label>
+
+  <input class="input" type="text" id="f-name" name="name"
+         value=""
+aria-invalid="true" aria-describedby="err-name"required>
+
+
+  <p class="error-text" id="err-name">
+    <svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg> <span lang="bn">নাম আবশ্যক</span>
+  </p>
+</div>
+
+        <div class="field ">
+  <label class="label label-required" for="f-email">
+    <span lang="bn">ইমেইল</span>
+  </label>
+
+  <input class="input" type="email" id="f-email" name="email"
+         value="bad-email"
+dir="ltr"inputmode="email"autocomplete="email"aria-invalid="true" aria-describedby="err-email"required>
+
+
+  <p class="error-text" id="err-email">
+    <svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg> <span lang="bn">ইমেইল ঠিকানাটি সঠিক নয়</span>
+  </p>
+</div>
+
+      </div>
+
+      <div class="field ">
+  <label class="label " for="f-phone">
+    <span lang="bn">ফোন (ঐচ্ছিক)</span>
+  </label>
+
+  <input class="input" type="tel" id="f-phone" name="phone"
+         value=""
+dir="ltr"inputmode="tel"autocomplete="tel">
+
+  <p class="hint" id="hint-phone" lang="bn">ঐচ্ছিক — তবে দ্রুত যোগাযোগের জন্য সহায়ক।</p>
+
+</div>
+
+
+      <div class="field ">
+  <label class="label label-required" for="f-subject">
+    <span lang="bn">বিষয়</span>
+  </label>
+
+  <input class="input" type="text" id="f-subject" name="subject"
+         value="সাধারণ জিজ্ঞাসা"
+required>
+
+
+</div>
+
+
+      <div class="field">
+  <label class="label label-required" for="f-message">
+    <span lang="bn">বার্তা</span>
+  </label>
+  <textarea class="textarea" id="f-message" name="message" rows="7"
+placeholder="আপনার প্রশ্ন বা মন্তব্য লিখুন…"aria-invalid="true" aria-describedby="err-message"required></textarea>
+  <p class="error-text" id="err-message">
+    <svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg> <span lang="bn">বার্তা আবশ্যক</span>
+  </p>
+</div>
+
+
+      <div class="cf-turnstile" data-sitekey=""
+           data-action="contact"></div>
+      <noscript>
+        <p class="hint" lang="bn">
+          যাচাইকরণ স্ক্রিপ্ট ছাড়া ফর্ম পাঠানো সম্ভব নয়। অনুগ্রহ করে জাভাস্ক্রিপ্ট চালু করুন।
+        </p>
+      </noscript>
+
+      <div class="flex flex-wrap items-center gap-4">
+          <button class="btn btn-primary " type="submit"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#mail"></use>
+</svg>    <span>বার্তা পাঠান</span>
+  </button>
+
+        <p class="hint" lang="bn">
+          আপনার তথ্য শুধুমাত্র যোগাযোগের জন্য ব্যবহৃত হবে।
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+
+  </section>
+
+  <section class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Field primitives — normal / hint / error / disabled</h2>
+    <div class="grid max-w-3xl gap-6 sm:grid-cols-2">
+      <div class="field ">
+  <label class="label " for="f-demo_name">
+    <span lang="bn">নাম</span>
+  </label>
+
+  <input class="input" type="text" id="f-demo_name" name="demo_name"
+         value="রূপা আক্তার"
+>
+
+
+</div>
+
+      <div class="field ">
+  <label class="label " for="f-demo_hint">
+    <span lang="bn">ইমেইল</span>
+  </label>
+
+  <input class="input" type="email" id="f-demo_hint" name="demo_hint"
+         value=""
+dir="ltr">
+
+  <p class="hint" id="hint-demo_hint" lang="bn">কখনো কারও সাথে শেয়ার করা হবে না।</p>
+
+</div>
+
+      <div class="field ">
+  <label class="label label-required" for="f-demo_error">
+    <span lang="bn">বিষয়</span>
+  </label>
+
+  <input class="input" type="text" id="f-demo_error" name="demo_error"
+         value=""
+aria-invalid="true" aria-describedby="err-demo_error"required>
+
+
+  <p class="error-text" id="err-demo_error">
+    <svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg> <span lang="bn">বিষয় আবশ্যক</span>
+  </p>
+</div>
+
+      <div class="field">
+  <label class="label " for="f-demo_select">
+    <span lang="bn">ফলাফল</span>
+  </label>
+  <select class="select" id="f-demo_select" name="demo_select"
+>
+    <option value="" selectedlang="bn">নির্বাচন করুন</option>
+    <option value="employment" lang="bn">কর্মসংস্থান</option>
+    <option value="freelancing" lang="bn">ফ্রিল্যান্সিং</option>
+  </select>
+</div>
+
+      <div class="field flex-row items-start gap-3">
+  <input type="checkbox" id="f-demo_check" name="demo_check" value="1"
+         class="mt-1 size-5 shrink-0 accent-green-700"
+ >
+  <div>
+    <label class="label cursor-pointer" for="f-demo_check">
+      <span lang="bn">উদ্ধৃতি প্রকাশে সম্মতি</span>
+    </label>
+    <p class="hint" lang="bn">নাম প্রকাশের চেয়ে শক্তিশালী একটি কাজ (§৫.৩)।</p>
+  </div>
+</div>
+
+    </div>
+  </section>
+
+  <section class="border-t border-line bg-paper-2 py-12">
+    <div class="admin-scope container-wide">
+      <h2 class="mb-6 text-xl font-bold">Admin density skin</h2>
+      <p class="mb-6 text-ink-500">
+        একই স্টাইলশিট, দুটি ঘনত্ব — <span class="num">.admin-scope</span> (১৩px ভিত্তি, DataTable-প্রথম)।
+      </p>
+
+      <div id="kb-kpi_card" class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="kpi-card"
+>
+  <span class="kpi-label" lang="bn">মোট রেকর্ড</span>
+  <span class="kpi-value">১২৪</span>
+</div>
+
+        <div class="kpi-card"
+>
+  <span class="kpi-label" lang="bn">প্রকাশিত</span>
+  <span class="kpi-value">১১৮</span>
+  <span class="text-xs text-ink-500" lang="bn">সম্মতিসহ</span>
+</div>
+
+        <div class="kpi-card"
+style="border-block-start-color: var(--color-warn)">
+  <span class="kpi-label" lang="bn">সম্মতি নেই</span>
+  <span class="kpi-value">৬</span>
+  <span class="text-xs text-ink-500" lang="bn">প্রকাশ করা হয়নি</span>
+</div>
+
+        <div class="kpi-card"
+style="border-block-start-color: var(--color-flag-red)">
+  <span class="kpi-label" lang="bn">প্রত্যাহৃত</span>
+  <span class="kpi-value">২</span>
+  <span class="text-xs text-ink-500" lang="bn">কার্যক্রম প্রয়োজন</span>
+</div>
+
+      </div>
+
+      <div id="kb-data_table">
+        <h3 class="mb-3 font-semibold">DataTable</h3>
+<div class="table-scroll">
+<table class="table-ruled w-full">
+  <thead>
+    <tr>
+      <th scope="col" lang="bn">
+নাম      </th>
+      <th scope="col" lang="bn">
+শিক্ষা      </th>
+      <th scope="col" lang="bn">
+ফলাফল      </th>
+      <th scope="col" lang="bn">
+অবস্থা      </th>
+      <th scope="col" class="numeric"lang="bn">
+যোগদান      </th>
+    </tr>
+  </thead>
+  <tbody>
+              <tr>
+            <td lang="bn">রূপা আক্তার</td><td lang="bn">এইচএসসি</td>
+            <td lang="bn">ফ্রিল্যান্সিং</td><td><span class="badge ">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#check"></use>
+</svg>    <span lang="bn">প্রকাশিত</span>
+  </span>
+</td>
+            <td class="numeric">২০২৬-০৩-০১</td>
+          </tr>
+          <tr>
+            <td lang="bn">বিষ্ণুপ্রসাদ দাশ</td><td lang="bn">স্নাতক</td>
+            <td lang="bn">শিক্ষকতা</td><td><span class="badge badge-unpublished">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#eye-off"></use>
+</svg>    <span lang="bn">প্রকাশ করা হয়নি</span>
+  </span>
+</td>
+            <td class="numeric">২০২৬-০৩-০১</td>
+          </tr>
+          <tr>
+            <td lang="bn">নুসরাত জাহান</td><td lang="bn">সম্মান</td>
+            <td lang="bn">ব্যবসা</td><td><span class="badge badge-withdrawn">
+<svg class="size-3 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#alert"></use>
+</svg>    <span lang="bn">সম্মতি প্রত্যাহৃত</span>
+  </span>
+</td>
+            <td class="numeric">২০২৬-০৩-০২</td>
+          </tr>
+
+  </tbody>
+</table>
+</div>
+      </div>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+          <button class="btn btn-primary " type="button"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#plus"></use>
+</svg>    <span>নতুন যোগ করুন</span>
+  </button>
+
+          <button class="btn btn-secondary " type="button"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#upload"></use>
+</svg>    <span>CSV আমদানি</span>
+  </button>
+
+          <button class="btn btn-ghost " type="button"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#download"></use>
+</svg>    <span>এক্সপোর্ট</span>
+  </button>
+
+          <button class="btn btn-danger " type="button"
+>
+<svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#trash"></use>
+</svg>    <span>মুছুন</span>
+  </button>
+
+          <button class="btn btn-primary " type="button"
+disabled>
+    <span>নিষ্ক্রিয়</span>
+  </button>
+
+          <button class="btn btn-ghost btn-sm " type="button" aria-label="পূর্বাবস্থায় ফেরান" title="পূর্বাবস্থায় ফেরান">
+    <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#refresh"></use>
+</svg>
+  </button>
+
+        <span class="badge ">প্রকাশিত
+</span>
+        <span class="badge badge-neutral">খসড়া
+</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-site py-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Surfaces, ink &amp; accents</h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+      <div><div class="h-14 border border-line bg-paper"></div><p class="num mt-1 text-xs text-ink-500">paper</p></div>
+      <div><div class="h-14 border border-line bg-paper-2"></div><p class="num mt-1 text-xs text-ink-500">paper-2</p></div>
+      <div><div class="h-14 border border-line bg-paper-3"></div><p class="num mt-1 text-xs text-ink-500">paper-3</p></div>
+      <div><div class="h-14 border border-line bg-surface"></div><p class="num mt-1 text-xs text-ink-500">surface</p></div>
+      <div><div class="h-14 border border-line bg-green-900"></div><p class="num mt-1 text-xs text-ink-500">green-900</p></div>
+      <div><div class="h-14 border border-line bg-green-700"></div><p class="num mt-1 text-xs text-ink-500">green-700</p></div>
+      <div><div class="h-14 border border-line bg-green-500"></div><p class="num mt-1 text-xs text-ink-500">green-500</p></div>
+      <div><div class="h-14 border border-line bg-green-100"></div><p class="num mt-1 text-xs text-ink-500">green-100</p></div>
+      <div><div class="h-14 border border-line bg-flag-red"></div><p class="num mt-1 text-xs text-ink-500">flag-red</p></div>
+      <div><div class="h-14 border border-line bg-gold"></div><p class="num mt-1 text-xs text-ink-500">gold</p></div>
+      <div><div class="h-14 border border-line bg-info"></div><p class="num mt-1 text-xs text-ink-500">info</p></div>
+      <div><div class="h-14 border border-line bg-warn"></div><p class="num mt-1 text-xs text-ink-500">warn</p></div>
+    </div>
+    <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div><div class="h-10 bg-ink-900"></div><p class="num mt-1 text-xs text-ink-500">ink-900</p></div>
+      <div><div class="h-10 bg-ink-700"></div><p class="num mt-1 text-xs text-ink-500">ink-700</p></div>
+      <div><div class="h-10 bg-ink-500"></div><p class="num mt-1 text-xs text-ink-500">ink-500</p></div>
+      <div><div class="h-10 bg-ink-300"></div><p class="num mt-1 text-xs text-ink-500">ink-300</p></div>
+    </div>
+  </section>
+
+  <section class="container-site pb-12">
+    <h2 class="font-display mb-6 text-2xl font-bold">Type scale (Bangla)</h2>
+    <div class="space-y-4">
+      <p class="font-display text-5xl font-bold">5xl — শিরোনাম</p>
+      <p class="font-display text-4xl font-bold">4xl — শিরোনাম</p>
+      <p class="font-display text-3xl font-bold">3xl — শিরোনাম</p>
+      <p class="font-display text-2xl font-bold">2xl — শিরোনাম</p>
+      <p class="font-display text-xl font-bold">xl — শিরোনাম</p>
+      <p class="text-lg">lg — বড় পাঠ্য</p>
+      <p class="text-base">base — মূল পাঠ্য, ১৭px, লাইন-হাইট ১.৭৫</p>
+      <p class="text-sm">sm — ছোট পাঠ্য, ১৫px</p>
+      <p class="text-xs">xs — ক্যাপশন, ১৩px</p>
+      <p class="num text-base">num — ০১২৩৪৫৬৭৮৯ · 1234567890 · ট্যাবুলার</p>
+    </div>
+  </section>
+
+  <section class="container-site pb-16">
+    <h2 class="font-display mb-6 text-2xl font-bold">States</h2>
+    <div class="flex flex-wrap items-center gap-4">
+        <button class="btn btn-primary " type="button"
+>
+    <span>Default</span>
+  </button>
+
+        <button class="btn btn-primary hover:bg-green-600" type="button"
+>
+    <span>Hover (হোভার করুন)</span>
+  </button>
+
+      <button class="btn btn-secondary focus-visible:outline-2">Focus-visible</button>
+        <button class="btn btn-primary " type="button"
+disabled>
+    <span>Disabled</span>
+  </button>
+
+        <button class="btn btn-secondary btn-sm " type="button" aria-label="আইকন বাটন — বিকল্প পাঠ্য আবশ্যক" title="আইকন বাটন — বিকল্প পাঠ্য আবশ্যক">
+    <svg class="size-4 shrink-0 "
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#settings"></use>
+</svg>
+  </button>
+
+    </div>
+  </section>
+</main>
+
+<div id="kb-site_footer">
+  <footer class="relative mt-20 bg-green-900 text-green-100">
+  <div class="contour-band-dark absolute inset-x-0 bottom-0 h-28 pointer-events-none"
+       aria-hidden="true"></div>
+
+  <div class="container-site relative py-14">
+    <div class="grid gap-10 md:grid-cols-4">
+
+      <div class="md:col-span-1">
+        <img src="../app/static/img/roundel.svg" alt="" aria-hidden="true"
+     class="size-14 " width="56" height="56">
+        <p class="mt-4 font-display text-lg font-bold text-paper" lang="bn">এআই সিলেট</p>
+        <p class="mt-1 text-sm text-green-100/80" lang="bn">
+          যুব উন্নয়ন অধিদপ্তর — তথ্যপ্রযুক্তি জ্ঞানসম্পন্ন যুবদের কৃত্রিম বুদ্ধিমত্তা প্রযুক্তির
+          মাধ্যমে দক্ষতা উন্নয়ন কর্মসূচি।
+        </p>
+      </div>
+
+      <nav aria-label="ফুটার মেনু">
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">সাইট</h2>
+        <ul class="mt-3 flex flex-col gap-2">
+          <li><a href="/" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">হোম</a></li>
+          <li><a href="/course" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">কোর্স</a></li>
+          <li><a href="/batch-1" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">ব্যাচ ১</a></li>
+          <li><a href="/gallery" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">গ্যালারি</a></li>
+          <li><a href="/about" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">আমাদের সম্পর্কে</a></li>
+          <li><a href="/contact" class="text-sm text-green-100/85 hover:text-paper"
+lang="bn">যোগাযোগ</a></li>
+          <li><a href="/privacy" class="text-sm text-green-100/85 hover:text-paper"
+                 lang="bn">প্রাইভেসি পলিসি</a></li>
+        </ul>
+      </nav>
+
+      <div>
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">যোগাযোগ</h2>
+        <ul class="mt-3 flex flex-col gap-3">
+          <li class="flex items-start gap-2">
+            <svg class="size-4 shrink-0 mt-0.5 text-green-100/70"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#phone"></use>
+</svg>
+            <span class="num text-sm" dir="ltr">+88 02-8091188<br>01550-666900</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <svg class="size-4 shrink-0 mt-0.5 text-green-100/70"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#mail"></use>
+</svg>
+            <a href="mailto:info@elaeltd.com" class="text-sm text-green-100/85 hover:text-paper"
+               dir="ltr">info@elaeltd.com</a>
+          </li>
+          <li class="flex items-start gap-2">
+            <svg class="size-4 shrink-0 mt-0.5 text-green-100/70"
+aria-hidden="true" focusable="false">
+  <use href="../app/static/img/sprite.svg#map-pin"></use>
+</svg>
+            <span class="text-sm text-green-100/85" lang="bn">খাজা আইটি পার্ক (২য়–৬ষ্ঠ তলা), ০৭ দক্ষিণ কল্যাণপুর, মিরপুর রোড, ঢাকা-১২০৭</span>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="font-display text-sm font-bold text-paper" lang="bn">সরকারি প্রতিষ্ঠান</h2>
+        <p class="mt-3 text-sm text-green-100/85" lang="bn">
+          যুব উন্নয়ন অধিদপ্তর<br>
+          যুব ও ক্রীড়া মন্ত্রণালয়<br>
+          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার
+        </p>
+      </div>
+    </div>
+
+    <hr class="document-rule mt-12 opacity-30">
+
+    <div class="mt-6 flex flex-col gap-2 text-xs text-green-100/70 md:flex-row md:justify-between">
+      <p lang="bn">© ২০২৬ যুব উন্নয়ন অধিদপ্তর। সর্বস্বত্ব সংরক্ষিত।</p>
+      <p class="num" dir="ltr">AI Sylhet · Batch 1</p>
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<div class="sr-only" aria-hidden="true"><div class="fixed bottom-4 end-4 z-50 flex w-80 flex-col gap-2" aria-live="polite">
+</div>
+</div>
+</body>
+</html>
