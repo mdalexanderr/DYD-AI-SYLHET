@@ -63,8 +63,8 @@ def verify(path: str, token: str, *, max_age: int | None = None) -> bool:
     """True when `token` is a valid, unexpired signature FOR `path`.
 
     Comparing `loads(token) == path` is what binds the signature to the file. Without
-    that comparison a token for any known path would unlock every path, which is the
-    shape of bug that looks like it works until somebody tries.
+    that comparison a token for any known path would be accepted for every path, which
+    is the shape of bug that looks like it works until somebody tries.
     """
     from itsdangerous import BadSignature, SignatureExpired
 

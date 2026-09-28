@@ -163,10 +163,19 @@ def test_permissions_policy_is_set(client):
 
 def test_hsts_is_absent_outside_production(client, app):
     """HSTS on a dev server pins http://localhost to https in the developer's browser
-    for months, and the fix is a browser setting most people cannot find."""
+    for months, and the fix is a browser setting most people cannot find.
+
+    `base_url` is pinned to http deliberately. Flask's test client otherwise inherits
+    PREFERRED_URL_SCHEME, which is https, so `request.is_secure` is true inside the
+    test and the app correctly emits HSTS — an assertion that could never pass, and a
+    red test that hides the next real one. A developer's browser reaches
+    http://localhost over http, and that is the case worth asserting.
+    """
     if app.config["APP_ENV"] == "production":
         pytest.skip("this test is about non-production behaviour")
-    assert "strict-transport-security" not in _headers(client)
+    response = client.get("/health", base_url="http://localhost")
+    headers = {k.lower(): v for k, v in response.headers.items()}
+    assert "strict-transport-security" not in headers
 
 
 # ─────────────────────────────────────────────────────────────────────────────

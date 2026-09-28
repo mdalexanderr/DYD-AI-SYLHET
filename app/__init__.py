@@ -30,7 +30,9 @@ from app.filters import register_filters
 
 __all__ = ["create_app"]
 
-#: The 6 blueprints of §9.2, in registration order.
+#: The 6 blueprints of §9.2, in registration order. `spa` is the 7th and is not
+#: from §9.2 — it serves the React frontend, which is the site's front page
+#: (docs/FRONTEND.md).
 BLUEPRINT_MODULES = (
     ("app.routes.public", "public"),
     ("app.routes.participants", "participants"),
@@ -38,6 +40,10 @@ BLUEPRINT_MODULES = (
     ("app.routes.seo", "seo"),
     ("app.routes.api", "api"),
     ("app.routes.admin", "admin"),
+    # Last, deliberately. It sits at the root, and Werkzeug resolves two rules for
+    # one path in registration order — so registering it after every specific route
+    # keeps those routes winning rather than losing without a word.
+    ("app.routes.spa", "spa"),
 )
 
 
@@ -479,18 +485,50 @@ def _error_handlers(app: Flask) -> None:
 
 
 def _register_blueprints(app: Flask) -> None:
-    """Register the 6 blueprints. A missing one is a hard error, not a warning.
+    """Register the blueprints. A missing one is a hard error, not a warning.
 
     Skipping a blueprint whose import failed would ship a site with no admin and
     no error at boot — discovered by whoever tries to log in.
+
+    The one blueprint that may legitimately be absent is `spa`, and only because
+    `SPA_ENABLED` says so. It is the front page and its assets; the Jinja pages do
+    not depend on it and it does not depend on them.
+
+    WHICH PATHS BELONG TO WHOM IS ALSO DECIDED HERE, not in a module. `SPA_ROUTES`
+    lists the paths the React router owns, and each one is TAKEN AWAY from the Jinja
+    page table rather than shadowed by a second rule for the same path. Werkzeug
+    resolves two rules for one path by registration order without saying so — the
+    loser simply stops existing — so the list is applied before anything registers,
+    and what was withheld is logged.
     """
     from importlib import import_module
 
     from app.extensions import csrf
 
+    # Only a frontend mounted AT THE ROOT competes with the Jinja pages; with a
+    # prefix it owns `/preview/...` and nothing on the Jinja side moves.
+    at_the_root = not str(app.config["SPA_URL_PREFIX"]).strip("/")
+    frontend_routes = (
+        _frontend_routes(app) if app.config["SPA_ENABLED"] else ()
+    )
+    withheld = frozenset(frontend_routes) if at_the_root else frozenset()
+    if withheld:
+        app.logger.info(
+            "frontend mount owns %s; withheld from the Jinja page table",
+            ", ".join(frontend_routes),
+        )
+
     for module_path, name in BLUEPRINT_MODULES:
         module = import_module(module_path)
-        blueprint = getattr(module, f"{name}_bp", None) or module.bp
+        # `public` and `spa` build their blueprints per application: which paths are
+        # theirs depends on configuration, and a rule cannot be added once a
+        # blueprint has been registered.
+        if name == "public":
+            blueprint = module.create_blueprint(withheld=withheld)
+        elif name == "spa":
+            blueprint = module.create_blueprint(routes=frontend_routes)
+        else:
+            blueprint = getattr(module, f"{name}_bp", None) or module.bp
         url_prefix = getattr(module, "URL_PREFIX", None)
 
         if name == "admin":
@@ -498,9 +536,63 @@ def _register_blueprints(app: Flask) -> None:
             url_prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
         elif name == "api":
             url_prefix = None  # /health, /manifest.json live at the root
+        elif name == "spa":
+            if not app.config["SPA_ENABLED"]:
+                app.logger.info("frontend mount disabled (SPA_ENABLED=false)")
+                continue
+            prefix = str(app.config["SPA_URL_PREFIX"]).strip("/")
+            # None and "" are not the same to register_blueprint: a prefix of "/"
+            # would produce the rule "//".
+            url_prefix = f"/{prefix}" if prefix else None
+            _warn_if_frontend_not_built(app, url_prefix or "/")
 
         app.register_blueprint(blueprint, url_prefix=url_prefix)
 
         # The admin surface is the only state-changing one that is not a public
         # form; CSRF is global (see extensions), so nothing extra is needed here.
         _ = csrf
+
+
+def _frontend_routes(app: Flask) -> tuple[str, ...]:
+    """The paths the React router owns, read from `SPA_ROUTES` and normalised.
+
+    A path on that list has exactly one owner, so a typo is not a harmless no-op: an
+    entry without a leading slash registers a rule that can never match, and the page
+    the header links to falls through to the Jinja site — or to the 404 page, which is
+    worse, because the link is right there in the nav. Refused at boot instead.
+
+    `SPA_ROUTES=/gallery,/gallery/` is deduplicated rather than refused: a duplicate
+    is not ambiguous, and a second rule for one path is an error Werkzeug raises at
+    registration with a message that does not name the setting.
+    """
+    routes: list[str] = []
+    for entry in app.config["SPA_ROUTES"]:
+        raw = str(entry).strip()
+        if not raw.startswith("/"):
+            raise RuntimeError(
+                f"SPA_ROUTES entry {raw!r} must be root-relative: write '/gallery', "
+                "not 'gallery'. See docs/FRONTEND.md."
+            )
+        route = "/" + raw.strip("/")
+        if route not in routes:
+            routes.append(route)
+    return tuple(routes)
+
+
+def _warn_if_frontend_not_built(app: Flask, url_prefix: str) -> None:
+    """Say so at boot if the bundle is missing, instead of 404ing mysteriously.
+
+    The built bundle is committed, so a fresh clone has one and this never fires.
+    It fires on the machine where somebody deleted `app/static/spa/` while tidying
+    up, and the alternative to one line here is working out why one route of the
+    site suddenly 404s.
+    """
+    dist = Path(app.config["SPA_DIST_DIR"])
+    if not (dist / "index.html").is_file():
+        app.logger.warning(
+            "%s has no frontend build: %s/index.html is missing. "
+            "Run `npm run build` in frontend/ (the output is committed, so a "
+            "clean clone already has it).",
+            url_prefix,
+            dist,
+        )

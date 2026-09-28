@@ -289,6 +289,40 @@ class BaseConfig:
     VAR_DIR = VAR_DIR
     STATIC_DIR = BASE_DIR / "app" / "static"
     APP_CSS_PATH = BASE_DIR / "app" / "static" / "css" / "app.css"
+    # Written by `npm run build` in `frontend/`. Committed, exactly like app.css, so
+    # the server needs no Node and a deploy stays a file sync (§8.1).
+    SPA_DIST_DIR = BASE_DIR / "app" / "static" / "spa"
+
+    # ── React frontend mount (docs/FRONTEND.md) ──────────────────────────────
+    # The React site is the FRONT PAGE, so an empty prefix means the domain root.
+    SPA_ENABLED = _bool("SPA_ENABLED", True)
+    SPA_URL_PREFIX = _str("SPA_URL_PREFIX", "")
+    # THE EXACT PATHS THE FRONTEND ROUTER OWNS. Each one is a URL a reader can
+    # bookmark, reload, or open in a new tab (frontend/src/main.tsx), so for each
+    # of them the server has to answer a direct request with the shell. A path on
+    # this list is WITHDRAWN from the Jinja page table while the frontend holds it:
+    # one owner per path, decided at boot rather than by registration order.
+    #
+    # A LIST, NOT A CATCH-ALL. A fallback would answer any path with the shell,
+    # which deletes the Bangla 404 (§9.2) and turns the 405 on `GET /logout` into a
+    # 404. Adding a page to the router therefore means adding a line here; forgetting
+    # to leaves a loud 404 instead of a wrong 200.
+    SPA_ROUTES = _csv("SPA_ROUTES", ("/", "/gallery", "/contact"))
+    # The React app loads Google Fonts and Unsplash images, which the site policy
+    # below blocks. This is that allowance and nothing else — it is scoped to this
+    # one route and goes away when those fonts and images are self-hosted (§15.1
+    # forbids both, and neither is inside our control).
+    SPA_CONTENT_SECURITY_POLICY = (
+        "default-src 'self'; "
+        "img-src 'self' data: https://images.unsplash.com "
+        "https://i.ibb.co https://i.ibb.co.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "script-src 'self'; "
+        "connect-src 'self'; "
+        "form-action 'self'; base-uri 'self'; "
+        "frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+    )
 
 
 class DevConfig(BaseConfig):

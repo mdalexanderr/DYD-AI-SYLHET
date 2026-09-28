@@ -42,7 +42,12 @@
   <link rel="alternate" hreflang="bn-BD" href="{{ request.base_url }}">
   <link rel="alternate" hreflang="x-default" href="{{ request.base_url }}">
 
-  {# §7.4 — icons only. No emoji, no icon font, no raster logo in the header. #}
+  {# §7.4 — icons only: no emoji, no icon font. The rule this now bends is "no raster
+     logo in the header": `img/dyd-logo.png` replaced the drawn roundel when the
+     supplied logo arrived, which is what plan.md Q4 asked for ("typographic wordmark
+     + roundel UNTIL SUPPLIED") but is not what §7.4 says. It is transparent, and it
+     sits on the page ground everywhere except the footer, which gives it a plate.
+     Regenerate the whole set with `python tools/build-brand-icons.py`. #}
   <link rel="icon" href="{{ static_url('img/favicon.ico') }}" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('img/favicon-32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ static_url('img/favicon-16.png') }}">

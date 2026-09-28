@@ -22,8 +22,11 @@ import re
 
 import pytest
 
-#: The 8 public routes (§6.2), minus the record-backed one, which is tested separately.
-PAGE_PATHS = ("/", "/course", "/batch-1", "/gallery", "/about", "/contact", "/privacy")
+#: The public routes still rendered from the `pages` table, minus the record-backed one,
+#: which is tested separately. `/`, `/gallery` and `/contact` are absent because the
+#: React frontend owns them (`SPA_ROUTES` in app/config.py, docs/FRONTEND.md) — those
+#: Jinja routes are not registered, so they are asserted in test_spa.py instead.
+PAGE_PATHS = ("/course", "/batch-1", "/about", "/privacy")
 
 
 def _listed_slugs(body: str) -> set[str]:
@@ -55,7 +58,7 @@ def live_pages(seeded):
 
 @pytest.mark.parametrize("path", PAGE_PATHS)
 def test_every_public_page_renders(client, live_pages, path):
-    """Step 3.5's "Done when": each of the 8 returns 200 against seed data."""
+    """Step 3.5's "Done when": each Jinja page returns 200 against seed data."""
     response = client.get(path)
 
     assert response.status_code == 200, f"{path} -> {response.status_code}"
@@ -69,13 +72,18 @@ def test_every_public_page_renders(client, live_pages, path):
 
 
 def test_the_cms_pages_actually_render_seeded_sections(client, live_pages):
-    """A 200 with an empty shell would pass the test above. This one would not."""
-    body = client.get("/").get_data(as_text=True)
-    home = live_pages["home"]
-    assert len(home.visible_sections) == 6, "the fixture stopped being interesting"
+    """A 200 with an empty shell would pass the test above. This one would not.
+
+    Asserted on `/course` rather than `/`: the React frontend is the front page now
+    (docs/FRONTEND.md), and this test is about the Jinja rendering pipeline. The
+    course page has the same shape — a hero first, then its sections.
+    """
+    body = client.get("/course").get_data(as_text=True)
+    course = live_pages["course"]
+    assert len(course.visible_sections) == 7, "the fixture stopped being interesting"
     # The first seeded hero heading must reach the response.
-    heading = home.visible_sections[0].content["heading_bn"]
-    assert heading in body, "the home page rendered without its hero content"
+    heading = course.visible_sections[0].content["heading_bn"]
+    assert heading in body, "the course page rendered without its hero content"
 
 
 def test_an_unknown_slug_is_a_404(client, live_pages):

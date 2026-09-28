@@ -281,23 +281,34 @@
 {% endmacro %}
 
 
-{# ── The closing band. One primary action, on a dark ground, at the end of a
-      page — the only place besides the footer where green-900 appears. ────── #}
+{# ── The closing note. One action, hung off the page's margin — not a centred
+      banner on a dark ground.
+
+      What was here was the shape §7.6 bans ("everything centred"): a centred
+      heading, a centred paragraph and a centred button on green-900, sitting
+      directly above a footer that repeated the same message on the same colour.
+
+      It is now marked by the site's own structural device: a 2px rule opening the
+      end matter, and a rule in the left margin beside the text. Nothing is spaced:
+      §14.3 — Bangla is never letter-spaced and never uppercased, so emphasis comes
+      from weight and from the rule. The arrow glyph is gone as well: on this site
+      the arrow marks a text link, and on a filled button it is decoration. ─────── #}
 {% macro cta_band(heading_bn, body_bn=None, cta_label=None, cta_href=None) %}
-<section class="mt-16 bg-green-900 text-green-100">
-  <div class="container-site py-14">
-    <h2 class="font-display max-w-2xl text-2xl font-bold text-paper" lang="bn">{{ heading_bn }}</h2>
-    {% if body_bn %}
-    <p class="prose-bn mt-3 text-green-100/85" lang="bn">{{ body_bn }}</p>
-    {% endif %}
-    {% if cta_label and cta_href %}
-    <div class="mt-6">
-      <a class="btn btn-sm" href="{{ cta_href }}"
-         style="background-color: var(--color-paper); color: var(--color-green-900); border-color: var(--color-paper)">
-        {{ cta_label }} {{ icon('arrow-right', 4) }}
-      </a>
+<section class="mt-16 border-t-2 border-green-700 bg-paper">
+  <div class="container-site py-10 md:py-12">
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div class="border-l-4 border-green-700 pl-5">
+        <h2 class="font-display text-xl font-bold text-ink-900" lang="bn">{{ heading_bn }}</h2>
+        {% if body_bn %}
+        <p class="prose-bn mt-2 max-w-prose text-sm text-ink-500" lang="bn">{{ body_bn }}</p>
+        {% endif %}
+      </div>
+      {% if cta_label and cta_href %}
+      <div class="shrink-0">
+        {{ btn(cta_label, cta_href, variant='primary') }}
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 </section>
 {% endmacro %}

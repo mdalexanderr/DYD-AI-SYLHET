@@ -104,6 +104,12 @@ REQUIRED_FILES = [
     "app/routes/seo.py",
     "app/routes/api.py",
     "app/routes/admin/__init__.py",
+    # The React frontend mount — the 7th blueprint, and not from §9.2
+    # (docs/FRONTEND.md). Built by `npm run build` in `frontend/` and committed,
+    # like app.css, so the server needs no Node. Remove both lines together with
+    # the mount if this site is ever dropped.
+    "app/routes/spa.py",
+    "app/static/spa/index.html",
     # Layout and error pages (step 2.5)
     "app/templates/layouts/base.html",
     "app/templates/errors/404.html",
@@ -128,6 +134,14 @@ REQUIRED_FILES = [
     "app/static/img/contour-band-paper.svg",
     "app/static/img/contour-band-dark.svg",
     "app/static/img/favicon.ico",
+    # The supplied brand logo and the master it is generated from
+    # (tools/build-brand-icons.py, docs/FRONTEND.md). `roundel.svg` above stays as
+    # the drawn fallback plan.md Q4 describes, and is still what design-src draws.
+    "app/static/img/dyd-logo.png",
+    "assets/brand/logo-master.png",
+    # The front page's hero artwork and the master it is generated from
+    # (tools/build-hero-image.py, docs/FRONTEND.md).
+    "assets/media/hero-master.png",
     "app/static/site.webmanifest",
     # Tooling and gates
     "tools/check-css.py",

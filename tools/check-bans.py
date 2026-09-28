@@ -20,6 +20,8 @@ WHAT IS SCANNED
 WHAT IS NOT
     plan.md, EXECUTION-PLAN.md, docs/, tools/, design-src/, node_modules/, .venv/
     Those files DEFINE the rules, so they necessarily contain the banned words.
+    app/static/css/ and app/static/spa/ are build output — see GENERATED_PATH_PARTS
+    below, which explains why scanning either one produces only false positives.
 
 ESCAPE HATCH
     A line ending in `check-bans:ignore` is skipped.
@@ -132,7 +134,15 @@ SAFE_EXPR_RE = re.compile(r"\b\w+_html\s*\|\s*safe\b")
 # contains the strings `rounded-full`, `backdrop-blur` and `backdrop-filter`
 # whether or not a template uses them, so scanning them produces permanent false
 # positives. The compiled sheet is policed by check-css.py instead.
-GENERATED_PATH_PARTS = ("app/static/css/", "design-src/")
+#
+# `app/static/spa/` is the React frontend build (docs/FRONTEND.md) and needs the
+# same exemption for a stronger version of the same reason. A minified bundle
+# contains its dependencies' code, compressed string tables, and every Tailwind
+# class this frontend uses as a string literal — `rounded-full` appears because
+# the design uses it, which is exactly the string this file bans in OUR templates.
+# Its own toolchain and review process live in `frontend/`; this gate polices the
+# surface of the Flask site, and the bundle is not that surface.
+GENERATED_PATH_PARTS = ("app/static/css/", "app/static/spa/", "design-src/")
 GENERATED_SUFFIXES = (".out.css", ".min.css", ".min.js")
 
 

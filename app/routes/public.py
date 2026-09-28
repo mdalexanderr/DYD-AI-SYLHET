@@ -6,6 +6,12 @@ SEVEN ROUTES, ONE VIEW
     than written out seven times: seven near-identical view functions is seven places
     for the 404 rule below to be forgotten in one of them.
 
+`/` AND THE FRONTEND'S PAGES ARE REGISTERED ELSEWHERE OR NOT AT ALL
+    The React frontend is the site's front page and now also owns `/gallery` and
+    `/contact` (docs/FRONTEND.md), so those three routes are withheld from this table
+    while the frontend holds them — `SPA_ROUTES` in app/config.py is the list. The
+    rest of the pages, and every participant profile, are unaffected.
+
 A MISSING PAGE AND AN UNPUBLISHED PAGE MUST LOOK IDENTICAL
     `render_page_by_slug` returns None for both, and both 404. If they were
     distinguishable, `/privacy` would answer "exists but not published" and the URL
@@ -21,11 +27,14 @@ A MISSING PAGE AND AN UNPUBLISHED PAGE MUST LOOK IDENTICAL
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from flask import Blueprint, abort, render_template, request
 
 from app.services import media_service, page_service, participant_service
 
-public_bp = Blueprint("public", __name__)
+#: The app factory supplies the prefix via `register_blueprint`. Kept at None here so
+#: the default lives in one place — config.py.
 URL_PREFIX = None
 
 #: Routes 1–8 (§6.2), minus the one that needs a record. Order is the order a reader
@@ -67,15 +76,6 @@ def _render_cms_page(slug: str):
     return view
 
 
-for _rule, _slug in PAGE_ROUTES:
-    public_bp.add_url_rule(
-        _rule,
-        endpoint=_slug.replace("-", "_"),
-        view_func=_render_cms_page(_slug),
-    )
-
-
-@public_bp.get("/batch-1/<slug>")
 def participant_profile(slug: str):
     """Route 4 — one participant's profile (§5.5, step 3.16).
 
@@ -95,7 +95,6 @@ def participant_profile(slug: str):
     )
 
 
-@public_bp.get("/media/<path:filename>")
 def media(filename: str):
     """Route 13 — serve an upload from outside the webroot, behind a signature.
 
@@ -109,3 +108,49 @@ exists only to bind the URL shape to that function — there is no policy here t
     return media_service.serve(
         filename, request.args.get(media_service.SIGNATURE_PARAM)
     )
+
+
+def _normalise(rule: str) -> str:
+    """`/gallery/` and `/gallery` are the same path, and `PAGE_ROUTES` has no slash.
+
+    Both halves of the comparison go through this, so a trailing slash in
+    `SPA_ROUTES` cannot withhold nothing while looking like it withheld something.
+    """
+    return "/" + str(rule).strip().strip("/")
+
+
+def create_blueprint(*, withheld: Iterable[str] = ()) -> Blueprint:
+    """Build the public blueprint with its routes attached.
+
+    A FACTORY RATHER THAN A MODULE-LEVEL `public_bp`, for two reasons:
+
+    1. Whether a path is ours to register is a configuration decision — the React
+       frontend owns `/`, `/gallery` and `/contact` (`SPA_ROUTES` in
+       app/config.py) — and a rule can only be added to a blueprint BEFORE it is
+       first registered. A module-level blueprint would answer for the first
+       application built in a process and raise AssertionError for the second, which
+       is exactly what the test suite does.
+    2. Endpoints are unchanged by the move: `public.participant_profile` and
+       `public.media` are still what `url_for` resolves to.
+
+    `withheld` is a set of paths the frontend holds. A withheld path is SKIPPED, not
+    overridden: two rules for one path are resolved by registration order without a
+    warning, and the loser silently stops existing. `PAGE_ROUTES` keeps listing all
+    of them either way, and should — the sitemap is built from that table, and each
+    is a real URL on this site whichever half serves it.
+    """
+    bp = Blueprint("public", __name__)
+    held = {_normalise(rule) for rule in withheld}
+
+    for rule, slug in PAGE_ROUTES:
+        if _normalise(rule) in held:
+            continue
+        bp.add_url_rule(
+            rule,
+            endpoint=slug.replace("-", "_"),
+            view_func=_render_cms_page(slug),
+        )
+
+    bp.add_url_rule("/batch-1/<slug>", view_func=participant_profile)
+    bp.add_url_rule("/media/<path:filename>", view_func=media)
+    return bp
