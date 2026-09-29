@@ -202,10 +202,11 @@ def check_config() -> None:
               help="Also create/refresh the admin account (requires --admin-password).")
 @click.option("--admin-password", default=None,
               help="Password for --admin-email. Prefer the interactive prompt.")
-@click.option("--no-2fa", is_flag=True, default=False,
-              help="Skip TOTP enrolment. Only for a throwaway local database.")
+@click.option("--with-2fa", is_flag=True, default=False,
+              help="Also enrol TOTP. OFF by default: this deployment runs a "
+                   "one-step login (ADMIN_2FA_REQUIRED=false).")
 @with_appcontext
-def seed(admin_email: str | None, admin_password: str | None, no_2fa: bool) -> None:
+def seed(admin_email: str | None, admin_password: str | None, with_2fa: bool) -> None:
     """Load §10.6 reference data. Idempotent — running it twice changes nothing.
 
     Step 2.13. Does NOT create participants: real names enter through the consent
@@ -231,7 +232,7 @@ def seed(admin_email: str | None, admin_password: str | None, no_2fa: bool) -> N
             )
         result = seed_admin(
             admin_email, admin_password,
-            enable_2fa=not no_2fa,
+            enable_2fa=with_2fa,
             secret_key=current_app.config["SECRET_KEY"],
         )
         _ok(f"admin {admin_email} {'created' if result['created'] else 'updated'}")
@@ -255,9 +256,10 @@ def seed(admin_email: str | None, admin_password: str | None, no_2fa: bool) -> N
 @click.command("create-admin")
 @click.argument("email")
 @click.option("--password", default=None, help="Omit to be prompted (recommended).")
-@click.option("--no-2fa", is_flag=True, default=False)
+@click.option("--with-2fa", is_flag=True, default=False,
+              help="Enrol TOTP. OFF by default: the login is one step.")
 @with_appcontext
-def create_admin(email: str, password: str | None, no_2fa: bool) -> None:
+def create_admin(email: str, password: str | None, with_2fa: bool) -> None:
     """Create or reset the single admin account (§12.1).
 
     There is no role argument. §3.3 and S1: exactly one administrator, therefore
@@ -277,7 +279,7 @@ def create_admin(email: str, password: str | None, no_2fa: bool) -> None:
 
     result = seed_admin(
         email, password,
-        enable_2fa=not no_2fa,
+        enable_2fa=with_2fa,
         secret_key=current_app.config["SECRET_KEY"],
     )
     _ok(f"admin {email} {'created' if result['created'] else 'updated'}")
@@ -292,8 +294,11 @@ def create_admin(email: str, password: str | None, no_2fa: bool) -> None:
             _out(f"    {code}")
         _out()
         click.secho("  Store these offline. They cannot be shown again.", fg="yellow", bold=True)
-    elif no_2fa:
-        _warn("2FA is OFF. §12.1 requires it before go-live.")
+    elif not with_2fa:
+        _warn(
+            "2FA is OFF — the standing decision for this deployment. §12.1 wanted "
+            "TOTP before go-live; `--with-2fa` enrols it."
+        )
     _out()
 
 
