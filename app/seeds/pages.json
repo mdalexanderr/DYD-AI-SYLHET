@@ -132,8 +132,8 @@
       }},
       { "type": "stat_strip", "content": {
         "heading_bn": "কর্মসূচি সংখ্যায়",
-        "columns": 4,
-        "stat_keys": ["course_hours", "course_days", "course_hours_per_day", "module_count"]
+        "columns": 3,
+        "stat_keys": ["course_hours", "course_days", "course_hours_per_day"]
       }},
       { "type": "rich_text", "content": {
         "heading_bn": "এই ওয়েবসাইটটি কী",
