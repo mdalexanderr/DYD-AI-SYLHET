@@ -40,6 +40,22 @@ branch_labels = None
 depends_on = None
 
 
+def _mariadb() -> bool:
+    """MariaDB (alwaysdata's "MySQL") rejects the CHECK this migration adds.
+
+    The batch-mode ``ALTER TABLE … ADD CONSTRAINT … CHECK (photo_id IS NULL OR
+    image_consent = 1)`` that Alembic renders is refused by MariaDB with error
+    1901 ("Function or expression 'photo_id' cannot be used in the CHECK
+    clause"), while the same expression works inline in CREATE TABLE and works
+    on SQLite and MySQL 8. So the database-level guard is created everywhere
+    EXCEPT MariaDB. The application-level consent gate is unchanged — a
+    participant without recorded consent is still excluded from every query,
+    count and search (§5.3) — so no real exposure is introduced; only the
+    defence-in-depth layer is absent on this one dialect.
+    """
+    return bool(getattr(op.get_bind().dialect, "is_mariadb", False))
+
+
 def upgrade():
     with op.batch_alter_table('participants', schema=None) as batch_op:
         batch_op.add_column(sa.Column('photo_id', sa.Integer(), nullable=True))
@@ -49,15 +65,17 @@ def upgrade():
         batch_op.create_foreign_key(
             'fk_participants_photo_id', 'media_items', ['photo_id'], ['id'], ondelete='SET NULL'
         )
-        batch_op.create_check_constraint(
-            'ck_participants_photo_requires_consent',
-            'photo_id IS NULL OR image_consent = 1',
-        )
+        if not _mariadb():
+            batch_op.create_check_constraint(
+                'ck_participants_photo_requires_consent',
+                'photo_id IS NULL OR image_consent = 1',
+            )
 
 
 def downgrade():
     with op.batch_alter_table('participants', schema=None) as batch_op:
-        batch_op.drop_constraint('ck_participants_photo_requires_consent', type_='check')
+        if not _mariadb():
+            batch_op.drop_constraint('ck_participants_photo_requires_consent', type_='check')
         batch_op.drop_constraint('fk_participants_photo_id', type_='foreignkey')
         batch_op.drop_column('image_consent')
         batch_op.drop_column('photo_id')
