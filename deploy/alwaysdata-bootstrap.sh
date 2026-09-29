@@ -83,6 +83,9 @@ chmod 600 "$APP_DIR/.env"
 say "check-config"
 "$VENV_DIR/bin/python" -m flask check-config || true
 
+say "reset schema (drop every table; bootstrap rebuilds a clean database)"
+"$VENV_DIR/bin/python" "$APP_DIR/deploy/reset_db.py"
+
 say "db upgrade"
 "$VENV_DIR/bin/python" -m flask db upgrade
 
