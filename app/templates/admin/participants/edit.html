@@ -143,6 +143,17 @@
             <label class="label" for="f-batch">Batch</label>
             <input class="input num" type="number" id="f-batch" name="batch" min="1" max="9"
                    value="{{ participant.batch if participant else 1 }}">
+
+            {#
+              The register order. Blank is the normal state and means "not placed, keep
+              the default order" — the number is only for the few who should lead the
+              published page. Lower comes first.
+            #}
+            <label class="label" for="f-display-order">Register order</label>
+            <input class="input num" type="number" id="f-display-order" name="display_order" min="1"
+                   value="{{ participant.display_order if participant and participant.display_order is not none else '' }}">
+            <p class="hint">Lower comes first on the home page and on the participants
+              page. Leave blank to keep this record in the default order.</p>
           </div>
         </div>
 

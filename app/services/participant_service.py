@@ -35,8 +35,28 @@ from app.constants import (
     OutcomeType,
 )
 
-#: Sort options a public list may use. `manual` is the seeded order (§6.4).
+#: Sort options a public list may use. `manual` is the operator's order (§6.4).
 SORT_CHOICES = ("name", "recent", "manual")
+
+
+def manual_order():
+    """The `manual` sort's criteria — one definition, two callers.
+
+    `content_service` builds the payload the reader's browser renders, and the admin
+    lists the same records for the person doing the placing. If those two disagreed,
+    a number typed in the panel would mean one thing there and another on the site.
+
+    `display_order IS NULL` sorts 0 before 1 on both MySQL/MariaDB and SQLite, so a
+    placed record always precedes an unplaced one; `batch, id` is the stable tail.
+    """
+    from app.models import Participant
+
+    return (
+        Participant.display_order.is_(None),
+        Participant.display_order,
+        Participant.batch,
+        Participant.id,
+    )
 
 
 def published_only(stmt):
@@ -69,7 +89,7 @@ def _order(stmt, sort: str):
         return stmt.order_by(Participant.name_bn)
     if sort == "recent":
         return stmt.order_by(Participant.published_at.desc().nullslast(), Participant.id.desc())
-    return stmt.order_by(Participant.batch, Participant.id)
+    return stmt.order_by(*manual_order())
 
 
 def _search(stmt, query: str | None):

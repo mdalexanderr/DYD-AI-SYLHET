@@ -83,8 +83,18 @@ chmod 600 "$APP_DIR/.env"
 say "check-config"
 "$VENV_DIR/bin/python" -m flask check-config || true
 
-say "reset schema (drop every table; bootstrap rebuilds a clean database)"
-"$VENV_DIR/bin/python" "$APP_DIR/deploy/reset_db.py"
+# DESTRUCTIVE, SO IT IS OFF BY DEFAULT — AND THAT IS A FIX, NOT A PREFERENCE.
+#   The first version of this script dropped every table on every run. That is correct
+#   on a box being provisioned for the first time and catastrophic on a box that has
+#   since taken a consent import, so the reset now needs an explicit
+#   ALLOW_DB_RESET=true. A bootstrap that can be re-run cannot be allowed to be able to
+#   delete the register.
+if [ "${ALLOW_DB_RESET:-false}" = "true" ]; then
+    say "reset schema (ALLOW_DB_RESET=true — every table will be dropped)"
+    "$VENV_DIR/bin/python" "$APP_DIR/deploy/reset_db.py"
+else
+    say "schema left alone (set ALLOW_DB_RESET=true to drop and rebuild it)"
+fi
 
 say "db upgrade"
 "$VENV_DIR/bin/python" -m flask db upgrade

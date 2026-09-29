@@ -144,6 +144,16 @@ class Participant(ModelMixin, Base):
 
     batch: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, index=True)
 
+    #: The operator's order for the register — the home page slider and /participants
+    #: both read the API payload in the order it comes back, so this column is what
+    #: decides who leads the page.
+    #:
+    #: NULL MEANS "NOT PLACED BY HAND", which is not the same statement as 0. A placed
+    #: record always sorts before an unplaced one, so pinning the three people who
+    #: should lead the page does not require numbering the other twenty-two — and a
+    #: record nobody has placed keeps the order it always had (batch, then id).
+    display_order: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+
     #: Which institution they came from. A FK, not a string: the register page prints
     #: the institution's name, and a free-text copy of it is a name that goes stale the
     #: day somebody corrects the institution (§3.2 keeps one, so this points at it).

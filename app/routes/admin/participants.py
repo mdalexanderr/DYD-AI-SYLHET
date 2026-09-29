@@ -245,7 +245,10 @@ def _filtered_query() -> tuple[list[Participant], dict[str, str]]:
     elif filters["consent"] == "withdrawn":
         stmt = stmt.where(Participant.consent_withdrawn_at.is_not(None))
 
-    stmt = stmt.order_by(Participant.batch, Participant.name_bn, Participant.id)
+    # The same order the public payload uses, so the number an operator types here means
+    # the same thing on the site (`participant_service.manual_order`). The old
+    # (batch, name_bn, id) order is still the tail of it, for the records nobody placed.
+    stmt = stmt.order_by(*participant_service.manual_order())
     return list(db.session.execute(stmt).scalars()), filters
 
 
@@ -448,6 +451,11 @@ def participant_update(participant_id: int):
     participant.quote_bn = text(request.form, "quote_bn") or None
     participant.quote_consented = flag(request.form, "quote_consented")
     participant.batch = integer(request.form, "batch", participant.batch) or participant.batch
+
+    # Blank clears the placement — NULL is "not placed", which is a different
+    # statement from 0 and is what puts the record back in the default order.
+    raw_order = text(request.form, "display_order").strip()
+    participant.display_order = int(raw_order) if raw_order.isdigit() else None
 
     education = _parse_education(text(request.form, "education"))
     if education is not None:
