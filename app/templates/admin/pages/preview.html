@@ -1,0 +1,96 @@
+{#
+  =============================================================================
+  admin/pages/preview.html — the page as a reader gets it. plan.md §11.2.
+
+  IT RENDERS THE REAL TEMPLATES
+  A preview that approximates the page is a preview that agrees with itself. This
+  renders `section.template` with the same context builder the public route uses, so
+  what an editor approves is what a reader receives — including a dropped section,
+  which appears as a hole rather than as a promise.
+
+  IT ESCAPES THE ADMIN SHELL TO DO IT
+  The section templates are written for the public site: they bring their own
+  containers and full-bleed bands. Rendering them inside the admin's content column
+  would nest a page layout inside a page layout and make both look wrong. So this
+  screen puts them in the `footer` block, which the admin's layout closes last, and
+  says plainly at the top that this is a preview.
+
+  DROPPED SECTIONS ARE NAMED AT THE TOP, NOT SILENTLY OMITTED
+  A section that fails validation renders as nothing. Without this list, an editor
+  would see a gap and have no way to tell it from a section they had not written yet.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel %}
+
+{% block admin_title %}Preview: {{ page.title_bn }}{% endblock %}
+
+{% block breadcrumb %}
+  <span aria-hidden="true">/</span>
+  <a href="{{ url_for('admin.pages_list') }}">Pages</a>
+  <span aria-hidden="true">/</span>
+  <a href="{{ url_for('admin.page_editor', page_id=page.id) }}" lang="bn">{{ page.title_bn }}</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="page">Preview</span>
+{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  This is the page rendered from its own templates with the real section content.
+  Links inside it work; nothing here is editable.
+</p>
+{% endblock %}
+
+{% block admin_actions %}
+<a class="btn btn-secondary btn-sm" href="{{ url_for('admin.page_editor', page_id=page.id) }}">
+  Back to the editor
+</a>
+{% endblock %}
+
+{% block admin_content %}
+
+{% if dropped %}
+<div class="admin-callout admin-callout--error">
+  <p class="font-semibold">
+    {{ dropped | length }} section(s) are missing from the preview below, because their
+    content does not validate:
+  </p>
+  <ul class="mt-2 space-y-1 text-sm">
+    {% for item in dropped %}
+    <li>
+      <strong>{{ item.label }}</strong> — {{ item.reason }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<p class="text-sm text-ink-500">
+  Every visible section rendered. {{ sections | length }} section(s) on the page.
+</p>
+{% endif %}
+
+{% if not sections %}
+<p class="empty-state mt-4">
+  Nothing renders yet — the page has no valid, visible sections.
+</p>
+{% endif %}
+
+{% endblock %}
+
+
+{#
+  The sections themselves, rendered by their own templates through the real context
+  builder (`registry.render_section`), which returns `{template, context}`. The
+  templates read a variable called `context` — that is the contract between the
+  registry and every file in `app/templates/sections/` — so it is bound here rather
+  than passed, because `{% include %}` has no way to take arguments.
+
+  Rendered in the footer block so they sit outside the admin's content column,
+  exactly as they would on the public site.
+#}
+{% block footer %}
+{% for payload in sections %}
+  {% set context = payload.context %}
+  {% include payload.template %}
+{% endfor %}
+{% endblock %}

@@ -19,8 +19,8 @@ from sqlalchemy import func
 
 PASSWORD = "correct-horse-battery-staple"
 ADMIN_EMAIL = "Admin@Example.Test"  # deliberately mixed case — see _find_admin
-ADMIN_URL = "/ops-sylhet/"
-LOGIN_URL = "/login"
+ADMIN_URL = "/admin/"
+LOGIN_URL = "/admin/login"
 
 
 @pytest.fixture
@@ -83,19 +83,27 @@ def _is_anonymous(client) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4.3 — the non-guessable path
+# The admin path is KNOWN, and that is a decision
 # ─────────────────────────────────────────────────────────────────────────────
-def test_admin_is_a_404_and_not_a_redirect(client, admin_user):
-    """Step 4.3's "Done when". A redirect CONFIRMS the real path.
+def test_the_admin_path_is_the_owners_choice_and_not_a_secret(client, admin_user):
+    """§12.1 asks for a non-guessable prefix; this deployment chose `/admin`.
 
-    A 302 to /ops-sylhet/login would hand an attacker the prefix S13 exists to
-    hide — the whole point of a non-guessable path is that probing the obvious one
-    tells you nothing.
+    The rule that used to live here was "a redirect must not leak the prefix". It
+    cannot apply any more, because the prefix is not a secret: the owner asked for
+    `/admin/login` and `/admin` by name. What replaces it is the assertion that
+    knowing the path buys an attacker NOTHING — the screens behind it are still
+    behind a login, and there is still no way to reach one without a session.
+
+    The old test is kept in spirit by the second half: a path that does NOT exist
+    is still a 404 rather than a redirect, so probing for other names tells you
+    nothing either.
     """
-    response = client.get("/admin")
+    assert client.get(ADMIN_URL).status_code == 302, "the dashboard is not public"
+    assert "/admin/login" in client.get(ADMIN_URL).headers["Location"]
 
-    assert response.status_code == 404
-    assert "Location" not in response.headers, "a redirect leaked the real admin path"
+    for guess in ("/administrator", "/panel", "/cms", "/wp-admin"):
+        response = client.get(guess)
+        assert response.status_code == 404, f"{guess} answered {response.status_code}"
 
 
 def test_the_admin_surface_requires_a_login(client, admin_user):
@@ -145,7 +153,9 @@ def test_an_unknown_email_is_refused_and_indistinguishable(client, admin_user, n
         assert BAD_CREDENTIALS_BN in body, "a credential failure did not show the generic message"
         # The lockout sentence would confirm the account exists, so it must not appear
         # for either case.
-        assert "লক করা হয়েছে" not in body
+        assert "locked" not in body.lower(), (
+            "the lockout sentence would confirm the account exists"
+        )
 
 
 def test_every_attempt_is_recorded_including_successes(client, admin_user, no_csrf):
@@ -206,14 +216,36 @@ def test_a_successful_login_clears_the_failure_counter(client, admin_user, no_cs
     assert _fresh().is_locked is False
 
 
-def test_the_login_form_asks_for_a_totp_code(client, admin_user):
+def test_the_login_form_is_one_step_while_no_code_is_required(client, admin_user):
+    """THE PORTAL AS THIS SITE RUNS IT. plan.md §12.1 originally required TOTP; the
+    owner asked for it off, so `ADMIN_2FA_REQUIRED` is false and the account is not
+    enrolled. The field is ABSENT rather than present-and-ignored: a form that asks
+    for a code that does not exist is a form that gets filled in wrong or abandoned.
+    """
     body = client.get(LOGIN_URL).get_data(as_text=True)
 
-    assert 'name="totp"' in body
     assert 'name="password"' in body
+    assert 'name="totp"' not in body, "the form still asks for a 2-step code"
     # The form must be noindexed: a URL that exists only to accept credentials has
     # no business in a search result.
     assert "noindex" in body
+
+
+def test_the_login_form_asks_for_a_code_when_the_deployment_requires_one(client, admin_user, app):
+    """The other side of the same rule, so the field is CONDITIONAL and not deleted.
+
+    Turn `ADMIN_2FA_REQUIRED` back on in `.env` and the portal asks for the code
+    again with no code change — which is what makes removing it a setting rather
+    than a rewrite.
+    """
+    previous = app.config["ADMIN_2FA_REQUIRED"]
+    app.config["ADMIN_2FA_REQUIRED"] = True
+    try:
+        body = client.get(LOGIN_URL).get_data(as_text=True)
+    finally:
+        app.config["ADMIN_2FA_REQUIRED"] = previous
+
+    assert 'name="totp"' in body
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +284,35 @@ def test_a_correct_password_alone_is_not_enough_when_2fa_is_enrolled(
 
     assert response.status_code == 401
     assert _is_anonymous(client)
+
+
+def test_an_enrolled_account_is_offered_the_code_field_after_a_failed_sign_in(
+    client, admin_with_2fa, no_csrf
+):
+    """THE CASE THAT MAKES THE CONDITIONAL FIELD SAFE.
+
+    This account is enrolled while `ADMIN_2FA_REQUIRED` is false, so the form does not
+    draw the field on the way in. If the refusal did not put it back, the admin would
+    be told their credentials were wrong with no box to type the missing half into —
+    locked out of the only account by a UI decision. The field appears when a code is
+    what actually blocked the sign-in, and not when only the password was wrong (see
+    `test_a_wrong_password_is_refused`, which asserts nothing about the account).
+    """
+    email, _ = admin_with_2fa
+
+    response = _login(client, email=email)
+    body = response.get_data(as_text=True)
+
+    assert 'name="totp"' in body, "an enrolled account was given no way to enter its code"
+
+
+def test_a_wrong_password_does_not_reveal_that_a_code_is_needed(client, admin_with_2fa, no_csrf):
+    """The field is a fact about the account, so it must not appear for a stranger."""
+    email, _ = admin_with_2fa
+
+    response = _login(client, email=email, password="not-the-password")
+
+    assert 'name="totp"' not in response.get_data(as_text=True)
 
 
 def test_a_wrong_totp_code_is_refused(client, admin_with_2fa, no_csrf):
@@ -307,7 +368,7 @@ def test_logout_ends_the_session(client, admin_user, no_csrf):
     _login(client)
     assert client.get(ADMIN_URL).status_code == 200
 
-    client.post("/logout")
+    client.post("/admin/logout")
 
     assert _is_anonymous(client)
 
@@ -316,7 +377,7 @@ def test_logout_is_not_reachable_by_get(client, admin_user, no_csrf):
     """A GET logout is a CSRF target: `<img src=".../logout">` signs the admin out."""
     _login(client)
 
-    assert client.get("/logout").status_code == 405
+    assert client.get("/admin/logout").status_code == 405
     assert client.get(ADMIN_URL).status_code == 200, "the GET logout still worked"
 
 

@@ -23,6 +23,19 @@ ONE GENERIC FAILURE MESSAGE, ONE SPECIFIC ONE
     phone call at 11pm. The cost is that a locked account is distinguishable from
     an unknown one. Accepted knowingly: there is one account (§10.1), its existence
     is not a secret, and this whole surface sits behind a non-guessable prefix.
+
+THE SECOND-FACTOR FIELD IS CONDITIONAL, AND THAT IS THE OWNER'S DECISION
+    This deployment runs with `ADMIN_2FA_REQUIRED=false` and an account that is not
+    enrolled, so the login is ONE step: email and password. The code field is not
+    rendered at all, rather than rendered-and-ignored, because a form that asks for
+    a code that does not exist is a form that gets abandoned.
+
+    IT IS NOT DELETED, AND IT IS NOT GONE. `_second_factor_is_required` still runs
+    on every POST, and the failure path re-renders the form WITH the field whenever
+    a code is what actually blocked the sign-in. That second half matters: an
+    account enrolled in TOTP on a deployment where the config flag is off would
+    otherwise be unable to log in and unable to see why. Turning the whole thing
+    back on is `ADMIN_2FA_REQUIRED=true` plus `flask admin-reset-2fa <email>`.
 """
 
 from __future__ import annotations
@@ -50,7 +63,27 @@ auth_bp = Blueprint("auth", __name__)
 URL_PREFIX = None
 
 #: One sentence for every credential failure. See the module docstring.
-BAD_CREDENTIALS_BN = "ইমেইল, পাসওয়ার্ড বা ২-ধাপের কোড সঠিক নয়।"
+#:
+#: ENGLISH, because the login screen is part of the English admin (§11.1). It stays a
+#: single generic sentence for a wrong email, a wrong password and a wrong code, so the
+#: response never says which half was wrong.
+BAD_CREDENTIALS_BN = "That email address, password or code is not correct."
+
+#: The reasons that mean a code was needed and not supplied. Each one re-renders the
+#: form with the field showing, so an enrolled account is never stuck behind a form
+#: that has no box to type the code into.
+SECOND_FACTOR_REASONS = frozenset({"bad_totp", "no_secret_enrolled", "secret_undecryptable"})
+
+
+def _second_factor_is_configured() -> bool:
+    """Does this deployment ask for a code from everyone?
+
+    Read from config rather than from the account, because the account is not known
+    until the email has been submitted — and the form has to be drawn before that.
+    The per-account flag is enforced on the POST by `_verify_second_factor`; this is
+    only about what to put on the page.
+    """
+    return bool(current_app.config["ADMIN_2FA_REQUIRED"])
 
 
 @login_manager.unauthorized_handler
@@ -170,7 +203,12 @@ def login():
     next_target = _safe_next()
 
     if request.method != "POST":
-        return render_template("admin/login.html", email=email, next=next_target)
+        return render_template(
+            "admin/login.html",
+            email=email,
+            next=next_target,
+            show_second_factor=_second_factor_is_configured(),
+        )
 
     ip = _client_ip()
     admin = _find_admin(email)
@@ -181,11 +219,17 @@ def login():
         _record_attempt(email, ip, successful=False, reason="locked_out")
         db.session.commit()
         flash(
-            f"অ্যাকাউন্টটি সাময়িকভাবে লক করা হয়েছে। আনুমানিক {minutes} মিনিট পর আবার "
-            "চেষ্টা করুন।",
+            f"This account is locked. Try again in about {minutes} minute(s).",
             "error",
         )
-        return render_template("admin/login.html", email=email, next=next_target), 429
+        return render_template(
+            "admin/login.html",
+            email=email,
+            next=next_target,
+            # The field keeps its configured state here: a locked-out admin has not
+            # proved a password, so nothing about the account may be revealed.
+            show_second_factor=_second_factor_is_configured(),
+        ), 429
 
     password_ok = admin is not None and bool(
         bcrypt.check_password_hash(admin.password_hash, request.form.get("password") or "")
@@ -235,15 +279,22 @@ def login():
 
     if locked_now:
         flash(
-            f"পরপর {current_app.config['LOGIN_MAX_ATTEMPTS']} বার ভুল হয়েছে। "
-            f"অ্যাকাউন্টটি {current_app.config['LOGIN_LOCKOUT_MINUTES']} মিনিটের জন্য "
-            "লক করা হলো।",
+            f"{current_app.config['LOGIN_MAX_ATTEMPTS']} attempts in a row were wrong, so "
+            f"the account is locked for {current_app.config['LOGIN_LOCKOUT_MINUTES']} "
+            "minutes.",
             "error",
         )
     else:
         flash(BAD_CREDENTIALS_BN, "error")
 
-    return render_template("admin/login.html", email=email, next=next_target), 401
+    return render_template(
+        "admin/login.html",
+        email=email,
+        next=next_target,
+        # Shown when a code is what blocked the sign-in, and only then. A wrong
+        # password must not reveal that the account has a second factor.
+        show_second_factor=reason in SECOND_FACTOR_REASONS,
+    ), 401
 
 
 @auth_bp.post("/logout")
@@ -266,5 +317,5 @@ def logout():
 
     logout_user()
     session.clear()
-    flash("আপনি সফলভাবে প্রস্থান করেছেন।", "info")
+    flash("You have signed out.", "info")
     return redirect(url_for("auth.login"))

@@ -1,0 +1,149 @@
+{#
+  =============================================================================
+  admin/participants/consent.html — route 24. plan.md §11.1, §5.6.
+
+  THE FIVE BUCKETS SUM TO THE TOTAL, AND THAT IS THE WHOLE SCREEN
+  Anyone can see at a glance that nobody has been lost between the categories, which is
+  the only reason to trust the number next to "awaiting consent" enough to act on it.
+
+  THE TWO LISTS THAT NEED ACTION COME FIRST
+  Consented without a date, and awaiting consent. Both are people whose names are not
+  published, and they are the two states an operator can actually resolve today. The
+  withdrawn list is last and is a record rather than a task — a withdrawal is a
+  decision that has already been honoured, and there is nothing to do about it here.
+
+  A NAME APPEARS IN EXACTLY ONE BUCKET, SO IT APPEARS IN AT MOST ONE LIST
+  The lists are built from the same predicates as the counts, so the screen cannot say
+  "3 waiting" and then show four people.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state, consent_badge %}
+
+{% block admin_title %}Consent{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  Every consent state, and the two lists that are blocking publication. A name is
+  published only when consent is recorded, dated, and not withdrawn.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+{# ── The buckets ──────────────────────────────────────────────────────────── #}
+<div class="admin-tiles">
+  <div class="admin-tile">
+    <span class="admin-tile-label">In the register</span>
+    <span class="admin-tile-value">{{ breakdown.total }}</span>
+    <span class="admin-tile-note">the total</span>
+  </div>
+  <a class="admin-tile" href="{{ url_for('admin.participants_list', published='yes') }}">
+    <span class="admin-tile-label">Published</span>
+    <span class="admin-tile-value">{{ breakdown.published }}</span>
+    <span class="admin-tile-note">consented, dated, live</span>
+  </a>
+  <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='given', published='no') }}">
+    <span class="admin-tile-label">Ready to publish</span>
+    <span class="admin-tile-value">{{ breakdown.ready_unpublished }}</span>
+    <span class="admin-tile-note">consented, not yet live</span>
+  </a>
+  <a class="admin-tile admin-tile--alert"
+     href="{{ url_for('admin.participants_list', consent='missing_date') }}">
+    <span class="admin-tile-label font-semibold text-ink-900">Consented, no date</span>
+    <span class="admin-tile-value">{{ breakdown.consent_missing_date }}</span>
+    <span class="admin-tile-note">blocked until dated</span>
+  </a>
+  <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='none') }}">
+    <span class="admin-tile-label">Awaiting consent</span>
+    <span class="admin-tile-value">{{ breakdown.awaiting_consent }}</span>
+    <span class="admin-tile-note">no record yet</span>
+  </a>
+  <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='withdrawn') }}">
+    <span class="admin-tile-label">Withdrawn</span>
+    <span class="admin-tile-value">{{ breakdown.withdrawn }}</span>
+    <span class="admin-tile-note">asked to be removed</span>
+  </a>
+</div>
+
+<p class="mt-2 text-xs text-ink-500">
+  The five states sum to {{ total }} — nobody is outside a category.
+</p>
+
+{#
+  The three lists. One macro, called three times: the shape is identical and only the
+  wording, the predicate and the empty message change. Written out three times it would
+  be three chances for one list to show a different set of columns than the others.
+#}
+{% macro people(title, note, people_list, empty_title, empty_hint, tone='') %}
+  {% call panel(title, note=note) %}
+    {% if people_list %}
+    <div class="table-scroll">
+      <table class="table-ruled">
+        <caption class="sr-only">{{ title }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Batch</th>
+            <th scope="col">Consent</th>
+            <th scope="col">Date</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for person in people_list %}
+          <tr>
+            <td>
+              <a class="font-semibold text-ink-900 hover:text-green-700"
+                 href="{{ url_for('admin.participant_detail', participant_id=person.id) }}">
+                <span lang="bn">{{ person.name_bn }}</span>
+              </a>
+            </td>
+            <td class="numeric">{{ person.batch }}</td>
+            <td>{{ consent_badge(person) }}</td>
+            <td class="numeric">
+              {{ person.consent_date.strftime('%Y-%m-%d') if person.consent_date else '—' }}
+            </td>
+            <td>
+              <a class="btn btn-ghost btn-sm"
+                 href="{{ url_for('admin.participant_detail', participant_id=person.id) }}">
+                Fix consent
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {{ empty_state(empty_title, empty_hint) }}
+    {% endif %}
+  {% endcall %}
+{% endmacro %}
+
+<div class="mt-8 space-y-4">
+  {# First: the one state that is both invisible and blocking (§5.6). #}
+  {{ people(
+       'Consented, but no date',
+       breakdown.consent_missing_date ~ ' record(s). Nothing publishes them.',
+       missing_date,
+       'Nobody is in this state.',
+       'Every consent record has a date, so nothing is silently blocked.') }}
+
+  {{ people(
+       'Awaiting consent',
+       breakdown.awaiting_consent ~ ' record(s) with no consent decision.',
+       awaiting,
+       'Everyone in the register has a consent decision.',
+       'A consent record exists for every person, whether granted or declined.') }}
+
+  {# Last, and deliberately last: a withdrawal is a decision already honoured. #}
+  {{ people(
+       'Consent withdrawn',
+       breakdown.withdrawn ~ ' record(s). Unpublished and never republished.',
+       withdrawn,
+       'Nobody has withdrawn consent.',
+       'If someone does, their name leaves the site in the same transaction, and the withdrawal is kept here as a record.') }}
+</div>
+
+{% endblock %}

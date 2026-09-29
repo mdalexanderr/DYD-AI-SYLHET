@@ -1,10 +1,12 @@
 """Schema assertions. execution-plan steps 2.10, 2.11 and 2.17.
 
 WHY THE COUNT IS A TEST
-    §9.1 lists 17 tables. `EXPECTED_TABLES` is the only place that number exists in
-    code, and `set(db.metadata.tables) == EXPECTED_TABLES` in BOTH directions means
-    a table can never be added or lost silently: adding a model without adding it to
-    the list fails, and deleting a model without removing it from the list fails too.
+    §9.1 listed 17 tables; the React half's content moved into four more
+    (`course_phases`, `training_tools`, `batch_works`, `instructors`), so the count is
+    now 21 and `EXPECTED_TABLES` is still the only place that number exists in code.
+    `set(db.metadata.tables) == EXPECTED_TABLES` in BOTH directions means a table can
+    never be added or lost silently: adding a model without adding it to the list fails,
+    and deleting a model without removing it from the list fails too.
 
 WHY THE PUBLISH GUARD IS TESTED WITH RAW SQL
     §5.3 and step 2.11 are explicit: prove it "directly via SQL, bypassing the ORM".
@@ -34,10 +36,16 @@ from app.models import EXPECTED_TABLES, PROHIBITED_PARTICIPANT_COLUMNS
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_seventeen_tables_are_declared():
-    """Step 2.10's `len(db.metadata.tables) == 17`."""
-    assert len(db.metadata.tables) == 17, (
-        f"expected 17 tables, found {len(db.metadata.tables)}: "
+def test_every_declared_table_is_expected():
+    """The declared count, and the two-way comparison against `EXPECTED_TABLES`.
+
+    THE NUMBER IS NOT THE ASSERTION — the set comparison is. The count is spelled out so
+    that a model added to `app/models/` without a thought for this test fails loudly
+    here, with the names in the message, rather than surfacing as a missing table in a
+    deploy.
+    """
+    assert len(db.metadata.tables) == 21, (
+        f"expected 21 tables, found {len(db.metadata.tables)}: "
         f"{sorted(db.metadata.tables)}"
     )
     assert set(db.metadata.tables) == set(EXPECTED_TABLES)
@@ -89,19 +97,97 @@ def test_each_prohibited_column_is_individually_absent(session, column):
     assert column not in columns
 
 
-def test_participants_has_no_media_column(session):
-    """§5.3 / S2: no participant photograph, ever — including by FK.
+def test_participants_has_no_unpermitted_media_column(session):
+    """§5.1, AS AMENDED: one image column, allowed only with its permission.
 
-    The design refuses participant images outright (the whole visual system is built
-    to work without them), so a `photo_id` or `image_id` pointing at media_items
-    would be a representation-changing feature added by one migration.
+    THIS TEST USED TO REFUSE EVERY IMAGE COLUMN. The programme office then asked for
+    portraits on the register cards, so the rule was changed — deliberately, and in a
+    way that keeps the guard rather than removing it:
+
+      * `photo_id` is permitted, and ONLY because `image_consent` sits beside it. A
+        photograph whose subject has not agreed to be pictured is the thing §5.1 was
+        protecting, not the column itself.
+      * The database has to enforce the pair. If the CHECK constraint is missing, the
+        permission is a convention, and a convention is what an import or a hand-written
+        script steps over.
+      * Every OTHER spelling stays banned — `photo_path`, `image`, `avatar`, `picture`,
+        `media_id` — because two columns for one picture is how the two disagree.
     """
-    columns = [c["name"] for c in inspect(db.engine).get_columns("participants")]
-    media_like = [
-        name for name in columns
+    from app.models import CONSENTED_PARTICIPANT_COLUMNS
+
+    columns = {c["name"] for c in inspect(db.engine).get_columns("participants")}
+
+    allowed = set(CONSENTED_PARTICIPANT_COLUMNS) | set(CONSENTED_PARTICIPANT_COLUMNS.values())
+    media_like = {
+        name
+        for name in columns
         if any(word in name.lower() for word in ("photo", "image", "avatar", "picture", "media"))
-    ]
-    assert not media_like, f"participants has an image column: {media_like}"
+    }
+    assert media_like - allowed == set(), (
+        f"participants has an image column that is not permitted: {sorted(media_like - allowed)}"
+    )
+
+    for column, authority in CONSENTED_PARTICIPANT_COLUMNS.items():
+        if column in columns:
+            assert authority in columns, (
+                f"{column} exists and {authority} does not — a photograph with nothing "
+                "recording that its subject agreed to it"
+            )
+
+    from app.cli import _table_ddl
+
+    ddl = _table_ddl("participants")
+    assert "ck_participants_photo_requires_consent" in ddl, (
+        "the photo-requires-consent constraint is missing, so a portrait without its "
+        "permission is insertable"
+    )
+
+
+def test_a_portrait_without_its_permission_is_refused_by_the_database(session):
+    """The pair, proved the same way the publish guard is: a raw INSERT that must fail.
+
+    THROUGH `_probe`, not hand-written SQL. Every NOT NULL column the model declares has
+    to be supplied by a raw insert, and an earlier version of this test listed them by
+    hand, missed `quote_consented` and `batch`, and reported the constraint as working
+    when the insert had been refused before the constraint was ever evaluated. The
+    helper builds the row from `Participant.__table__`, so a column added to the model
+    cannot silently make this test meaningless again.
+
+    THE SECOND PROBE IS THE CONTROL: an insert that satisfies the rule has to be
+    ACCEPTED. Without it, "the database refused it" is equally consistent with "the
+    table rejects everything".
+    """
+    from app.models import MediaItem
+
+    item = MediaItem(path="images/portrait-probe.png", alt_bn="পরীক্ষা", kind="image")
+    session.add(item)
+    session.commit()
+
+    accepted, error = _probe(
+        session,
+        slug="__photo_no_permission__",
+        name_bn="পরীক্ষা",
+        education="HSC",
+        photo_id=item.id,
+        image_consent=0,
+    )
+    assert not accepted, "a photograph was stored without its permission"
+    assert "ck_participants_photo_requires_consent" in error, (
+        f"the insert was refused, but by the WRONG constraint: {error!r}"
+    )
+
+    accepted, error = _probe(
+        session,
+        slug="__photo_permitted__",
+        name_bn="পরীক্ষা",
+        education="HSC",
+        photo_id=item.id,
+        image_consent=1,
+    )
+    assert accepted, (
+        f"the control failed: a PERMITTED photograph was refused ({error}), so the "
+        "assertion above proves nothing."
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

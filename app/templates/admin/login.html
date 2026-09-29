@@ -1,73 +1,130 @@
 {#
   =============================================================================
-  admin/login.html — route 14. plan.md §12.1, step 4.1.
+  admin/login.html — route 14, the portal. plan.md §11.1, §12.1.
 
-  NOINDEX, AND THAT IS NOT COSMETIC
-  This page is not secret in the way the admin screens are, but there is no reason
-  for a search engine to hold a URL that exists only to accept credentials, and no
-  reason for it to appear in a result next to the public site.
+  A LOGIN SCREEN IS NOT A PAGE, SO IT DOES NOT GET THE SHELL
+  No rail, no top bar, no public header or footer. Those exist to help somebody
+  already inside navigate; on the way in they are noise around a single box, and
+  nine public links beside a password field is nine ways to leave the one screen
+  that has to be completed. The two blocks are overridden to empty for that reason.
 
-  NO SITE NAVIGATION
-  It extends the public layout for the document chrome (lang, viewport, stylesheet,
-  skip link, CSRF availability) but the form is the whole page. A login screen that
-  offers eight links away from itself is a login screen people leave.
+  IT SAYS WHAT THIS IS BEFORE IT ASKS FOR ANYTHING
+  The left panel names the programme and the institution, in Bangla, because the
+  person logging in works here and the first thing they need to confirm is that they
+  are at the right door. The interface around it is English (§11.1); the institution's
+  own name is not a UI string and is not translated.
+
+  THE FORM IS ONE STEP
+  Email and password. `show_second_factor` is set by `auth.py` from
+  `ADMIN_2FA_REQUIRED`, and re-set on a failed attempt when a code was what actually
+  blocked the sign-in — so an account still enrolled in TOTP sees the field without
+  anyone having to edit this template.
+
+  THE TROUBLESHOOTING LINE IS A COMMAND, NOT AN APOLOGY
+  An admin who cannot get in is looking at this screen and nowhere else, so it names
+  the command that fixes each case. It is the one place on the site where a shell
+  command belongs in the interface.
   =============================================================================
 #}
 {% extends "layouts/base.html" %}
+{% from "admin/_icons.html" import icon %}
 
+{% block html_lang %}en{% endblock %}
 {% block meta_robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
-{% block title %}প্রশাসক প্রবেশ · {{ brand.title_bn }}{% endblock %}
-{% block meta_description %}প্রশাসক প্রবেশের পাতা।{% endblock %}
+{% block title %}Sign in · Admin · {{ brand.title_bn }}{% endblock %}
+{% block meta_description %}Sign-in for the programme's content administration.{% endblock %}
+{% block canonical %}{{ url_for('auth.login', _external=True) }}{% endblock %}
+
+{# No public chrome on the way in. See the header comment. #}
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
 
 {% block content %}
-<section class="container-site py-16">
-  <div class="mx-auto max-w-md">
+<div class="grid min-h-screen lg:grid-cols-2">
 
-    <h1 class="font-display text-3xl font-bold text-ink-900" lang="bn">
-      প্রশাসক প্রবেশ
-    </h1>
-    <p class="mt-2 text-sm text-ink-500" lang="bn">
-      এই পাতাটি কেবল অনুমোদিত প্রশাসকের জন্য।
+  {# ── Left: who this is for ────────────────────────────────────────────── #}
+  <section class="hidden flex-col justify-between border-e border-line-strong bg-paper-2 p-10 lg:flex"
+           aria-labelledby="portal-name">
+    <div class="flex items-center gap-3">
+      <img src="{{ static_url('img/dyd-logo.png') }}" alt="" aria-hidden="true"
+           class="size-10" width="40" height="40">
+      <p class="text-sm font-semibold" lang="bn">যুব উন্নয়ন অধিদপ্তর</p>
+    </div>
+
+    <div class="max-w-md">
+      <p class="admin-eyebrow">Content administration</p>
+      <h1 id="portal-name" class="mt-2 font-display text-2xl font-bold leading-tight text-ink-900" lang="bn">
+        কৃত্রিম বুদ্ধিমত্তা প্রশিক্ষণ কর্মসূচি — সিলেট
+      </h1>
+      <p class="prose-bn mt-4 text-sm text-ink-500" lang="bn">
+        ব্যাচ ১-এর নথি, কোর্সের তথ্য, গ্যালারি ও অংশগ্রহণকারীদের সম্মতির রেকর্ড এই
+        প্যানেল থেকে রক্ষণাবেক্ষণ করা হয়।
+      </p>
+    </div>
+
+    <p class="text-xs text-ink-500">
+      One administrator. Every change is written to the audit log with the account that
+      made it.
     </p>
+  </section>
 
-    <form method="post" action="{{ url_for('auth.login') }}" class="mt-8">
-      {# Flask-WTF's CSRFProtect is app-wide, so a hand-written form still needs the
-         token. Without it every login POST would be a 400. #}
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {# ── Right: the form ──────────────────────────────────────────────────── #}
+  <section class="flex items-center justify-center p-6 sm:p-10">
+    <div class="w-full max-w-sm">
 
-      <div class="field">
-        <label class="label" for="email" lang="bn">ইমেইল</label>
-        <input class="input" type="email" id="email" name="email"
-               value="{{ email or '' }}" required autocomplete="username"
-               autocapitalize="none" spellcheck="false" autofocus>
+      <div class="mb-8 flex items-center gap-3 lg:hidden">
+        <img src="{{ static_url('img/dyd-logo.png') }}" alt="" aria-hidden="true"
+             class="size-9" width="36" height="36">
+        <p class="text-sm font-semibold" lang="bn">যুব উন্নয়ন অধিদপ্তর</p>
       </div>
 
-      <div class="field mt-5">
-        <label class="label" for="password" lang="bn">পাসওয়ার্ড</label>
-        <input class="input" type="password" id="password" name="password"
-               required autocomplete="current-password">
-      </div>
+      <p class="admin-eyebrow">Restricted</p>
+      <h2 class="mt-1 text-xl font-bold text-ink-900">Sign in</h2>
+      <p class="mt-1 text-sm text-ink-500">
+        This panel is for the programme administrator.
+      </p>
 
-      <div class="field mt-5">
-        <label class="label" for="totp" lang="bn">২-ধাপের কোড</label>
-        <input class="input" type="text" id="totp" name="totp"
-               inputmode="numeric" autocomplete="one-time-code"
-               pattern="[0-9 ]*" maxlength="8">
-        <p class="mt-1 text-xs text-ink-500" lang="bn">
-          অ্যাপে দেখা ৬ সংখ্যার কোড। ২-ধাপ চালু না থাকলে খালি রাখুন।
-        </p>
-      </div>
+      <form method="post" action="{{ url_for('auth.login') }}" class="mt-8">
+        {# Flask-WTF's CSRFProtect is app-wide, so a hand-written form still needs the
+           token. Without it every login POST would be a 400. #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-      <button class="btn btn-primary mt-6 w-full" type="submit" lang="bn">
-        প্রবেশ করুন
-      </button>
-    </form>
+        <div class="field">
+          <label class="label" for="email">Email address</label>
+          <input class="input" type="email" id="email" name="email"
+                 value="{{ email or '' }}" required autocomplete="username"
+                 autocapitalize="none" spellcheck="false" autofocus>
+        </div>
 
-    <p class="mt-6 text-xs text-ink-500" lang="bn">
-      পাসওয়ার্ড হারালে বা ২-ধাপের কোড কাজ না করলে সার্ভারে
-      <code class="num">flask admin-reset-2fa</code> চালান।
-    </p>
-  </div>
-</section>
+        <div class="field mt-5">
+          <label class="label" for="password">Password</label>
+          <input class="input" type="password" id="password" name="password"
+                 required autocomplete="current-password">
+        </div>
+
+        {% if show_second_factor %}
+        <div class="field mt-5">
+          <label class="label" for="totp">Authenticator code</label>
+          <input class="input" type="text" id="totp" name="totp"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 pattern="[0-9 ]*" maxlength="8">
+          <p class="hint">The six digits shown in the authenticator app.</p>
+        </div>
+        {% endif %}
+
+        <button class="btn btn-primary mt-6 w-full" type="submit">
+          {{ icon('lock', 'size-4') }} Sign in
+        </button>
+      </form>
+
+      <p class="mt-8 border-t border-line pt-4 text-xs text-ink-500">
+        Three wrong attempts lock the account for 30 minutes. If you cannot get in, run
+        <code class="num">flask admin-reset-2fa</code> on the server, or
+        <code class="num">flask create-admin</code> to set a new password. A session
+        ends after 30 minutes of inactivity.
+      </p>
+    </div>
+  </section>
+</div>
 {% endblock %}

@@ -19,13 +19,20 @@
   They must render when the database is unreachable, so every value used here —
   brand identity, navigation — comes from constants and config, never from a
   query. See _inject_template_globals() in app/__init__.py.
+
+  `html_lang` IS A BLOCK BECAUSE THE TWO HALVES SPEAK DIFFERENT LANGUAGES
+  §14.1 makes the public site Bangla-first. §11.1 makes the admin panel English.
+  A screen reader picks its voice and its pronunciation rules from the `lang`
+  attribute, so an English interface announced in a Bangla voice is unusable — and
+  so is the reverse. The default is `bn`, which is what every page except the admin
+  wants, including the error pages, which must render when nothing else does.
   =============================================================================
 #}
 {% from "components/base.html" import skip_link %}
 {% from "components/layout.html" import site_header, site_footer %}
 {% from "components/forms.html" import toast_stack %}
 <!doctype html>
-<html lang="bn" class="h-full">
+<html lang="{% block html_lang %}bn{% endblock %}" class="h-full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -213,6 +213,40 @@ def register_filters(app) -> None:
     app.jinja_env.globals["static_url"] = static_url
     app.jinja_env.globals["asset_url"] = asset_url
     app.jinja_env.globals["EM_DASH"] = EM_DASH
+    # The CMS editor's field renderer (§11.2). Registered here rather than imported by
+    # the template, because a template cannot import: `admin/_section_form.html` needs
+    # to turn a section's schema into form rows, and that mapping lives in
+    # `app/routes/admin/_fields.py` next to the code that reads the form back.
+    from app.routes.admin._fields import describe as describe_section_fields
+
+    app.jinja_env.globals["describe_fields"] = describe_section_fields
+
+    # The admin rail (§11.1) and its English vocabulary. Globals rather than template
+    # imports for the same reason as `describe_fields`: a template cannot import, and
+    # both of these read the database or the enums, which only the app knows.
+    from app.routes.admin._labels import (
+        enum_label as admin_enum_label,
+        field_label as admin_field_label,
+        humanise as admin_humanise,
+    )
+    from app.routes.admin._nav import nav_groups as admin_nav_groups
+
+    app.jinja_env.globals["admin_nav"] = admin_nav_groups
+    app.jinja_env.globals["admin_label"] = admin_humanise
+    app.jinja_env.globals["admin_field_label"] = admin_field_label
+    app.jinja_env.globals["admin_enum_label"] = admin_enum_label
+
+    # A servable URL for an uploaded image, for the image fields in the panel.
+    #
+    # IT TAKES A ROW, NOT A PATH. `media_service.signed_url(path)` mints a signature for
+    # any string it is handed, and a template global that signs arbitrary input would be
+    # a way to make the media directory enumerable again — the exact thing the signature
+    # exists to prevent (§13.1). This one can only sign a row that is already in the
+    # database, so `media_src('/etc/passwd')` is not expressible.
+    from app.services.media_service import signed_url_for_item
+
+    app.jinja_env.globals["media_src"] = signed_url_for_item
+
     # `section_render` is added in Phase 3, when the renderers exist. Registering a
     # placeholder now would mean a template could call it and silently render
     # nothing, which is worse than an undefined error.

@@ -1,0 +1,116 @@
+{#
+  =============================================================================
+  admin/backups.html — route 34. plan.md §17.5.
+
+  A REPORT, NOT A BUTTON
+  Running a backup dumps the database and copies the uploads. As a web request that can
+  time out half way through and leave a partial archive that looks complete. The cron
+  job does the work; this screen says whether it has been succeeding, which is the
+  question an operator actually has.
+
+  "NEVER BACKED UP" IS A STATE THIS PAGE NAMES
+  Not an empty table that looks fine. It is the one state on this screen that needs
+  action, so it gets the callout treatment rather than a row of dashes.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state %}
+
+{% block admin_title %}Backups{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  What the backup job has produced. The job itself is a scheduled task on the server —
+  this screen reports on it and never starts one.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+{% if not latest %}
+<div class="admin-callout admin-callout--error">
+  <p class="font-semibold">No backup has ever run.</p>
+  <p class="mt-1">
+    The site is not protected against loss. Set up the cron task described in
+    <code class="num">DEPLOY.md</code> (§17.5) — it dumps the database, copies the uploads
+    and records the result here.
+  </p>
+</div>
+{% else %}
+
+<div class="admin-tiles">
+  <div class="admin-tile">
+    <span class="admin-tile-label">Most recent</span>
+    <span class="admin-tile-value text-base">{{ latest.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+    <span class="admin-tile-note">{{ latest.kind.value }} backup</span>
+  </div>
+
+  <div class="admin-tile">
+    <span class="admin-tile-label">Result</span>
+    <span class="admin-tile-value text-base">
+      {% if latest.status.value == 'ok' %}
+        <span class="badge">Succeeded</span>
+      {% else %}
+        <span class="badge badge-withdrawn">{{ latest.status.value }}</span>
+      {% endif %}
+    </span>
+    {% if latest.error %}<span class="admin-tile-note text-flag-red">{{ latest.error }}</span>{% endif %}
+  </div>
+
+  <div class="admin-tile {{ '' if latest.offsite_ok else 'admin-tile--alert' }}">
+    <span class="admin-tile-label">Copy stored offsite</span>
+    <span class="admin-tile-value text-base">{{ 'Yes' if latest.offsite_ok else 'No' }}</span>
+    <span class="admin-tile-note">
+      {% if latest.offsite_ok %}
+        A copy exists outside this server.
+      {% else %}
+        The archive is only on this machine — one disk failure loses both.
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+{% call panel('Recent backups', note='Newest first, up to fifty.') %}
+  <div class="table-scroll">
+    <table class="table-ruled">
+      <caption class="sr-only">Backup history</caption>
+      <thead>
+        <tr>
+          <th scope="col">When</th>
+          <th scope="col">Kind</th>
+          <th scope="col">Archive</th>
+          <th scope="col" class="numeric">Size</th>
+          <th scope="col">Result</th>
+          <th scope="col">Kept until</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="numeric">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ admin_label(row.kind.value) }}</td>
+          <td><span class="admin-path" dir="ltr">{{ row.filename }}</span></td>
+          <td class="numeric">
+            {{ (row.size_bytes // 1024) if row.size_bytes else 0 }} KB
+          </td>
+          <td>
+            {% if row.status.value == 'ok' %}
+              <span class="badge">OK</span>
+            {% else %}
+              <span class="badge badge-withdrawn">{{ row.status.value }}</span>
+            {% endif %}
+            {% if row.error %}<span class="block text-xs text-flag-red">{{ row.error }}</span>{% endif %}
+          </td>
+          <td class="numeric">
+            {{ row.expires_at.strftime('%Y-%m-%d') if row.expires_at else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endcall %}
+
+{% endif %}
+
+{% endblock %}

@@ -48,20 +48,27 @@ There is exactly **one kind of user**: the admin.
 
 The site publishes people's names. That is a consent obligation, not a styling choice.
 
-**Published:** name · education · occupation before · what they did (outcome)
+**Published:** name · education · occupation before · what they did (outcome) — and a photograph,
+if and only if they signed for one.
 
-**Never published, and the database cannot store it:** photograph · phone · email · NID or
+**Never published, and the database cannot store it:** phone · email · NID or
 birth-registration number · date of birth · blood group · full address · guardian names · marks
 
-Three things enforce this:
+Four things enforce this:
 
-1. **No photograph column exists** on `participants`, and the CMS form has no image field. Portraits
-   would require a consent programme, not a field addition.
-2. **A database `CHECK` constraint** refuses to publish a row whose consent flag is unset — so an
-   application bug cannot expose someone.
+1. **A photograph needs its own permission** — `participants.image_consent`. It is a line of the
+   consent form in its own right: permission for a name and an education level is not permission for
+   a face. The checkbox sits inside the image field on the participant screen, and the register
+   draws the person's initials until it is ticked.
+2. **Two database `CHECK` constraints**: one refuses to store a photograph without that permission,
+   the other refuses to publish a row whose consent flag is unset — so neither an application bug
+   nor a hand-written script can expose someone.
 3. **A participant without recorded consent is not published at all** — excluded from every query,
-   count, statistic and search. Withdrawing consent unpublishes immediately and invalidates the
-   cache in the same transaction.
+   count, statistic and search. Withdrawing consent unpublishes immediately, takes the photograph
+   down with the name, and invalidates the cache in the same transaction.
+4. **No other spelling of a picture exists** — `flask check-db` fails if `photo_path`, `image`,
+   `avatar` or `media_id` ever appears on `participants`, and fails if `photo_id` exists without
+   `image_consent` beside it.
 
 Full model in `plan.md` §5; the withdrawal workflow is §18.2.
 

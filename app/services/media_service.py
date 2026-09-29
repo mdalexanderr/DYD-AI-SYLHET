@@ -26,6 +26,8 @@ AN UNKNOWN FILE AND AN UNSIGNED ONE ARE BOTH 404
 
 from __future__ import annotations
 
+from typing import Any
+
 #: A year, and `immutable`. Every URL embeds the signature, and the signature is
 #: derived from the path and a timestamp — so replacing a file at the same path
 #: necessarily produces a new URL, and the old one can be cached forever without
@@ -83,6 +85,25 @@ def signed_url(path: str, *, ttl: int | None = None) -> str:
 
     token = sign(path)
     return f"/media/{quote(path)}?{SIGNATURE_PARAM}={quote(token)}"
+
+
+def signed_url_for_item(item: Any) -> str | None:
+    """A servable URL for a `MediaItem` ROW, or None.
+
+    THE NARROW FORM OF `signed_url`, and the one templates get. A template global that
+    signed an arbitrary string would let a template — or anything that can influence one
+    — mint a signature for any path, which is the enumerability the signature exists to
+    remove (§13.1). This can only sign a row that is already stored, and it handles the
+    two kinds of media with one answer each: an uploaded file (signed, because uploads
+    live outside the webroot) and an external link (a video, §10.5).
+    """
+    if item is None:
+        return None
+    external = getattr(item, "external_url", None)
+    if external:
+        return str(external)
+    path = getattr(item, "path", None)
+    return signed_url(str(path)) if path else None
 
 
 def _is_safe_relative_path(path: str) -> bool:
@@ -170,12 +191,166 @@ def serve(filename: str, signature: str | None, *, max_age: int | None = None):
     return response
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Upload (§13.1, route 28)
+# ─────────────────────────────────────────────────────────────────────────────
+#: Pillow names an image's FORMAT — "JPEG", "PNG", "WEBP" — while `ALLOWED_IMAGE_MIME`
+#: in app.constants names its MIME TYPE — "image/png". They are different
+#: vocabularies, and comparing one against the other rejects every valid file. The
+#: first version of `store_upload` did exactly that: it built `{"IMAGE/JPEG", …}`
+#: from the MIME tuple and looked up `"PNG"` in it.
+PIL_FORMATS = frozenset({"JPEG", "PNG", "WEBP"})
+
+#: What the stored file is, keyed by the extension chosen for it. `image/jpg` is not
+#: a MIME type, and `f"image/{extension}"` produces exactly that for a JPEG.
+STORED_MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+
+
+class UploadRejected(ValueError):
+    """An upload that will not be stored, with a Bangla reason for the operator.
+
+    A rejected upload is an editor's mistake — the wrong file, a phone's HEIC, a
+    40 MB scan — so it is reported and never raised as a 500.
+    """
+
+
+def store_upload(upload: Any, *, alt_bn: str = "", caption_bn: str | None = None) -> Any:
+    """Validate, re-encode and store one uploaded image. Returns a `MediaItem`.
+
+    FOUR THINGS HAPPEN, IN THIS ORDER, AND THE ORDER IS THE POINT (§13.1):
+
+    1. **The extension is checked against an allow list.** Cheap, and it rejects the
+       obvious before anything is decoded.
+    2. **The bytes are sniffed.** An extension is a claim, not a fact: `logo.png`
+       containing a PHP script is the oldest trick there is. Pillow opening it and
+       reporting its real format is what makes the claim true.
+    3. **The image is RE-ENCODED through Pillow.** This is the step that removes an
+       embedded payload — EXIF, a trailing zip, a polyglot header — because what is
+       written out is pixels, not the file that arrived.
+    4. **The stored name is random and the path is outside the webroot.** A filename
+       from a browser is attacker-controlled; `UPLOAD_ROOT` is outside `app/static`
+       so nothing stored here is ever executed.
+
+    THE ORIGINAL IS NOT KEPT. Storing both the original and the re-encode would leave
+    the untrusted file on disk, which is the half that carries the payload.
+    """
+    import secrets
+    from pathlib import Path
+
+    from werkzeug.utils import secure_filename
+
+    from app.constants import ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_MIME
+    from app.extensions import db
+    from app.models import MediaItem
+
+    from flask import current_app
+
+    if upload is None or not getattr(upload, "filename", ""):
+        raise UploadRejected("No file was selected.")
+
+    safe_name = secure_filename(upload.filename) or "upload"
+    extension = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else ""
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise UploadRejected(
+            "That kind of file is not accepted. Allowed: "
+            + ", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS))
+        )
+
+    try:
+        from PIL import Image, UnidentifiedImageError
+    except ImportError as exc:  # pragma: no cover — Pillow is a hard requirement
+        raise UploadRejected("The image library is not available on this server.") from exc
+
+    raw = upload.read()
+    if not raw:
+        raise UploadRejected("The file is empty.")
+
+    limit_mb = int(current_app.config.get("MAX_CONTENT_LENGTH_MB") or 6)
+    if len(raw) > limit_mb * 1024 * 1024:
+        raise UploadRejected(f"The file cannot be larger than {limit_mb} MB.")
+
+    import io
+
+    try:
+        image = Image.open(io.BytesIO(raw))
+        image.load()
+        sniffed = (image.format or "").upper()
+    except (UnidentifiedImageError, OSError) as exc:
+        # The extension claimed an image and the bytes disagree. This is the case the
+        # sniffing exists for, and it is reported rather than stored.
+        raise UploadRejected("That file is not actually an image.") from exc
+
+    if sniffed not in PIL_FORMATS:
+        raise UploadRejected(f"{sniffed} images are not accepted.")
+
+    max_dimension = int(current_app.config.get("IMAGE_MAX_DIMENSION") or 2000)
+    if max(image.size) > max_dimension:
+        image.thumbnail((max_dimension, max_dimension), Image.LANCZOS)
+
+    # Alpha-aware: a PNG with transparency re-encoded as JPEG silently becomes a
+    # black rectangle, which is a design bug nobody notices until it is on the site.
+    has_alpha = image.mode in ("RGBA", "LA") or (
+        image.mode == "P" and "transparency" in image.info
+    )
+    if sniffed == "JPEG":
+        image = image.convert("RGB")
+        save_format, out_extension = "JPEG", "jpg"
+    elif has_alpha:
+        image = image.convert("RGBA")
+        save_format, out_extension = "PNG", "png"
+    else:
+        image = image.convert("RGB")
+        save_format, out_extension = "WEBP", "webp"
+
+    root = Path(current_app.config["UPLOAD_ROOT"])
+    bucket = root / "images"
+    bucket.mkdir(parents=True, exist_ok=True)
+
+    # The name is OURS: 16 random bytes, and nothing from the uploaded filename
+    # survives into a path or a URL.
+    stored_name = f"{secrets.token_hex(16)}.{out_extension}"
+    target = bucket / stored_name
+
+    buffer = io.BytesIO()
+    if save_format == "JPEG":
+        image.save(buffer, format=save_format, quality=88, optimize=True, progressive=True)
+    elif save_format == "WEBP":
+        image.save(buffer, format=save_format, quality=88, method=6)
+    else:
+        image.save(buffer, format=save_format, optimize=True)
+    data = buffer.getvalue()
+
+    # `image.exif` is deliberately NOT carried over, and neither is any other block:
+    # a photograph straight from a phone carries GPS coordinates, and §13.2 forbids
+    # publishing more about a person than the four consented facts.
+    target.write_bytes(data)
+
+    item = MediaItem(
+        path=f"images/{stored_name}",
+        original_name=safe_name,
+        mime=STORED_MIME[out_extension],
+        size_bytes=len(data),
+        width=image.size[0],
+        height=image.size[1],
+        kind="image",
+        alt_bn=(alt_bn or "").strip() or safe_name,
+        caption_bn=(caption_bn or "").strip() or None,
+    )
+    db.session.add(item)
+    return item
+
+
 __all__ = [
     "CACHE_SECONDS",
     "DEFAULT_TTL_SECONDS",
+    "PIL_FORMATS",
     "SIGNATURE_PARAM",
+    "STORED_MIME",
+    "UploadRejected",
     "serve",
+    "signed_url_for_item",
     "sign",
     "signed_url",
+    "store_upload",
     "verify",
 ]

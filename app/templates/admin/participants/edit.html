@@ -1,0 +1,342 @@
+{#
+  =============================================================================
+  admin/participants/edit.html — routes 21, 22 and 23.
+  One screen for a new participant and an existing one. plan.md §11.3, §5.3.
+
+  WHY CREATE AND DETAIL ARE THE SAME TEMPLATE
+  The fields are identical; only the action changes. Two templates would be two places
+  to add the next field §5 asks for, and the second one would be forgotten.
+
+  THE THREE FORMS ARE DELIBERATELY SEPARATE
+  Details, consent, and publish. They are different kinds of act — a correction, a
+  legal record, and a decision to make a name public — and each writes its own audit
+  entry. One combined form would make "publish" a side effect of pressing "save",
+  which is exactly the accident §5.3 rule 1 exists to prevent.
+
+  CONSENT IS RECORDED, NOT TICKED
+  A grant carries a DATE and a SOURCE, and a grant without a date is allowed but
+  blocks publication — that case gets its own explanation rather than being treated as
+  an error, because the paperwork genuinely exists and only the date is missing.
+
+  WHAT IS DELIBERATELY ABSENT
+  A phone field, an email field, a date-of-birth field, an address field and a mark
+  field. They are not in this form because they are not in the database (§5.1), and a
+  CMS that offered them would be asking an operator to collect data the programme has
+  promised not to hold.
+
+  THE PHOTOGRAPH IS THE ONE EXCEPTION, AND IT IS NOT A LOOPHOLE
+  §5.1 prohibited one. The programme office asked for portraits on the register cards,
+  so the column exists — with `image_consent` beside it and a CHECK constraint that
+  refuses the pair if the permission is missing. An image without permission is stored
+  and never served: `Participant.photo_is_publishable` is the single answer to "may this
+  face be shown", and the register falls back to the person's initials.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, post_form, empty_state, consent_badge, state_badge, kv, media_field %}
+
+{% set is_new = participant is none %}
+
+{% block admin_title %}{{ 'Add a participant' if is_new else participant.name_bn }}{% endblock %}
+
+{% block breadcrumb %}
+  <span aria-hidden="true">/</span>
+  <a href="{{ url_for('admin.participants_list') }}">Participants</a>
+  {% if not is_new %}
+  <span aria-hidden="true">/</span>
+  <span aria-current="page" lang="bn">{{ participant.name_bn }}</span>
+  {% endif %}
+{% endblock %}
+
+{% block admin_lede %}
+{% if is_new %}
+<p class="admin-lede">
+  Four facts and a consent record. A new record is never published and never consented
+  on creation — consent is a separate act with a date and a source.
+</p>
+{% else %}
+<p class="admin-lede">
+  Consent state, the four publishable facts, and the history of every consent decision
+  made about this person.
+</p>
+{% endif %}
+{% endblock %}
+
+{% block admin_actions %}
+{% if not is_new and profile_url %}
+<a class="btn btn-secondary btn-sm" href="{{ profile_url }}" target="_blank" rel="noopener">
+  Open the public profile
+</a>
+{% endif %}
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="admin-split">
+
+  {# ── The record's fields ────────────────────────────────────────────────── #}
+  <div>
+    {% call panel('The record', note='These are the facts the programme publishes.') %}
+      <form method="post"
+            {# The photograph is a file, so this form has to be multipart. #}
+            enctype="multipart/form-data"
+            action="{{ url_for('admin.participant_create') if is_new
+                           else url_for('admin.participant_update', participant_id=participant.id) }}"
+            class="grid gap-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="admin-form-grid">
+          <div class="field">
+            <label class="label label-required" for="f-name">Name (Bangla)</label>
+            <input class="input" type="text" id="f-name" name="name_bn" lang="bn" required
+                   value="{{ participant.name_bn if participant else '' }}">
+          </div>
+
+          <div class="field">
+            <label class="label" for="f-name-en">Name (English)</label>
+            <input class="input" type="text" id="f-name-en" name="name_en"
+                   value="{{ participant.name_en or '' if participant else '' }}">
+          </div>
+
+          {% if is_new %}
+          <div class="field">
+            <label class="label" for="f-slug">Address</label>
+            <input class="input num" type="text" id="f-slug" name="slug"
+                   pattern="[a-z0-9-]+" placeholder="leave empty to build it from the name">
+            <p class="hint">Becomes /batch-1/&lt;address&gt;. Latin, lowercase, hyphens.</p>
+          </div>
+          {% endif %}
+
+          <div class="field">
+            <label class="label label-required" for="f-education">Education</label>
+            <select class="select" id="f-education" name="education" required>
+              <option value="">— choose —</option>
+              {% for value, label in educations %}
+              <option value="{{ value }}"
+                      {% if participant and participant.education and participant.education.value == value %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="f-occupation">Occupation before the course (Bangla)</label>
+            <input class="input" type="text" id="f-occupation" name="occupation_before" lang="bn"
+                   value="{{ participant.occupation_before or '' if participant else '' }}">
+          </div>
+
+          <div class="field">
+            <label class="label" for="f-outcome-type">Outcome</label>
+            <select class="select" id="f-outcome-type" name="outcome_type">
+              <option value="">Not recorded</option>
+              {% for value, label in outcomes %}
+              <option value="{{ value }}"
+                      {% if participant and participant.outcome_type and participant.outcome_type.value == value %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="f-batch">Batch</label>
+            <input class="input num" type="number" id="f-batch" name="batch" min="1" max="9"
+                   value="{{ participant.batch if participant else 1 }}">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="f-outcome-text">What they did afterwards (Bangla)</label>
+          <textarea class="textarea" id="f-outcome-text" name="outcome_text" rows="3"
+                    lang="bn">{{ participant.outcome_text or '' if participant else '' }}</textarea>
+        </div>
+
+        <div class="field">
+          <label class="label" for="f-quote">Quotation (Bangla)</label>
+          <textarea class="textarea" id="f-quote" name="quote_bn" rows="3"
+                    lang="bn">{{ participant.quote_bn or '' if participant else '' }}</textarea>
+          <label class="mt-2 flex items-center gap-2 text-sm text-ink-700">
+            <input class="checkbox" type="checkbox" name="quote_consented"
+                   {% if participant and participant.quote_consented %}checked{% endif %}>
+            <span>This person agreed to being quoted in their own words</span>
+          </label>
+        </div>
+
+        {#
+          THE PHOTOGRAPH, AND THE QUESTION THAT GOVERNS IT.
+
+          §5.1 prohibited a participant photograph, and the register drew two letters
+          instead. The office asked for portraits on the cards, so the rule was amended
+          rather than loosened: the image may be stored for anybody and reaches the
+          public ONLY with the permission below, which the database enforces
+          (`ck_participants_photo_requires_consent`).
+
+          THE CHECKBOX IS INSIDE THE IMAGE FIELD on purpose: an operator who uploads a
+          face has to see the question that governs it. It is a line of the consent form
+          in its own right — the form the programme collects covers a name, an education
+          level and an outcome, and a face identifies its owner in a way those do not.
+        #}
+        {{ media_field('photo_id', images,
+                       participant.photo if participant else none,
+                       'image_consent',
+                       participant.image_consent if participant else false,
+                       'Photograph',
+                       'Without permission the image is stored but never shown — the
+                        register draws their initials instead.') }}
+
+        <div class="admin-row-actions">
+          <button class="btn btn-primary" type="submit">
+            {{ 'Add the record' if is_new else 'Save changes' }}
+          </button>
+          <a class="btn btn-ghost" href="{{ url_for('admin.participants_list') }}">Cancel</a>
+        </div>
+      </form>
+    {% endcall %}
+
+    {% if not is_new %}
+      {% call panel('Consent history', note='Newest first. Appended, never edited.') %}
+        {% if events %}
+        <ul class="space-y-2">
+          {% for event in events %}
+          <li class="border-t border-line pt-2 text-sm first:border-0 first:pt-0">
+            <span class="badge {{ 'badge-withdrawn' if event.action == 'withdraw' else '' }}">
+              {{ admin_label(event.action) }}
+            </span>
+            <span class="text-ink-500">
+              {{ event.created_at.strftime('%Y-%m-%d %H:%M') }}
+              {% if event.source %}· {{ admin_enum_label(event.source) }}{% endif %}
+            </span>
+            {% if event.notes %}<span class="block text-ink-700">{{ event.notes }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-ink-500">
+          No consent decision has been recorded yet, so this name cannot be published.
+        </p>
+        {% endif %}
+      {% endcall %}
+    {% endif %}
+  </div>
+
+  {# ── Consent, then publication ──────────────────────────────────────────── #}
+  <div>
+    {% if is_new %}
+      {% call panel('Consent') %}
+        <p class="text-sm text-ink-500">
+          Consent is recorded after the record exists, because it is an act with a date
+          and a source — not a checkbox on a form. Add the record first.
+        </p>
+      {% endcall %}
+    {% else %}
+
+      {% call panel('Consent') %}
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm text-ink-500">Current state</span>
+          {{ consent_badge(participant) }}
+        </div>
+
+        <dl class="mt-3 grid gap-3">
+          {{ kv('Date recorded', participant.consent_date.strftime('%Y-%m-%d') if participant.consent_date else 'Not recorded') }}
+          {{ kv('Source', admin_enum_label(participant.consent_source) if participant.consent_source else '—') }}
+          {{ kv('Withdrawn', participant.consent_withdrawn_at.strftime('%Y-%m-%d') if participant.consent_withdrawn_at else 'No') }}
+        </dl>
+
+        {% if participant.consent_publication and not participant.consent_date %}
+        <p class="admin-callout mt-3">
+          Consent is recorded without a date. The name is allowed to be published only
+          once the date is known — fill it in below and grant again.
+        </p>
+        {% endif %}
+
+        <form method="post" class="mt-4 grid gap-3"
+              action="{{ url_for('admin.participant_consent', participant_id=participant.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="field">
+            <label class="label" for="c-decision">Decision</label>
+            <select class="select" id="c-decision" name="decision">
+              <option value="grant">Grant or correct consent</option>
+              <option value="withdraw">Withdraw consent</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="c-date">Date on the form</label>
+            <input class="input num" type="date" id="c-date" name="consent_date"
+                   value="{{ participant.consent_date.isoformat() if participant.consent_date else '' }}">
+          </div>
+
+          <div class="field">
+            <label class="label" for="c-source">How it was given</label>
+            <select class="select" id="c-source" name="consent_source">
+              {% for value, label in consent_sources %}
+              <option value="{{ value }}"
+                      {% if participant.consent_source and participant.consent_source.value == value %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="c-notes">Note</label>
+            <input class="input" type="text" id="c-notes" name="consent_notes"
+                   value="{{ participant.consent_notes or '' }}">
+          </div>
+
+          <p class="hint">
+            Withdrawing unpublishes the name immediately, in the same transaction, and
+            cannot be undone by publishing again without a fresh consent record.
+          </p>
+
+          <button class="btn btn-primary" type="submit">Record the decision</button>
+        </form>
+      {% endcall %}
+
+      {% call panel('Publication') %}
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm text-ink-500">Current state</span>
+          {{ state_badge('published' if participant.is_published else 'draft') }}
+        </div>
+
+        {% if not participant.is_published %}
+          {% set allowed = participant.can_publish %}
+          {% if not allowed %}
+          <p class="admin-callout mt-3">
+            {% if not participant.consent_publication %}
+              No consent is recorded, so this name cannot be published.
+            {% else %}
+              Consent is recorded without a date, so this name cannot be published until
+              the date is filled in.
+            {% endif %}
+          </p>
+          {% endif %}
+
+          <form method="post" class="mt-3"
+                action="{{ url_for('admin.participant_publish', participant_id=participant.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="publish">
+            <button class="btn btn-primary" type="submit" {% if not allowed %}disabled{% endif %}>
+              Publish the name
+            </button>
+          </form>
+        {% else %}
+          <p class="mt-3 text-xs text-ink-500">
+            The name, education, previous occupation and outcome are on the public
+            register. Nothing else about this person is.
+          </p>
+          <form method="post" class="mt-3"
+                action="{{ url_for('admin.participant_publish', participant_id=participant.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="unpublish">
+            <button class="btn btn-secondary" type="submit">Unpublish</button>
+          </form>
+        {% endif %}
+      {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

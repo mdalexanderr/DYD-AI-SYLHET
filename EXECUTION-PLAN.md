@@ -84,7 +84,7 @@ short. A violation of any of these is a bug of the highest severity.
 | # | Rule | Source |
 |---|---|---|
 | **S1** | **One user: the admin.** No student accounts, no registration, no roles, no permission matrix. `admin_users` has no `role` column. | §2.2, §10.1 |
-| **S2** | **No participant photograph ever.** `participants` has no image column and the CMS form has no image field. Training photos may appear in the gallery only, never captioned with a full name. | §5.2, §13.3 |
+| **S2** | **No participant photograph without its own permission.** `participants.photo_id` exists (amended 2026-09-29, at the programme office's request) and is inert: `image_consent` must be set, a CHECK constraint refuses the pair without it, and no other image column may exist. Training photos may appear in the gallery only, never captioned with a full name. | §5.2, §13.3 |
 | **S3** | **Never add** `phone`, `email`, `nid`, `dob`, `blood_group`, `address`, `guardian_name`, `signature`, marks or any government identifier to `participants`. | §5.2, §10.3 |
 | **S4** | **Never publish without consent.** `is_published = 1` requires `consent_publication = 1` **and** a non-null `consent_date`. Enforced in the form, the model, **and** a DB `CHECK` constraint. | §5.3, §10.3 |
 | **S5** | **Withdrawal unpublishes and invalidates cache in the SAME transaction. Never delete the row.** | §5.3, §15.1 |

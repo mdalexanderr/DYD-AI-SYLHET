@@ -104,10 +104,10 @@ def robots_payload() -> str:
         [
             "User-agent: *",
             "Allow: /",
-            "# The admin surface. `/admin/` is the guess; the prefixed path is the real",
-            "# one. Neither is linked from anywhere public.",
-            "Disallow: /admin/",
+            "# The admin surface, and the two paths somebody would try if they had not",
+            "# been told where it is. None of it is linked from anywhere public.",
             f"Disallow: {prefix}/",
+            "Disallow: /administrator/",
             "Disallow: /login",
             "Disallow: /logout",
             "",

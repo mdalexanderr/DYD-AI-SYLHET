@@ -146,6 +146,39 @@ class ConsentAction(StrEnum):
     UPDATED = "updated"
 
 
+# ── What the React half renders (§11.3) ──────────────────────────────────────
+# These four vocabularies belonged to `frontend/src/data/mockData.ts` and moved here
+# when that file stopped being the source of truth. The STORED values stay Latin and
+# stable (execution-plan §2.8); the Bangla label for each is what the page renders,
+# and it is a column on the row rather than a constant, because an operator has to be
+# able to reword it without a deploy.
+class WorkKind(StrEnum):
+    VIDEO = "video"
+    POSTER = "poster"
+    MUSIC = "music"
+    DOCUMENT = "document"
+    GALLERY = "gallery"
+
+
+class InstructorStatus(StrEnum):
+    CURRENT = "current"
+    FORMER = "former"
+
+
+WORK_KIND_LABELS: dict[str, str] = {
+    WorkKind.VIDEO: "ভিডিও",
+    WorkKind.POSTER: "পোস্টার",
+    WorkKind.MUSIC: "সংগীত",
+    WorkKind.DOCUMENT: "প্রতিবেদন",
+    WorkKind.GALLERY: "গ্যালারি",
+}
+
+INSTRUCTOR_STATUS_LABELS: dict[str, str] = {
+    InstructorStatus.CURRENT: "বর্তমান",
+    InstructorStatus.FORMER: "প্রাক্তন",
+}
+
+
 # ── CMS (§10.2) ──────────────────────────────────────────────────────────────
 class SettingValueType(StrEnum):
     STRING = "string"

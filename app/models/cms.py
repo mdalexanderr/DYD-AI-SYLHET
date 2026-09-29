@@ -97,7 +97,7 @@ class Page(ModelMixin, AdminStampMixin, Base):
         """
         visible = self.visible_sections
         if not visible:
-            return False, "পৃষ্ঠাটি প্রকাশ করা যায় না: কোনো দৃশ্যমান সেকশন নেই।"
+            return False, "The page cannot be published: it has no visible sections."
         for section in visible:
             ok, reason = section.validate_payload()
             if not ok:
@@ -146,6 +146,18 @@ class PageSection(ModelMixin, Base):
 
         return SECTION_TYPE_LABELS.get(self.type, self.type)
 
+    @property
+    def type_label_en(self) -> str:
+        """The English name, for the admin panel (§11).
+
+        Derived from the type key rather than stored, so a section type added to the
+        registry cannot be nameless here. The Bangla label above is unchanged and
+        still what the public site's own copy uses.
+        """
+        from app.routes.admin._labels import section_name
+
+        return section_name(self.type)
+
     def validate_payload(self) -> tuple[bool, str]:
         """Validate ``content`` against the schema for this type (§9.3).
 
@@ -192,6 +204,15 @@ class Stat(ModelMixin, Base):
     value_bn: Mapped[str | None] = mapped_column(String(64), nullable=True)
     value_num: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     unit_bn: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    #: The line under the figure. "প্রতি ব্যাচে ২৫ জন · ১ম ব্যাচ সম্পন্ন" — copy, so a
+    #: column, and it arrived with the React half's stat strip (§11.3).
+    context_bn: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    #: WHICH SURFACE THIS FIGURE BELONGS TO. Both halves now share this table: the
+    #: React home strip shows its four, the Jinja pages' `stat_strip` sections select
+    #: theirs by id. Without this, `/api/v1/content` would hand the strip all eleven and
+    #: the page would grow tiles nobody asked for. `programme` is the React strip;
+    #: anything else (`cohort`, `course`, …) is picked by section id as before.
+    group: Mapped[str] = mapped_column(String(32), nullable=False, default="", index=True)
     source: Mapped[StatSource] = enum_column(StatSource, default=StatSource.MANUAL)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
 

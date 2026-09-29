@@ -32,16 +32,27 @@ class CtaBandSection(SectionBase):
 
         The `cta` field type enforces this inside `_check_scalar`; here the label and
         the href are separate fields, so the pairing has to be checked explicitly.
+
+        THE LABELS ARE DERIVED, NOT WRITTEN OUT. They used to be Bangla literals, which
+        was right for a Bangla panel and is wrong now (§11.1): a validation reason is
+        only ever shown in the admin, so it is English, and it names the field using the
+        same label the editor prints above the input — `field_label` — so the error and
+        the form cannot disagree about what a field is called.
         """
+        from app.routes.admin._labels import field_label
+
+        label_field = field_label("cta_label")
+        href_field = field_label("cta_href")
+
         label = str(payload.get("cta_label") or "").strip()
         href = payload.get("cta_href")
 
         if label and not href:
-            return False, "“বাটনের লেখা” থাকলে “বাটনের লিংক”ও থাকতে হবে।"
+            return False, f"{label_field} is filled in, so {href_field} is needed too."
         if href:
             if not label:
-                return False, "“বাটনের লিংক” থাকলে “বাটনের লেখা”ও থাকতে হবে।"
-            return validate_href(href, "বাটনের লিংক")
+                return False, f"{href_field} is filled in, so {label_field} is needed too."
+            return validate_href(href, href_field)
         return True, ""
 
     def context(self, payload: dict[str, Any], request: Any = None) -> dict[str, Any]:

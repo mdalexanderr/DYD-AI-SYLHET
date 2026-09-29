@@ -212,6 +212,29 @@ def _outcome_label(participant) -> str | None:
         return None
 
 
+def _photo_url(participant) -> str | None:
+    """A servable portrait URL, or None when there may not be one.
+
+    THE MODEL DECIDES, NOT THIS FUNCTION: `photo_is_publishable` is the one place that
+    answers "may this person's face be shown", and it requires the permission as well as
+    the file. Everything below is storage: a participant photo is an uploaded file, so it
+    lives outside the webroot and is served through a signed URL (§13.1) — the same
+    treatment every other uploaded image gets, because an unsigned `/uploads/...` path is
+    enumerable and a register of faces is the last thing that should be.
+    """
+    if not participant.photo_is_publishable:
+        return None
+
+    from app.services import media_service
+
+    item = participant.photo
+    if item is None:
+        return None
+    if item.external_url:
+        return str(item.external_url)
+    return media_service.signed_url(str(item.path)) if item.path else None
+
+
 def to_card(participant) -> dict[str, Any]:
     """The shape `participant_card` expects. Four facts, nothing else."""
     return {
@@ -222,7 +245,24 @@ def to_card(participant) -> dict[str, Any]:
         "meta": _meta_line(participant),
         "outcome_text": participant.outcome_text,
         "outcome_label": _outcome_label(participant),
+        # None unless the person gave permission for a likeness — see `_photo_url`.
+        "photo_url": _photo_url(participant),
+        "initials": _initials(participant.name_bn),
     }
+
+
+def _initials(name: str | None) -> str:
+    """Two characters, for the plate that stands in for a missing portrait.
+
+    Same rule as `content_service.initials`, and duplicated here rather than imported
+    because the dependency runs the other way — the API imports this module.
+    """
+    words = [word for word in str(name or "").split() if word]
+    if not words:
+        return "?"
+    if len(words) == 1:
+        return words[0][:2]
+    return (words[0][:1] + words[1][:1]).upper()
 
 
 def to_profile(participant, *, prev=None, next_=None) -> dict[str, Any]:
@@ -272,6 +312,34 @@ def education_choices() -> list[tuple[str, str]]:
 def outcome_choices() -> list[tuple[str, str]]:
     """The FIVE filterable outcomes. `other` is deliberately not offered (§6.4)."""
     return [(member.value, OUTCOME_LABELS[member]) for member in FILTERABLE_OUTCOMES]
+
+
+def slugify(value: str, *, prefix: str = "participant") -> str:
+    """A URL-safe slug for a name, Latin or Bangla (§4.3).
+
+    A name that transliterates — "Lata Rani Das" — becomes `lata-rani-das`. A name
+    that does not, which is most of them, becomes `participant-<8 hex characters>`:
+    a STABLE hash of the name rather than a transliteration. The alternative was a
+    romanisation library, and a wrong romanisation of somebody's name in a URL is a
+    worse outcome than a short opaque one — the slug is not the name, the name is on
+    the page, and the admin can type a readable slug by hand.
+
+    Deterministic on purpose: importing the same spreadsheet twice must produce the
+    same slug so the duplicate check can find it, rather than a second record.
+    """
+    import hashlib
+    import re
+    import unicodedata
+
+    ascii_form = (
+        unicodedata.normalize("NFKD", value or "").encode("ascii", "ignore").decode("ascii")
+    )
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_form.lower()).strip("-")
+    if slug:
+        return slug[:80]
+
+    digest = hashlib.sha1((value or "").encode("utf-8")).hexdigest()[:8]
+    return f"{prefix}-{digest}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

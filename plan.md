@@ -345,7 +345,7 @@ authority on what may be published.
 
 **Never stored on this site, and never published:**
 
-photograph · phone · email · NID or birth-registration number · date of birth · blood group ·
+phone · email · NID or birth-registration number · date of birth · blood group ·
 full address · guardian or parent names · signature · exam marks · any government identifier.
 
 > **No photographs at all** — decided 2026-09-23. Images of identifiable private individuals on a
@@ -355,8 +355,19 @@ full address · guardian or parent names · signature · exam marks · any gover
 > This also removes the single hardest thing to obtain retroactively. A name can be consented to in
 > a message; a photograph, once published, cannot be recalled.
 
-Consequence: **there is no `media_id` on a participant.** If a future phase wants portraits, that is
-a new consent programme, not a field addition.
+> **AMENDED 2026-09-29** — a participant photograph is now permitted, and only ever with its own
+> recorded permission (`participants.image_consent`), on the strength of a line of the consent form
+> that covers a likeness specifically. A name, an education level and an outcome are not that
+> permission, and the database refuses the pairing without it
+> (`ck_participants_photo_requires_consent`) — so a photograph cannot be stored for anybody whose
+> form did not include it. Everything else in the list above stands, and `participants` still has no
+> `photo_path`, `image`, `avatar`, `media_id` or any other spelling of a picture. This is the
+> "new consent programme" the paragraph below anticipated, requested by the programme office.
+
+Consequence: **a participant has at most one image, `photo_id`, and it is inert without
+`image_consent`.** `Participant.photo_is_publishable` is the single place that decides whether a
+face may be shown; the register and the profile fall back to initials when it is False.
+
 
 ### 5.3 Consent model
 
@@ -1166,11 +1177,24 @@ listing; `Cache-Control: public, max-age=31536000, immutable` because filenames 
 | Tags | Free-form, for library filtering |
 | Video | **Links only** (YouTube/Facebook), never hosted files. `media_feature` and `gallery_strip` accept a `video_link` kind. |
 
-### 13.3 No participant photographs
+### 13.3 Participant photographs — permitted, behind their own permission
 
-Reinforced here because it is the rule most likely to be tested by a well-meaning future request:
-`participants` has no media reference and the CMS participant form has no image field. Portrait
-support would require a consent programme (§5.2), not a field addition.
+**The rule was tested by exactly the request this section anticipated, and it was amended rather than
+broken.** A participant may now have one photograph (`participants.photo_id`) and the CMS form has
+an image field, because the programme office asked for portraits on the register cards and the
+profile page. What did NOT change is the consent burden:
+
+| Rule | Where it is enforced |
+|---|---|
+| A photograph needs a permission of its own — a line of the form about a likeness, not the consent for a name and an education level | `participants.image_consent`, and the checkbox sits inside the image field so an upload cannot happen without seeing the question |
+| A photograph cannot be STORED without that permission | `ck_participants_photo_requires_consent` — a CHECK constraint, refused at INSERT, so an import or a script hits it too |
+| A photograph is served only when permitted | `Participant.photo_is_publishable` — one property, called by the register, the profile and the API |
+| Withdrawing consent takes the face down with the name | §5.3 rule 2 unpublishes the row in the same transaction |
+| No other spelling of a picture exists | `PROHIBITED_PARTICIPANT_COLUMNS`, with the single permitted pair named in `CONSENTED_PARTICIPANT_COLUMNS` and checked by `flask check-db` |
+
+The Jinja profile page (`/batch-1/<slug>`) stays typographic by design — its header argues that an
+image placeholder is not neutral, and that argument still holds. The portraits appear on the React
+cards and the participant dialog, and on the trainer cards.
 
 Training photographs are permitted **in the gallery only**, and must not be captioned with a
 participant's full name.

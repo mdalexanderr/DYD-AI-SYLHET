@@ -1,0 +1,185 @@
+{#
+  =============================================================================
+  admin/participants/list.html — route 20. plan.md §11.3, §5.3.
+
+  THE FILTERS ARE A GET FORM
+  Every filter is a query parameter, so a filtered view has a URL an operator can
+  bookmark or send to a colleague, and the whole screen works with scripting off.
+  Filtering happens in SQL against the maintained `search_blob` column, not in Python
+  over the fetched page — filtering after pagination would show 12 of 50 and claim
+  there were 12.
+
+  THE BULK BAR STATES THE SKIP COUNT IN THE SAME SENTENCE AS THE SUCCESS COUNT
+  §11.3: "Bulk publish silently skips any record without consent and reports how many
+  were skipped — it never publishes a name because someone selected 'all'." The count
+  is the feature. "12 published" alone is the number that gets trusted, and it is
+  wrong.
+
+  CONSENT IS A COLUMN, NOT A FOOTNOTE
+  The four facts §5.1 allows are shown; the consent state is shown next to the name
+  because it decides whether the name may appear at all. A record that cannot be
+  published says why at a glance, rather than failing when someone tries.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state, consent_badge, pager %}
+
+{% block admin_title %}Participants{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  The register. Only the four facts consented to are ever published; a photograph,
+  phone number, email, ID number, date of birth, blood group or address is not stored
+  here at all.
+</p>
+{% endblock %}
+
+{% block admin_actions %}
+<a class="btn btn-primary btn-sm" href="{{ url_for('admin.participant_new') }}">Add a participant</a>
+<a class="btn btn-secondary btn-sm" href="{{ url_for('admin.participants_import') }}">Import a CSV</a>
+<a class="btn btn-secondary btn-sm" href="{{ url_for('admin.participants_export', **filters) }}">
+  Export these {{ total }} rows
+</a>
+{% endblock %}
+
+{% block admin_content %}
+
+{# ── Filters ──────────────────────────────────────────────────────────────── #}
+<form method="get" class="admin-filter-bar -mx-4 px-4 sm:-mx-6 sm:px-6" role="search">
+  <div class="field">
+    <label class="label" for="f-q">Search</label>
+    <input class="input" type="search" id="f-q" name="q" value="{{ filters.q }}"
+           placeholder="Name, occupation, outcome…">
+  </div>
+
+  <div class="field">
+    <label class="label" for="f-outcome">Outcome</label>
+    <select class="select" id="f-outcome" name="outcome">
+      <option value="">Any</option>
+      {% for value, label in outcomes %}
+      <option value="{{ value }}" {% if filters.outcome == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="label" for="f-consent">Consent</label>
+    <select class="select" id="f-consent" name="consent">
+      <option value="">Any</option>
+      <option value="given" {% if filters.consent == 'given' %}selected{% endif %}>Consented</option>
+      <option value="missing_date" {% if filters.consent == 'missing_date' %}selected{% endif %}>Consented, no date</option>
+      <option value="none" {% if filters.consent == 'none' %}selected{% endif %}>Not consented</option>
+      <option value="withdrawn" {% if filters.consent == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="label" for="f-published">Published</label>
+    <select class="select" id="f-published" name="published">
+      <option value="">Any</option>
+      <option value="yes" {% if filters.published == 'yes' %}selected{% endif %}>Published</option>
+      <option value="no" {% if filters.published == 'no' %}selected{% endif %}>Not published</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="label" for="f-batch">Batch</label>
+    <input class="input num" type="number" id="f-batch" name="batch" min="1" max="9"
+           value="{{ filters.batch }}">
+  </div>
+
+  <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.participants_list') }}">Clear</a>
+</form>
+
+{% if not rows %}
+  {{ empty_state(
+       'No participants match this filter.' if total == 0 and filters.q or filters.consent or filters.outcome else 'The register is empty.',
+       'Import a consent list as CSV, or add one person at a time. Nothing is published until consent is recorded.') }}
+  <a class="btn btn-primary mt-3" href="{{ url_for('admin.participants_import') }}">Import a CSV</a>
+{% else %}
+
+{# The bulk form WRAPS the table: `ids` checkboxes inside it are the selection. #}
+<form method="post" action="{{ url_for('admin.participants_bulk') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="admin-selection-bar mt-4">
+    <p class="admin-panel-note">
+      Tick the rows to act on. Publishing skips anyone without consent and tells you how
+      many it skipped.
+    </p>
+    <div class="admin-row-actions">
+      <label class="sr-only" for="bulk-action">Bulk action</label>
+      <select class="select" id="bulk-action" name="bulk_action">
+        <option value="publish">Publish</option>
+        <option value="unpublish">Unpublish</option>
+        <option value="outcome">Set outcome</option>
+      </select>
+
+      <label class="sr-only" for="bulk-outcome">Outcome for the selected rows</label>
+      <select class="select" id="bulk-outcome" name="outcome">
+        <option value="">Outcome…</option>
+        {% for value, label in outcomes %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <button class="btn btn-primary btn-sm" type="submit">Apply to selected</button>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="table-ruled">
+      <caption class="sr-only">Participants matching the current filter</caption>
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr-only">Select</span></th>
+          <th scope="col">Name</th>
+          <th scope="col">Batch</th>
+          <th scope="col">Education</th>
+          <th scope="col">Before</th>
+          <th scope="col">Outcome</th>
+          <th scope="col">Consent</th>
+          <th scope="col">Published</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>
+            <input class="checkbox" type="checkbox" name="ids" value="{{ row.id }}">
+            <span class="sr-only">Select {{ row.name_bn }}</span>
+          </td>
+          <td>
+            <a class="font-semibold text-ink-900 hover:text-green-700"
+               href="{{ url_for('admin.participant_detail', participant_id=row.id) }}">
+              <span lang="bn">{{ row.name_bn }}</span>
+            </a>
+            {% if row.name_en %}<span class="block text-xs text-ink-500">{{ row.name_en }}</span>{% endif %}
+          </td>
+          <td class="numeric">{{ row.batch }}</td>
+          <td>{{ admin_enum_label(row.education) }}</td>
+          <td lang="bn">{{ row.occupation_before or '—' }}</td>
+          <td>{{ admin_enum_label(row.outcome_type) if row.outcome_type else '—' }}</td>
+          <td>{{ consent_badge(row) }}</td>
+          <td>
+            {% if row.is_published %}<span class="badge">Yes</span>
+            {% else %}<span class="badge badge-neutral">No</span>{% endif %}
+          </td>
+          <td>
+            <a class="btn btn-ghost btn-sm"
+               href="{{ url_for('admin.participant_detail', participant_id=row.id) }}">Open</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+{{ pager(page, pages, total, 'participants') }}
+
+{% endif %}
+
+{% endblock %}

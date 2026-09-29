@@ -192,7 +192,7 @@ def test_robots_disallows_both_the_guess_and_the_real_prefix(client):
 
     assert client.get("/robots.txt").status_code == 200
     assert "Disallow: /admin/" in body
-    assert "Disallow: /ops-sylhet/" in body
+    assert "Disallow: /administrator/" in body
     assert "Disallow: /login" in body
 
 

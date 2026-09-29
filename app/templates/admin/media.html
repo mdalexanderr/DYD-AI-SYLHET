@@ -1,0 +1,152 @@
+{#
+  =============================================================================
+  admin/media.html — route 28. plan.md §11.1, §13.1, §13.2.
+
+  THE LIBRARY IS A GRID BECAUSE THE CONTENT IS PICTURES
+  Every other screen in this panel is a table; this one is not, because the decision an
+  editor makes here is "which image looks right", and a table of filenames cannot
+  answer it. The grid is dense (four across on a wide screen) because an operator
+  scanning for one photograph out of forty wants to see forty.
+
+  IN USE IS COMPUTED, NOT STORED
+  A referenced image cannot be deleted from here, and the notice says how many sections
+  use it. That friction is deliberate: a deleted image leaves a hole on a public page,
+  and the person deleting it is the only one who knows which page that is.
+
+  ALT TEXT IS SHOWN AS IT WILL BE READ
+  An image whose description is still its filename renders that filename to a screen
+  reader, so the fallback is displayed rather than hidden — the operator can see it is a
+  filename and replace it.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state %}
+
+{% block admin_title %}Media library{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  Images are stored outside the website folder, re-encoded to strip EXIF and location
+  data, and saved under a random name. SVG is refused: it can carry script and would be
+  served from this site's own address.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+{% call panel('Upload', note='jpg, png or webp · up to ' ~ max_mb ~ ' MB each') %}
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.media_upload') }}"
+        class="grid gap-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="admin-form-grid">
+      <div class="field">
+        <label class="label label-required" for="f-files">Files</label>
+        <input class="input" type="file" id="f-files" name="files" multiple required
+               accept="image/jpeg,image/png,image/webp">
+        <p class="hint">Several at once is fine. One bad file does not lose the others.</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-alt">Description (alt text)</label>
+        <input class="input" type="text" id="f-alt" name="alt_bn" lang="bn"
+               placeholder="যেমন: ল্যাবে প্রশিক্ষণার্থীরা">
+        <p class="hint">
+          Read aloud to anyone using a screen reader. Leave empty only if you will fill it
+          in per image below.
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-caption">Caption</label>
+        <input class="input" type="text" id="f-caption" name="caption_bn" lang="bn">
+      </div>
+    </div>
+
+    <div>
+      <button class="btn btn-primary" type="submit">Upload</button>
+    </div>
+  </form>
+{% endcall %}
+
+{% if not items %}
+  <div class="mt-4">
+  {{ empty_state(
+       'The library is empty.',
+       'Upload a photograph or a logo above. Images uploaded here can be placed in any page section that takes one.') }}
+  </div>
+{% else %}
+<p class="mt-6 text-sm text-ink-500">
+  {{ items | length }} image(s), newest first.
+</p>
+
+<ul class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  {% for item in items %}
+  {% set used = usage.get(item.id, 0) %}
+  <li class="admin-panel overflow-hidden">
+    <img src="{{ signed(item.path) }}" alt="{{ item.alt_bn or item.original_name }}"
+         width="{{ item.width or 400 }}" height="{{ item.height or 300 }}"
+         loading="lazy" class="block w-full border-b border-line bg-paper-2 object-cover">
+
+    <div class="p-3">
+      <p class="admin-path truncate" dir="ltr" title="{{ item.original_name }}">
+        {{ item.original_name }}
+      </p>
+      <p class="mt-1 text-xs text-ink-500">
+        <span class="num">{{ item.width }}×{{ item.height }}</span>
+        · <span class="num">{{ (item.size_bytes // 1024) if item.size_bytes else 0 }} KB</span>
+        · {% if used %}<strong class="text-ink-900">used in {{ used }} section(s)</strong>
+          {% else %}not used yet{% endif %}
+      </p>
+
+      {% if not item.alt_bn %}
+      <p class="mt-1 text-xs text-gold">No description — the filename is being read out.</p>
+      {% endif %}
+
+      <details class="mt-2 border-t border-line pt-2">
+        <summary class="cursor-pointer text-sm font-semibold text-green-700">
+          Description and tags
+        </summary>
+
+        <form method="post" class="mt-2 grid gap-2"
+              action="{{ url_for('admin.media_update', media_id=item.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field">
+            <label class="label" for="alt-{{ item.id }}">Description (alt text)</label>
+            <input class="input" type="text" id="alt-{{ item.id }}" name="alt_bn" lang="bn"
+                   value="{{ item.alt_bn or '' }}">
+          </div>
+          <div class="field">
+            <label class="label" for="cap-{{ item.id }}">Caption</label>
+            <input class="input" type="text" id="cap-{{ item.id }}" name="caption_bn" lang="bn"
+                   value="{{ item.caption_bn or '' }}">
+          </div>
+          <div class="field">
+            <label class="label" for="tag-{{ item.id }}">Tags</label>
+            <input class="input" type="text" id="tag-{{ item.id }}" name="tags"
+                   value="{{ (item.tags or []) | join(', ') }}">
+            <p class="hint">Comma separated.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" type="submit">Save</button>
+        </form>
+
+        {% if used %}
+        <p class="hint mt-2">
+          In use by {{ used }} section(s), so it cannot be deleted. Replace it from the
+          page that uses it first.
+        </p>
+        {% else %}
+        <form method="post" class="mt-2"
+              action="{{ url_for('admin.media_delete', media_id=item.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger btn-sm" type="submit">Delete this image</button>
+        </form>
+        {% endif %}
+      </details>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

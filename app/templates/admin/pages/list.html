@@ -1,0 +1,116 @@
+{#
+  =============================================================================
+  admin/pages/list.html — route 17. plan.md §11.1, §4.3.
+
+  THE LIST SHOWS WHAT A READER WOULD SEE, AND WHAT THEY WOULD NOT
+  Title, address, state, how many sections it has and whether it is in the menu. Those
+  five answer "is this page finished" without opening it, which is the only reason a
+  list of seven pages exists.
+
+  THREE OF THESE ADDRESSES ARE SERVED BY THE OTHER HALF
+  `/`, `/gallery` and the rest are React routes. Their rows say so, because "view" on
+  one of them leaves the Jinja site entirely and an operator who does not know that
+  will report it as broken.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state, state_badge %}
+
+{% block admin_title %}Pages{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  Every public page and its address. A page is made of ordered sections; publish it
+  when the sections are complete and valid.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+{% if not pages %}
+  {{ empty_state(
+       'No pages yet.',
+       'Create one below. The address becomes the page\'s URL and cannot be changed later without breaking links to it.') }}
+{% else %}
+<div class="admin-panel">
+  <div class="table-scroll">
+    <table class="table-ruled">
+      <caption class="sr-only">All pages, in menu order</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="numeric">#</th>
+          <th scope="col">Page</th>
+          <th scope="col">Address</th>
+          <th scope="col">Sections</th>
+          <th scope="col">State</th>
+          <th scope="col">In menu</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for page in pages %}
+        <tr>
+          <td class="numeric">{{ page.sort_order }}</td>
+          <td>
+            <span class="font-semibold text-ink-900" lang="bn">{{ page.title_bn }}</span>
+            {% if page.title_en %}<span class="block text-xs text-ink-500">{{ page.title_en }}</span>{% endif %}
+          </td>
+          <td><span class="admin-path">/{{ page.slug }}</span></td>
+          <td class="numeric">{{ page.sections | length }}</td>
+          <td>{{ state_badge('published' if page.is_published else 'draft') }}</td>
+          <td>
+            {% if page.show_in_nav %}<span class="badge">Shown</span>
+            {% else %}<span class="badge badge-neutral">Hidden</span>{% endif %}
+          </td>
+          <td>
+            <div class="admin-row-actions">
+              <a class="btn btn-secondary btn-sm"
+                 href="{{ url_for('admin.page_editor', page_id=page.id) }}">Edit</a>
+              <a class="btn btn-ghost btn-sm"
+                 href="{{ url_for('admin.page_preview', page_id=page.id) }}">Preview</a>
+              <a class="btn btn-ghost btn-sm" href="/{{ page.slug }}"
+                 target="_blank" rel="noopener">Open
+                <span class="sr-only">/{{ page.slug }} in a new tab</span></a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="mt-2 text-xs text-ink-500">
+  The home page, gallery, batches, participants, trainers, contact and course-modules
+  addresses are rendered by the site's other half and are not in this table.
+</p>
+{% endif %}
+
+{% call panel('Add a page', note='The address must be lowercase Latin, and cannot be reused.') %}
+  <form method="post" action="{{ url_for('admin.pages_create') }}" class="grid gap-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="admin-form-grid">
+      <div class="field">
+        <label class="label label-required" for="p-title">Page title (Bangla)</label>
+        <input class="input" type="text" id="p-title" name="title_bn" required lang="bn"
+               placeholder="যেমন: আমাদের সম্পর্কে">
+      </div>
+      <div class="field">
+        <label class="label label-required" for="p-slug">Address</label>
+        <input class="input num" type="text" id="p-slug" name="slug" required
+               pattern="[a-z][a-z0-9-]*" placeholder="about-us">
+        <p class="hint">Lowercase letters, digits and hyphens. It becomes /about-us.</p>
+      </div>
+      <div class="field">
+        <label class="label" for="p-nav">Menu label</label>
+        <input class="input" type="text" id="p-nav" name="nav_label_bn" lang="bn"
+               placeholder="Leave empty to use the title">
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-primary" type="submit">Create the page</button>
+    </div>
+  </form>
+{% endcall %}
+
+{% endblock %}

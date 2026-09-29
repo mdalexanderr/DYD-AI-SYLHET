@@ -1,0 +1,207 @@
+{#
+  =============================================================================
+  admin/records/list.html — the shared shape for six screens. plan.md §11.1.
+
+  THE FORM IS ON THE LIST PAGE
+  Creating an institution or a question is one field or four; sending an operator to a
+  second screen to add one is a second screen for nothing. Editing reuses the same
+  form, filled in, and the row being edited is named in the panel heading so it is
+  never ambiguous which record "Save" applies to.
+
+  EVERY ROW'S CONTROLS ARE FORMS
+  Deactivate and edit are POSTs, so a stray link prefetch cannot deactivate a record.
+  Deactivating is a SOFT delete for the models that have `is_active` — the row stays,
+  which is what §11.1 asks for and what makes an accidental deactivation recoverable
+  in one click.
+
+  SECRET SETTINGS ARE READ-ONLY IN BOTH PLACES
+  A row marked `is_secret` renders its value as a placeholder in the TABLE and in the
+  FORM, because §16.2 keeps credentials in `.env` and a screen that could show or
+  write one is the way that rule gets broken. The table half was a real leak once:
+  the form refused to write a secret while the list happily printed it.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, post_form, empty_state, media_field %}
+
+{% block admin_title %}{{ screen.title }}{% endblock %}
+
+{% block admin_lede %}{% if screen.intro %}<p class="admin-lede">{{ screen.intro }}</p>{% endif %}{% endblock %}
+
+{% block admin_content %}
+
+{% if not rows %}
+  {{ empty_state(
+       'Nothing here yet.',
+       'Add the first record with the form below — the site reads from this table immediately.') }}
+{% else %}
+<div class="admin-panel">
+  <div class="table-scroll">
+    <table class="table-ruled">
+      <caption class="sr-only">{{ screen.title }} — all records</caption>
+      <thead>
+        <tr>
+          {% for name in columns %}
+          <th scope="col">{{ admin_field_label(name) }}</th>
+          {% endfor %}
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for name in columns %}
+          {% set secret_cell = (name == 'value') and (row['is_secret'] | default(false)) %}
+          <td>
+            {% set value = row[name] %}
+            {% if secret_cell %}
+              <span class="num text-ink-500" lang="bn">•••• kept in .env</span>
+            {% elif value is sameas true %}
+              <span class="badge">Yes</span>
+            {% elif value is sameas false %}
+              <span class="badge badge-neutral">No</span>
+            {% elif value is none or value == '' %}
+              <span class="text-ink-300" aria-hidden="true">—</span>
+            {% elif value is number %}
+              <span class="num">{{ value }}</span>
+            {% else %}
+              {# Values are content: a title, a name, a question. Bangla, so marked. #}
+              <span lang="bn">{{ value }}</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td>
+            <div class="admin-row-actions">
+              <a class="btn btn-ghost btn-sm"
+                 href="{{ url_for('admin.' + screen.endpoint, edit=row.id) }}">Edit</a>
+              {% if screen.active_field %}
+                {{ post_form(
+                     url_for('admin.' + screen.endpoint + '_toggle'),
+                     'Deactivate' if row[screen.active_field] else 'Activate',
+                     {'row_id': row.id},
+                     'ghost') }}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── The form: create, or edit the row named in the heading ───────────────── #}
+{% call panel(
+     ('Editing: ' ~ editing[screen.label_field]) if editing else 'Add a record',
+     note='Changes are recorded in the audit log with the before and after values.') %}
+  <form method="post" class="grid gap-4"
+        {# An image field carries a file, so the form has to be multipart. Always, rather
+           than only when the screen has one: a form that silently drops a file because
+           somebody added a field later is a bug nobody would think to look for. #}
+        enctype="multipart/form-data"
+        action="{{ url_for('admin.' + screen.endpoint + '_save') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if editing %}<input type="hidden" name="row_id" value="{{ editing.id }}">{% endif %}
+
+    <div class="admin-form-grid">
+      {% for spec in form_fields %}
+      {% set secret = editing and editing.is_secret|default(false) and spec.name == 'value' %}
+
+      {% if spec.kind == 'checkbox' %}
+      <label class="flex items-center gap-2 text-sm text-ink-700">
+        <input class="checkbox" type="checkbox" name="{{ spec.name }}"
+               {% if editing and editing[spec.name] %}checked{% endif %}>
+        <span>{{ spec.label }}</span>
+      </label>
+
+      {% else %}
+      <div class="field {{ 'md:col-span-2' if spec.kind in ('textarea',) }}">
+        <label class="label {{ 'label-required' if spec.required }}"
+               for="f-{{ spec.name }}">{{ spec.label }}</label>
+        {% if spec.hint %}<p class="hint">{{ spec.hint }}</p>{% endif %}
+
+        {% set value = editing[spec.name] if editing else '' %}
+
+        {% if spec.kind == 'textarea' %}
+          <textarea class="textarea" id="f-{{ spec.name }}" name="{{ spec.name }}" rows="4"
+                    {% if secret %}readonly placeholder="•••• kept in .env"{% endif %}
+                    {% if spec.required %}required{% endif %}>{{ '' if secret else (value or '') }}</textarea>
+
+        {% elif spec.kind == 'lines' %}
+          {# One line per entry. The column holds a JSON list, so the list is joined for
+             the box and split again on save — see `_records.LINES`. #}
+          <textarea class="textarea" id="f-{{ spec.name }}" name="{{ spec.name }}" rows="3"
+                    {% if 'bn' == spec.name[-2:] %}lang="bn"{% endif %}
+                    {% if spec.required %}required{% endif %}>{{ value|join('\n') if value is sequence and value is not string else (value or '') }}</textarea>
+          <p class="hint">প্রতি লাইনে একটি করে — One entry per line.</p>
+
+        {% elif spec.kind == 'number' or spec.kind == 'stat' %}
+          <input class="input num" type="number" step="{{ '0.01' if spec.kind == 'stat' else '1' }}"
+                 id="f-{{ spec.name }}" name="{{ spec.name }}"
+                 value="{{ '' if value is none else value }}"
+                 {% if spec.minimum is not none %}min="{{ spec.minimum }}"{% endif %}
+                 {% if spec.maximum is not none %}max="{{ spec.maximum }}"{% endif %}
+                 {% if spec.required %}required{% endif %}>
+
+        {% elif spec.kind == 'select' %}
+          <select class="select" id="f-{{ spec.name }}" name="{{ spec.name }}">
+            <option value="">— choose —</option>
+            {% for choice_value, choice_label in spec.choices %}
+            <option value="{{ choice_value }}"
+                    {% if value is not none and value|string == choice_value %}selected{% endif %}>
+              {{ choice_label }}
+            </option>
+            {% endfor %}
+          </select>
+
+        {% elif spec.kind == 'ref' and spec.choices_ref == 'MediaItem' %}
+          {# An image, with the library picker, an upload and a remove in one block. #}
+          {{ media_field(spec.name, images, editing[spec.name] if editing else none,
+                         none, none, false, spec.label, spec.hint) }}
+
+        {% elif spec.kind == 'ref' %}
+          {# A foreign key, picked from the rows of another table. The choices are read
+             per request (`_records.resolved_fields`), so a course created a minute ago
+             is pickable. #}
+          <select class="select" id="f-{{ spec.name }}" name="{{ spec.name }}"
+                  {% if spec.required %}required{% endif %}>
+            <option value="">— choose —</option>
+            {% for choice_value, choice_label in spec.choices %}
+            <option value="{{ choice_value }}"
+                    {% if value is not none and value|string == choice_value %}selected{% endif %}>
+              {{ choice_label }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if not spec.choices %}
+          <p class="hint">There is nothing to choose yet — add a record on its own screen first.</p>
+          {% endif %}
+
+        {% else %}
+          {# Content fields hold Bangla text, so they are typed in Bangla. #}
+          <input class="input" type="text" id="f-{{ spec.name }}" name="{{ spec.name }}"
+                 value="{{ '' if secret else (value if value is not none else '') }}"
+                 {% if 'bn' == spec.name[-2:] %}lang="bn"{% endif %}
+                 {# Read-only only once the row exists: the value is needed to create it. #}
+                 {% if (spec.readonly and editing) or secret %}readonly{% endif %}
+                 {% if secret %}placeholder="•••• kept in .env"{% endif %}
+                 {% if spec.required and (not spec.readonly or not editing) %}required{% endif %}>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="admin-row-actions">
+      <button class="btn btn-primary" type="submit">
+        {{ 'Save changes' if editing else 'Add record' }}
+      </button>
+      {% if editing %}
+      <a class="btn btn-ghost" href="{{ url_for('admin.' + screen.endpoint) }}">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+{% endcall %}
+
+{% endblock %}

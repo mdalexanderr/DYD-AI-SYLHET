@@ -65,7 +65,7 @@ def _raw(name: str) -> str | None:
         it. The two lines below are both documented forms in `.env.example`, and they
         do not behave the same way:
 
-            ADMIN_URL_PREFIX=ops-sylhet    # MUST stay non-guessable  ->  "ops-sylhet"
+            ADMIN_URL_PREFIX=admin    # the CMS lives here; /admin/login is the door  ->  "admin"
             ADMIN_IP_ALLOWLIST=            # empty = off              ->  "# empty = off"
 
         The second resolved to the COMMENT TEXT. `_csv` then split it on the comma,
@@ -204,7 +204,26 @@ class BaseConfig:
     # and they mean different things — see `_session_policy` in app/__init__.py.
     SESSION_IDLE_SECONDS = _int("SESSION_IDLE_SECONDS", 1800)
     IDLE_TIMEOUT_SECONDS = _int("IDLE_TIMEOUT_SECONDS", 1800)
-    ADMIN_URL_PREFIX = _str("ADMIN_URL_PREFIX", "ops-sylhet")
+    # The CMS lives here, at the path the site's owner asked for: `/admin/login` is
+    # the door, `/admin` is the dashboard, `/admin/pages` is the editor.
+    #
+    # §12.1 asks for a NON-GUESSABLE prefix, and that is deliberately traded away
+    # here. The trade is recorded in docs/FRONTEND.md rather than left for someone to
+    # rediscover in six months. What still protects the content is everything that
+    # does not depend on the path being secret: one bcrypt account, a three-attempt
+    # lockout, the idle and absolute session limits, an audit row for every write, an
+    # optional IP allowlist, and `noindex` on every screen behind it.
+    #
+    # TOTP 2FA used to be on that list. It is now OFF by the owner's instruction
+    # (`ADMIN_2FA_REQUIRED=false` and an account with no TOTP enrolled), which is why
+    # the list above has one item fewer than it did. The machinery is intact and one
+    # line brings it back — so this is a setting, not a removal, and the README says
+    # so. See `app/routes/auth.py`'s module docstring for what the login does now.
+    #
+    # `flask check-config` warns about the prefix on every production run. It is a
+    # warning rather than a refusal because a check that will not pass on a
+    # configuration somebody deliberately chose is a check that gets bypassed.
+    ADMIN_URL_PREFIX = _str("ADMIN_URL_PREFIX", "admin")
     ADMIN_IP_ALLOWLIST = _csv("ADMIN_IP_ALLOWLIST")
     ADMIN_2FA_REQUIRED = _bool("ADMIN_2FA_REQUIRED", True)
     BCRYPT_LOG_ROUNDS = _int("BCRYPT_LOG_ROUNDS", 12)
@@ -307,7 +326,14 @@ class BaseConfig:
     # which deletes the Bangla 404 (§9.2) and turns the 405 on `GET /logout` into a
     # 404. Adding a page to the router therefore means adding a line here; forgetting
     # to leaves a loud 404 instead of a wrong 200.
-    SPA_ROUTES = _csv("SPA_ROUTES", ("/", "/gallery", "/contact"))
+    #
+    # `/course` IS DELIBERATELY ABSENT. The course page lives in the CMS and Flask
+    # renders it from the `pages` table, so the nav links to it with a plain anchor.
+    # `/course-modules` is React's own module browser, a different page.
+    SPA_ROUTES = _csv(
+        "SPA_ROUTES",
+        ("/", "/batches", "/gallery", "/participants", "/trainers", "/contact", "/course-modules"),
+    )
     # The React app loads Google Fonts and Unsplash images, which the site policy
     # below blocks. This is that allowance and nothing else — it is scoped to this
     # one route and goes away when those fonts and images are self-hosted (§15.1
@@ -434,9 +460,9 @@ class ProdConfig(BaseConfig):
         if cls.APP_URL.startswith("http://"):
             missing.append(f"APP_URL — must be https in production, got {cls.APP_URL}")
 
-        if cls.ADMIN_URL_PREFIX.strip("/") in {"admin", "administrator", ""}:
+        if not cls.ADMIN_URL_PREFIX.strip("/"):
             missing.append(
-                "ADMIN_URL_PREFIX — must be non-guessable; /admin must stay a 404 (§12.1)"
+                "ADMIN_URL_PREFIX — must not be empty; it is the path the CMS mounts at"
             )
 
         if missing:

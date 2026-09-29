@@ -156,9 +156,9 @@ is the direction taken.
 | URL | Served by | Notes |
 |---|---|---|
 | `/` | `spa_bp` | the React shell; `no-cache` |
-| `/gallery`, `/contact` | `spa_bp` | the shell, deep-linked — the frontend's own pages |
+| `/batches`, `/gallery`, `/participants`, `/trainers`, `/contact`, `/course-modules` | `spa_bp` | the shell, deep-linked — the frontend's own pages |
 | `/spa-assets/index-<hash>.js` | `spa_bp` | `immutable`, one year |
-| `/course`, `/batch-1`, `/about`, `/privacy` | `public_bp` | still rendered from the `pages` table |
+| `/course`, `/batch-1`, `/about`, `/privacy` | `public_bp` | still rendered from the `pages` table; **the CMS owns these** |
 | `/batch-1/<slug>` | `public_bp` | participant profiles, consent-filtered |
 | `/<ADMIN_URL_PREFIX>/` | `admin_bp` | the CMS |
 | `/health`, `/sitemap.xml`, `/robots.txt` | `api_bp`, `seo_bp` | |
@@ -172,7 +172,7 @@ lines and would have broken three things at once:
 - **The 404 page.** It would answer 200 with the shell for every mistyped URL, so the
   Bangla 404 (`plan.md` §9.2, "the most-seen page after the homepage") would never
   fire. `tests/test_routes.py` and `tests/test_public.py` assert it does.
-- **Method-not-allowed.** A `GET` catch-all matches `GET /logout` before Werkzeug
+- **Method-not-allowed.** A `GET` catch-all matches `GET /admin/logout` before Werkzeug
   notices the POST-only rule, so the site's 405 turns into a 404. `tests/test_spa.py`
   asserts the 405, because `test_auth.py` relies on it to prove logout cannot be
   triggered by an `<img>` tag.
@@ -186,35 +186,57 @@ a wrong 200 on every mistyped URL.
 
 **Adding a page.** Three places, in this order:
 
-1. `frontend/src/App.tsx` — render it on the path (`location.pathname === '/x'`).
+1. `frontend/src/App.tsx` — render it on the path, in the branch chain below the Header.
 2. `app/config.py` — add `"/x"` to `SPA_ROUTES`, or a hard-loaded `/x` gets the Jinja
    404 page.
 3. `npm run build` — the built shell is what the server hands over.
 
 The page itself is a component under `frontend/src/components/`, and the header and
 footer link to it with `<Link to="/x">` so the router handles the click without a
-reload.
+reload. **One exception, for whenever it is needed again:** a page the *other* half
+serves takes a plain `<a href>`, not `<Link>`, because the router has no route for it and
+would fall through to the home page. No React link does this today — `/course`, `/about`
+and `/privacy` are reachable by URL and from the Jinja half's own nav.
 
-### The two routed pages
+## The pages, and who owns each
 
-| Page | Component | What it is |
-|---|---|---|
-| `/gallery` | `GalleryPage.tsx` | every Batch 1 work, filterable by type, opening the same `WorkModal` the home page uses |
-| `/contact` | `ContactPage.tsx` | the office addresses and the contact channels, as ruled label/value rows |
+| Page | Component | What it is | Owner |
+|---|---|---|---|
+| `/` | `App.tsx` | the home page: hero, stats, works rail, participants, modules, trainers, CTA | React |
+| `/batches` | `BatchesPage.tsx` | all three batches, their status and facts, each opening `BatchViewModal` | React |
+| `/gallery` | `GalleryPage.tsx` | every Batch 1 work, filterable by type, opening the same `WorkModal` the home rail uses | React |
+| `/participants` | `AllParticipantsPage.tsx` | the full participant register | React |
+| `/trainers` | `TrainersPage.tsx` | the faculty, reusing `TrainersSection` in its `standalone` mode | React |
+| `/contact` | `ContactPage.tsx` | the office addresses and contact channels, as ruled rows | React |
+| `/course-modules` | `CourseModulePage.tsx` | **the course page in the nav** — 13 modules, phases, tool filter, search, module modal | React |
+| `/course` | `public/page.html` | the CMS course page — 7 sections from the `pages` table | **the CMS** |
+| `/about`, `/privacy` | `public/page.html` | as `plan.md` §6.2 defines them | **the CMS** |
+| `/batch-1/<slug>` | `public/profile.html` | one participant's profile, consent-filtered | **the CMS** |
 
-Neither is a new source of truth. `/gallery` renders the same `mockData.ts` works the
-home page's rail does, and `/contact` repeats the details already published in the
-footer and the office block — no address, number or claim was invented for it.
+**There are two course pages and that is deliberate.** The nav's **কোর্স** (and the
+footer's কোর্স কারিকুলাম) opens `/course-modules`: React's course page, with the 13
+modules, the phase filter, the tool filter, the search and the module modal. It renders
+`/api/v1/content`, which is the `course_modules` table.
+
+The second is the CMS page at `/course`, which Flask renders from the `pages` table and
+which an operator can edit in the admin panel. It is **not linked from the React half** —
+one nav item, one destination — but it is live, it is in the sitemap, and the Jinja
+half's own header and footer still link to it.
+
+So: if you edit the course text in `/admin`, the change appears at `/course`, not in the
+nav. If you want one page instead of two, either point `SPA_ROUTES` at `/course` and drop
+the React page, or delete `CourseModulePage.tsx` and link the nav back to `/course` —
+say which and it is a small change either way.
+
+Every routed page is a `<Link>` in the header, the mobile menu and the footer, and
+every one answers a hard load with the shell (see `SPA_ROUTES`). `BatchesPage` also
+exports `PROGRAMME_BATCHES`, which the header's dropdown reads — the nav and the page
+cannot drift about what ব্যাচ ২ is called or whether it has started.
 
 **`/contact` has no form**, deliberately. A contact form that posts nowhere, on a
 government site, collects a citizen's message and discards it, which is worse than not
 offering one. Correspondence goes through the phone numbers and the mailto links until
 there is something behind a submit button.
-
-Every other nav item — কোর্স, অংশগ্রহণকারীরা, ট্রেইনারগণ, the batch menu — still
-switches a view with `useState` and does not change the URL. They are `#fragment`
-links to sections of the home page, and `/course` remains the Jinja CMS page, so
-turning those into routes is a separate decision about which half owns the content.
 
 ### Settings
 
@@ -222,7 +244,7 @@ turning those into routes is a separate decision about which half owns the conte
 |---|---|---|---|
 | `SPA_ENABLED` | `SPA_ENABLED` | `True` | serve the frontend at all |
 | `SPA_URL_PREFIX` | `SPA_URL_PREFIX` | `""` | `""` is the domain root |
-| `SPA_ROUTES` | `SPA_ROUTES` | `/`, `/gallery`, `/contact` | the paths the frontend owns, comma-separated |
+| `SPA_ROUTES` | `SPA_ROUTES` | `/`, `/batches`, `/gallery`, `/participants`, `/trainers`, `/contact`, `/course-modules` | the paths the frontend owns, comma-separated |
 | `SPA_DIST_DIR` | — | `app/static/spa` | where `npm run build` writes |
 
 `VITE_BASE` in `frontend/vite.config.ts` **must** equal `SPA_URL_PREFIX`. Vite bakes it
@@ -241,24 +263,215 @@ $env:SPA_URL_PREFIX="/preview"; $env:VITE_BASE="/preview/"; npm run build; pytho
 
 `SPA_ROUTES` is validated at boot: an entry that is not root-relative (`gallery`) is a
 `RuntimeError` rather than a rule that can never match. `SPA_ENABLED=false` withdraws
-nothing, so `/`, `/gallery` and `/contact` go back to the Jinja site.
+nothing, so `/`, `/batches`, `/gallery` and the rest go back to the Jinja site.
+
+## What the admin panel does and does not control
+
+This is the question to ask of every page: **if I change it in `/admin`, does the page
+change?**
+
+| What | Where it is edited | Reaches the page? |
+|---|---|---|
+| `/course`, `/about`, `/privacy` text and sections | the CMS, on the `pages` table | **yes** — Flask renders them on every request |
+| Participant profiles and the register (`/batch-1/<slug>`) | the CMS + consent records | **yes**, after the consent rules in `plan.md` §5.3 |
+| Course, modules, institutions, statistics, FAQs, settings | the CMS (`/admin/course`, `/admin/institutions`, `/admin/stats`, `/admin/faqs`, `/admin/settings`) | **yes** — the public templates read the tables |
+| Uploaded images | the CMS media library (`/admin/media`) | **yes** — an upload stores outside the webroot and is served signed |
+| Phases, tools, batch works, statistics | `flask seed-programme`, then the CMS | **yes** — `/api/v1/content` serves them and the React pages fetch that payload |
+| Trainers | the CMS (`/admin/instructors`) | **yes** — same payload, and a trainer's list fields are one entry per line |
+| The React pages: `/`, `/batches`, `/gallery`, `/participants`, `/trainers`, `/contact`, `/course-modules` | `frontend/src/data/content.ts` (the API) + the tables above | **yes**, on the next page load — the payload is fetched once per session and revalidated with an ETag |
+| Nav labels, the batch announcements on `/batches` | `frontend/src/components/*` | a code change and a deploy. The batches are programme announcements, not a table |
+
+### The wire between the CMS and React
+
+The React half does not read the database directly; it fetches `/api/v1/content`
+(`app/routes/content.py`), which is built by `app/services/content_service.py`. That
+module exists so the projections are decided ONCE, in the same place the Jinja pages
+get theirs: a participant card is `participant_service.to_card()` (an allowlist of four
+facts, §5.2) and the list is `list_published()` (the consent rule, §5.3), so the browser
+is never the last place "may this name be public" is answered.
+
+`frontend/src/data/content.ts` adapts that payload into the shapes the components
+already used, which is why moving the site onto the database changed the data source
+rather than the design. **`mockData.ts` is no longer imported by the app** — it is kept
+as the source the seeder's JSON was compiled from, and `flask seed-programme` reads that
+JSON, not the TypeScript.
+
+**Everything has an empty state, and that is not decoration.** The register starts empty
+and fills up as consent forms are imported, so `ParticipantsRegister`, `AllParticipantsPage`,
+`TrainersSection`, `GalleryPage`, `BatchWorks` and `StatStrip` each render a deliberate
+empty band (or, for the stat strip, nothing at all) rather than a heading over a void.
+The headline figures that COUNT something — participants, modules — are rendered from the
+counts in the payload; the ones that are editorial (৩০০ ঘণ্টা, ১১ টুলস) stay as stored.
+
+### The CMS screens
+
+`/admin/login` is the portal and `/admin` is the dashboard. Sixteen screens hang off
+it, in a left rail grouped so that the order means something: **01 Overview**, **02
+The site** (what a reader sees), **03 Course**, **04 People** (the register, its
+consent records and the trainers), **05 System** (settings, audit, backups).
+
+| Screen | What it edits |
+|---|---|
+| Dashboard | consent counts, published/draft pages, the last eight audit entries, the message queue, the newest backup |
+| Pages | the `pages` table, and each page's ordered sections |
+| Media library | images: upload, alt text, usage, delete (refused while in use) |
+| Messages | contact-form submissions, with status and internal notes |
+| Course · Modules | the course record and its ordered modules. A module needs BOTH a course (a picker) and, to appear on `/course-modules`, a phase |
+| Institutions | the training centre and the partners |
+| Trainers | the faculty: name, designation, experience, bio, quotation, specialties and contributions (one per line), plus the teaching figures the trainer's card shows. A portrait is uploaded or picked from the library here |
+| Statistics | the figures in a stat strip |
+| Questions | grouped questions and answers |
+| Settings | site copy, hotline, footer, toggles. `is_secret` rows are read-only (§16.2) |
+| Participants | the register: create, edit, filter, bulk publish, CSV export. The photograph and its permission are part of the record form |
+| Consent | the five consent buckets and the three lists that need attention |
+| Import | CSV import, with a dry run that writes nothing. See "What the CSV may contain" below |
+| Audit log | every write, with its before/after diff (§12.1) |
+| Backups | a read-only report of what the backup job has produced |
+
+### What the CSV may contain
+
+Headers are matched case-insensitively, with spaces and underscores ignored — so
+`Name_BN`, `name bn` and `name` are the same column. **Every Bangla spelling the
+department uses is accepted as well**; those spellings live in `COLUMN_ALIASES`
+(`app/services/import_service.py`), which is the one place to read or extend, and
+`tests/test_import.py` proves every entry in it resolves through the normaliser.
+
+| Column | Accepts | Notes |
+|---|---|---|
+| Name | `name`, `name_bn`, `fullname` | required |
+| Name (English) | `name_en` | |
+| Education | `education` | required; `HSC`/`SSC`, `Diploma`, `Degree`, `Honours`/`Masters` |
+| Occupation before | `occupation_before` | |
+| Outcome | `outcome`, `outcome_type` | one of the six outcome values |
+| Outcome detail | `outcome_text` | |
+| Quotation | `quote`, `quote_bn` | **needs `quote_consent: yes`** (§5.3 rule 5), or the row is rejected rather than stripped of its quote |
+| Quotation consent | `quote_consent`, `quote_consented` | `yes`/`no` |
+| Batch | `batch` | a number; anything else means batch 1 |
+| Consent | `consent`, `consent_publication` | `yes`/`no`. Anything else REJECTS the row rather than becoming "no" |
+| Consent date | `consent_date` | `2026-03-01`, `01/03/2026`… Consent without a date is accepted and BLOCKS publication (§5.3 rule 3) |
+| Slug | `slug` | left empty, it is derived from the name |
+
+**An import never publishes.** A spreadsheet cannot carry the decision to make a
+person's name public; that is made one record at a time on the detail screen, with the
+consent panel in front of you. The dry run reports every row's problems and writes
+nothing; the commit writes the valid rows and records each failure against its line
+number.
+
+### Portraits
+
+An image field appears on the participant and trainer forms: what is there now, a picker of every
+image in the library, an upload, and a remove. All three screens share one macro
+(`media_field`), so "remove" cannot come to mean something different on one of them.
+
+**A trainer's portrait is a staff photograph; a participant's is personal data.** The trainer form
+is one field. The participant form carries `image_consent` inside the same block, because §5.1 was
+amended on 2026-09-29 to allow a participant photograph *only* alongside a permission of its own —
+permission for a name and an education level is not permission for a face. The database enforces the
+pair, so the practical consequences are:
+
+* Uploading a picture without ticking the box **stores the file in the library and leaves the
+  record untouched**, and says so. It cannot attach it: the INSERT would be refused.
+* The content API sends `photo_url` only when `Participant.photo_is_publishable` is true. Otherwise
+  it sends `null` and the components draw the person's initials, which is what every card did before
+  this feature existed.
+* A portrait is served through the same signed URL as every other upload, and the participant
+  profile page at `/batch-1/<slug>` remains typographic by design.
+
+### The panel is English; the site is Bangla
+
+§14.1 makes the public site Bangla-first. §11.1's panel is the operator's tool, and it
+is **English**: the rail, the page headings, every button, every validation message and
+every flash. Two consequences worth knowing:
+
+* **Content stays Bangla, and says so.** A page title, a person's name, a quotation and
+  a stat's display value are Bangla, and every element that renders one carries
+  `lang="bn"` — so a screen reader reads the interface in English and the data in
+  Bangla, which is the correct behaviour for both.
+* **The document declares itself English** (`<html lang="en">`, via the `html_lang`
+  block in `layouts/base.html`). The default is `bn` for every public page and for the
+  error pages. `tests/test_admin_cms.py::test_the_admin_panel_is_english` walks all
+  fifteen screens and fails if Bangla leaks into the chrome.
+
+Labels are **derived, not hand-written**: `app/routes/admin/_labels.py` turns a field's
+key into its label, so `title_bn` is "Title (Bangla)" in the record form, in the section
+editor, in a table header and in a validation message — one source, so they cannot
+disagree. The one hand-written map is the 13 section-type names and hints.
+
+**Why the address is `/admin` and not a secret path.** `plan.md` §12.1 asked for an
+`ADMIN_URL_PREFIX` that cannot be guessed, and the first build used one. It was traded
+deliberately for the plainer address, for three reasons:
+
+1. **A secret path is not a control.** It is security by obscurity: it does not appear in
+   `robots.txt`, it does not survive a shared screenshot, a browser history sync or a
+   mis-sent link, and it cannot be rotated without breaking every bookmark. The controls
+   that do work are the ones already in place — a signed session, the idle timeout, a
+   rate-limited login and the optional `ADMIN_IP_ALLOWLIST`.
+2. **The owner has to be able to find it.** One admin, working alone, inheriting this
+   site: an address they have to look up is an address they will lose.
+3. **`robots.txt` disallows it either way** (`app/routes/seo.py`), and every admin route
+   carries `login_required`, asserted over the whole URL map in `tests/test_admin_cms.py`.
+
+**2-step verification (TOTP) is off.** The portal asks for an email address and a
+password, and nothing else. `ADMIN_2FA_REQUIRED=false` in `.env` plus an account with no
+TOTP enrolled, so the login form does not even draw the code field. The reason on record
+is the owner's instruction; the consequence to be aware of is that the password is now the
+**only** thing between the internet and participant data, which makes the lockout, the
+session timeout and the IP allowlist carry more weight than they did.
+
+Turning it back on does not need a code change:
+
+```powershell
+# 1. set ADMIN_2FA_REQUIRED=true in DYD-AI-SYLHET/.env and restart
+# 2. enrol the account
+.\.venv\Scripts\python.exe -m flask admin-reset-2fa whym85854@gmail.com
+```
+
+The field reappears on the login form, and the account is required to present a code.
+The tests for both states are in `tests/test_auth.py`.
+
+To reverse the decision, set `ADMIN_URL_PREFIX` in `.env` and restart. Nothing else
+changes: the blueprint prefix, the login URL and the IP allowlist all read that one value.
+
+**What it still cannot do:** upload a video (a video is a *link*, `plan.md` §10.5), run a
+backup from the browser (a cron job does that, §17.5), or attach a trainer's portrait to
+the trainer record — the portrait is uploaded in the media library, and the Trainers
+screen has no picker for it yet, so a trainer without one is drawn with their initial.
+
+**What it CAN now do, and did not when this document was first written:** change the
+React half. The paragraphs that used to sit here described a content API as a project —
+read endpoints, consent filtering on the server, a loading state per page. That work is
+done:
+
+1. **The content API exists.** `/api/v1/content` (`app/routes/content.py`) is built by
+   `app/services/content_service.py` and serves stats, tools, phases, modules, works,
+   trainers, participants, institutions and batches in one payload.
+2. **Consent filtering is server-side.** Every participant in that payload came through
+   `participant_service.list_published()`, which applies §5.3 inside the query. A
+   photograph of a participant is not in the database at all (§5.1), so the API sends
+   two initials instead and nothing can leak the rest.
+3. **The pages have loading and empty states.** `frontend/src/data/content.ts` fetches
+   the payload once per session; each section renders a ruled empty band while the
+   register is empty, which is the state the site is in until consent forms are
+   imported.
 
 ## What is not wired
 
-- **Content.** The frontend renders `src/data/mockData.ts`. **Readers of the front page
-  no longer see anything the CMS contains.** The `pages` table still drives `/course`
-  and the other three Jinja pages; it does not drive `/`, `/gallery` or `/contact`. This
-  is the largest consequence of the mount and is a content decision, not a technical
-  one.
-- **The API.** The app has `/api` and the Vite dev server proxies `/api/*` to Flask, so
-  the plumbing exists, but the frontend makes no requests yet. Wiring it means
-  replacing the `mockData.ts` imports with `fetch('/api/...')`.
-- **Participant privacy.** `plan.md` §5 defines what may be published about a person:
-  name, education, occupation before, outcome. The front page currently renders
-  portraits and other fields for people it invents. If it is ever pointed at real
-  participant data, **none of that may come from a request** until §5.3's consent rules
-  apply to it — the frontend has no consent filter and the database cannot enforce one
-  from the browser side.
+- **The batch announcements.** `/batches` and the header's dropdown read
+  `PROGRAMME_BATCHES` in `frontend/src/components/BatchesPage.tsx` — three announcements
+  (delivered, next, planned), not rows in a table. The delivered batch's summary and its
+  headcount ARE derived from the register, so the page cannot advertise people who are
+  not there; the other two are programme statements with nothing behind them yet. Making
+  them table rows means a `programme_batches` model, an admin screen, and a seeder — worth
+  doing when the office starts scheduling batch 2 for real.
+- **Navigation labels and the hero copy.** `Header.tsx`, `Hero.tsx`, `CtaBand.tsx` and
+  `Footer.tsx` still hold their text. The footer's contact details duplicate the
+  `settings` table, and a change in one does not reach the other.
+- **`mockData.ts` is still in the repository.** Nothing imports it, and it is the source
+  the seeder's JSON was compiled from, so deleting it would lose the provenance of 25
+  invented people who are still loadable with `flask seed-programme --with-people`. It
+  should be deleted once nobody needs a demo database; when it is, delete
+  `app/seeds/data/frontend_content.json` and the `--with-people` flag with it.
+- **A CSP that permits two third parties.** See "The one allowance it needed" below.
 
 ## The unresolved conflict, now live
 

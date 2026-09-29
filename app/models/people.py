@@ -144,6 +144,43 @@ class Participant(ModelMixin, Base):
 
     batch: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, index=True)
 
+    #: Which institution they came from. A FK, not a string: the register page prints
+    #: the institution's name, and a free-text copy of it is a name that goes stale the
+    #: day somebody corrects the institution (§3.2 keeps one, so this points at it).
+    #: NOT in §5.1's prohibited set — it is an organisation, not a personal fact.
+    institution_id: Mapped[int | None] = mapped_column(
+        ForeignKey("institutions.id", ondelete="SET NULL"), nullable=True
+    )
+    institution: Mapped["Institution | None"] = relationship(  # noqa: F821
+        "Institution", foreign_keys=[institution_id], lazy="joined"
+    )
+
+    # ── Portrait — stored, and served, only with its own permission ────────
+    #
+    # §5.1 PROHIBITED A PARTICIPANT PHOTOGRAPH, and the register drew two letters
+    # instead. The programme office asked for portraits on the cards and the profile,
+    # which is a decision about PUBLISHING rather than about the schema, so the rule is
+    # AMENDED HERE rather than quietly dropped: a portrait may be stored for anybody, and
+    # it reaches a member of the public ONLY when `image_consent` records that the person
+    # gave permission for their likeness — and the database refuses the pairing without
+    # it (`ck_participants_photo_requires_consent`), the same way it already refuses a
+    # quotation without `quote_consented`.
+    #
+    # A LINE OF THE CONSENT FORM, NOT A SUB-LINE OF THE EXISTING ONE. That form covers
+    # four facts — name, education, previous occupation, outcome. A face identifies its
+    # owner in a way those four do not, and on a public site the difference matters most
+    # for the people with the least room to object. So a participant with no
+    # `image_consent` keeps their initials plate while everything else about them is
+    # published exactly as before: this flag is NOT part of `missing_consent_fields`,
+    # because a portrait is not one of the four facts publication is about.
+    photo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_items.id", ondelete="SET NULL"), nullable=True
+    )
+    photo: Mapped["MediaItem | None"] = relationship(  # noqa: F821
+        "MediaItem", foreign_keys=[photo_id], lazy="joined"
+    )
+    image_consent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     # ── Consent (§5.3) ──────────────────────────────────────────────────────
     consent_publication: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     consent_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -179,8 +216,27 @@ class Participant(ModelMixin, Base):
             "quote_bn IS NULL OR quote_consented = 1",
             name="ck_participants_quote_requires_permission",
         ),
+        # AND A PORTRAIT NEEDS ITS OWN PERMISSION. Storing one without `image_consent`
+        # is refused at INSERT, so a future import or script cannot put a face on the
+        # site on the strength of a name-and-education consent form.
+        CheckConstraint(
+            "photo_id IS NULL OR image_consent = 1",
+            name="ck_participants_photo_requires_consent",
+        ),
         Index("ix_participants_published_consent", "is_published", "consent_publication"),
     )
+
+    # ── The portrait, as a public surface may show it ───────────────────────
+    @property
+    def photo_is_publishable(self) -> bool:
+        """True when a portrait exists AND its own permission is recorded.
+
+        ONE PLACE DECIDES, and every reader calls it: the content API, the profile
+        projection and the admin preview. A second `if participant.photo_id` somewhere
+        is a second answer to "may this person's face be public", and the one that
+        drifts would be the one that matters.
+        """
+        return bool(self.image_consent and self.photo_id)
 
     # ── Publication rules (§5.3) ────────────────────────────────────────────
     @property

@@ -1,0 +1,221 @@
+{#
+  =============================================================================
+  admin/participants/import.html — route 25. plan.md §11.4, §5.3.
+
+  A DRY RUN IS THE DEFAULT
+  The radio list offers "check only" first and commits nothing. §11.4 asks for the
+  import to be previewed before it writes, and the reason is consent: a file that
+  silently publishes 120 names is a consent incident, and the operator has one chance
+  to notice before it happens.
+
+  CONSENT IS NEVER ASSUMED FROM A BLANK CELL
+  A row whose consent column cannot be read is REJECTED, not treated as "no". The
+  difference matters in one direction only — a mis-read "yes" that became "no" leaves
+  someone unpublished, which is recoverable; a mis-read "no" that became "yes" is a
+  name on a government website without permission. The report names the line.
+
+  THE REPORT NAMES THE LINE AND THE PROBLEM
+  Not a count of failures. An operator fixing a spreadsheet needs the row number and
+  the reason, in English, next to each other.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state %}
+
+{% block admin_title %}Import participants{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  Load the register from a CSV or an Excel export saved as CSV. Check it first — the
+  dry run writes nothing and reports exactly what would happen.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="admin-split">
+
+  <div>
+    {% call panel('The file') %}
+      <form method="post" enctype="multipart/form-data"
+            action="{{ url_for('admin.participants_import_run') }}" class="grid gap-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field">
+          <label class="label label-required" for="f-file">CSV file</label>
+          <input class="input" type="file" id="f-file" name="file" accept=".csv,text/csv" required>
+          <p class="hint">
+            A header row is required. English or Bangla column names both work; the
+            separator may be a comma, a semicolon or a tab.
+          </p>
+        </div>
+
+        <fieldset class="field">
+          <legend class="label">What to do with it</legend>
+          <label class="flex items-start gap-2 text-sm text-ink-700">
+            <input class="radio mt-0.5" type="radio" name="mode" value="dry" checked>
+            <span>
+              <span class="block font-semibold">Check only — write nothing</span>
+              <span class="block text-ink-500">
+                Reports which rows are valid and which were rejected, then discards the
+                file.
+              </span>
+            </span>
+          </label>
+          <label class="mt-2 flex items-start gap-2 text-sm text-ink-700">
+            <input class="radio mt-0.5" type="radio" name="mode" value="commit">
+            <span>
+              <span class="block font-semibold">Import the rows</span>
+              <span class="block text-ink-500">
+                Creates or updates records. Nothing is published: every imported row
+                arrives unpublished, and consent is recorded per person afterwards.
+              </span>
+            </span>
+          </label>
+        </fieldset>
+
+        <div>
+          <button class="btn btn-primary" type="submit">Read the file</button>
+        </div>
+      </form>
+    {% endcall %}
+
+    {% if report %}
+      {% call panel(
+           'Report',
+           note=(report.valid ~ ' valid · ' ~ report.failed ~ ' rejected')) %}
+        <div class="admin-tiles">
+          <div class="admin-tile">
+            <span class="admin-tile-label">Rows read</span>
+            <span class="admin-tile-value">{{ report.total }}</span>
+          </div>
+          <div class="admin-tile">
+            <span class="admin-tile-label">Would be imported</span>
+            <span class="admin-tile-value">{{ report.valid }}</span>
+          </div>
+          <div class="admin-tile {{ 'admin-tile--alert' if report.failed }}">
+            <span class="admin-tile-label">Rejected</span>
+            <span class="admin-tile-value">{{ report.failed }}</span>
+          </div>
+          {% if report.committed %}
+          <div class="admin-tile">
+            <span class="admin-tile-label">Records created</span>
+            <span class="admin-tile-value">{{ report.created }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <p class="mt-2 text-sm">
+          {% if report.committed %}
+            Imported. Every new record is unpublished until its consent is recorded on
+            its own screen.
+          {% else %}
+            This was a check only. Nothing was written — choose "Import the rows" to
+            store them.
+          {% endif %}
+        </p>
+
+        {% if report.rows %}
+        <div class="table-scroll mt-4">
+          <table class="table-ruled">
+            <caption class="sr-only">Every row read, with what was wrong with it</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="numeric">Line</th>
+                <th scope="col">Name</th>
+                <th scope="col">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in report.rows %}
+              <tr>
+                <td class="numeric">{{ row.line }}</td>
+                <td lang="bn">{{ row.name }}</td>
+                <td>
+                  {% if row.blocking %}
+                    <span class="badge badge-withdrawn">Rejected</span>
+                  {% else %}
+                    <span class="badge">Accepted</span>
+                  {% endif %}
+                  {% for problem in row.problems %}
+                  <span class="block text-xs {{ 'text-flag-red' if problem in row.blocking else 'text-ink-500' }}">
+                    {{ problem }}
+                  </span>
+                  {% endfor %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-2 text-sm text-ink-500">
+          Fix the rejected rows in the spreadsheet and read the file again. An address
+          that is already taken rejects its row rather than overwriting the record it
+          belongs to — correct those on the participant's own screen.
+        </p>
+        {% else %}
+        <p class="mt-3 text-sm text-ink-500">The file had no data rows.</p>
+        {% endif %}
+      {% endcall %}
+    {% endif %}
+  </div>
+
+  <div>
+    {% call panel('Columns the importer reads') %}
+      <dl class="grid gap-2 text-sm">
+        <div class="border-t border-line pt-2">
+          <dt class="font-semibold text-ink-900">Required</dt>
+          <dd class="text-ink-500">Name (Bangla), education</dd>
+        </div>
+        <div class="border-t border-line pt-2">
+          <dt class="font-semibold text-ink-900">Consent</dt>
+          <dd class="text-ink-500">
+            The consent flag, its date, and how it was given. A value the importer
+            cannot read rejects the row — it is never treated as "no consent".
+          </dd>
+        </div>
+        <div class="border-t border-line pt-2">
+          <dt class="font-semibold text-ink-900">Optional</dt>
+          <dd class="text-ink-500">
+            Name (English), address, occupation before, outcome, outcome text,
+            batch
+          </dd>
+        </div>
+        <div class="border-t border-line pt-2">
+          <dt class="font-semibold text-ink-900">Never imported</dt>
+          <dd class="text-ink-500">
+            A photograph, phone number, email address, ID or birth-registration number,
+            date of birth, blood group, full address, guardian names or marks. Extra
+            columns are ignored, not stored.
+          </dd>
+        </div>
+      </dl>
+    {% endcall %}
+
+    {% call panel('Recent imports') %}
+      {% if recent %}
+      <ul class="space-y-2">
+        {% for row in recent %}
+        <li class="border-t border-line pt-2 text-sm first:border-0 first:pt-0">
+          <span class="badge {{ 'badge-neutral' if row.is_dry_run else '' }}">
+            {{ 'Check only' if row.is_dry_run else 'Imported' }}
+          </span>
+          <span class="text-ink-500">
+            {{ row.created_at.strftime('%Y-%m-%d %H:%M') }}
+            · {{ row.total_rows }} rows
+            {% if row.failed_rows %}· {{ row.failed_rows }} rejected{% endif %}
+          </span>
+          {% if row.file_path %}
+          <span class="admin-path block">{{ row.file_path }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-ink-500">No file has been imported yet.</p>
+      {% endif %}
+    {% endcall %}
+  </div>
+</div>
+
+{% endblock %}

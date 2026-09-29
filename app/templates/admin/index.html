@@ -2,158 +2,251 @@
   =============================================================================
   admin/index.html — route 16, the dashboard. plan.md §11.1, step 4.6.
 
-  THE COUNTS ADD UP, AND THAT IS THE FEATURE
-  Six buckets, five of which are states and one of which is the total, and the five
-  sum to it. Anyone can see at a glance that nobody has been lost between the
-  categories — which is the only reason to trust the number next to "awaiting
-  consent" enough to act on it.
+  IT ANSWERS THREE QUESTIONS, IN THIS ORDER
+  The layout is the order of attention, not a grid of equally-weighted boxes:
 
-  `consent_missing_date` IS SHOWN PROMINENTLY, NOT BURIED
-  Those are the people who believe they have consented while nothing publishes them.
-  It is the only consent state that is both invisible and blocking, and it is the one
-  state no other figure on this page would mention. §5.6 asks for it first for the
-  same reason.
+    1. **Is anything blocked?** The tiles. The one that matters — consented but with
+       no recorded date, so nothing publishes — is marked gold and explained in
+       words, because it is the only consent state that is both invisible and
+       blocking (§5.6, §5.3 rule 3).
+    2. **What changed recently?** The audit table. Every write in this panel lands
+       there, so it is the honest answer to "did something happen overnight".
+    3. **What is waiting on me?** The message queue and the backup state.
 
-  EVERY NUMBER IS A BANGLA NUMERAL
-  Via the `bn_num` filter, not a local digit map, so the one place that knows how to
-  render a numeral in Bangla stays the one place.
+  THE BUCKETS ADD UP, AND THAT IS THE FEATURE
+  Five states and a total, and the five sum to it. Anyone can see at a glance that
+  nobody has been lost between the categories — which is the only reason to trust the
+  number next to "awaiting consent" enough to act on it.
 
   AN EMPTY SYSTEM SHOWS ZEROS
-  Every panel is a count, and a count over nothing is 0. The recent-activity panel is
-  the only one that can be genuinely empty, and it says so in words rather than
-  rendering a blank box that looks broken.
+  Every tile is a COUNT, and a COUNT over nothing is 0. The only panel that can be
+  genuinely empty is the activity table on a fresh install, and it says so in words
+  rather than rendering a blank box that looks broken.
   =============================================================================
 #}
 {% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import panel, empty_state %}
 
-{% block admin_title %}ড্যাশবোর্ড{% endblock %}
+{% block admin_title %}Dashboard{% endblock %}
 
-{% block breadcrumb %}
-  <li aria-hidden="true">/</li>
-  <li aria-current="page" lang="bn">ড্যাশবোর্ড</li>
+{% block admin_lede %}
+<p class="admin-lede">
+  The state of the site, the register and the consent records. Every figure below is
+  counted live.
+</p>
+{% endblock %}
+
+{% block admin_actions %}
+{% for item in quick %}
+<a class="btn btn-secondary btn-sm" href="{{ url_for(item.endpoint) }}">{{ item.label }}</a>
+{% endfor %}
 {% endblock %}
 
 {% block admin_content %}
 
-{# ── §5.3 — the consent states ─────────────────────────────────────────────── #}
-<section class="mt-8" aria-labelledby="consent-heading">
-  <h2 id="consent-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
-    প্রশিক্ষণার্থী ও সম্মতি
-  </h2>
+{# ── 1. Is anything blocked? ───────────────────────────────────────────────── #}
+<section aria-labelledby="consent-heading">
+  <div class="flex flex-wrap items-baseline justify-between gap-3">
+    <h2 id="consent-heading" class="admin-panel-title">Participants and consent</h2>
+    <a class="text-xs text-green-700 hover:underline" href="{{ url_for('admin.participants_consent_dashboard') }}">
+      Open the consent screen
+    </a>
+  </div>
 
-  <dl class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">মোট প্রশিক্ষণার্থী</dt>
-      <dd class="stat-figure mt-1">{{ counts.total | bn_num }}</dd>
-    </div>
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">প্রকাশিত</dt>
-      <dd class="stat-figure mt-1">{{ counts.published | bn_num }}</dd>
-    </div>
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">সম্মতি আছে, প্রকাশের অপেক্ষায়</dt>
-      <dd class="stat-figure mt-1">{{ counts.ready_unpublished | bn_num }}</dd>
-    </div>
+  <div class="admin-tiles mt-3">
+    <a class="admin-tile" href="{{ url_for('admin.participants_list') }}">
+      <span class="admin-tile-label">In the register</span>
+      <span class="admin-tile-value">{{ counts.total }}</span>
+      <span class="admin-tile-note">every recorded person</span>
+    </a>
 
-    {# Deliberately not styled like the others: this is the one that needs action. #}
-    <div class="border-t-2 border-line-strong pt-3">
-      <dt class="text-sm font-bold text-ink-900" lang="bn">সম্মতি আছে, তারিখ নেই</dt>
-      <dd class="stat-figure mt-1">{{ counts.consent_missing_date | bn_num }}</dd>
-      <p class="mt-1 text-xs text-ink-500" lang="bn">
-        এঁদের সম্মতির তারিখ লিপিবদ্ধ করা হয়নি, তাই নাম প্রকাশিত হচ্ছে না।
-      </p>
-    </div>
+    <a class="admin-tile" href="{{ url_for('admin.participants_list', published='yes') }}">
+      <span class="admin-tile-label">Published</span>
+      <span class="admin-tile-value">{{ counts.published }}</span>
+      <span class="admin-tile-note">name is public</span>
+    </a>
 
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">সম্মতির অপেক্ষায়</dt>
-      <dd class="stat-figure mt-1">{{ counts.awaiting_consent | bn_num }}</dd>
-    </div>
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">সম্মতি প্রত্যাহার</dt>
-      <dd class="stat-figure mt-1">{{ counts.withdrawn | bn_num }}</dd>
-    </div>
-  </dl>
+    <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='given', published='no') }}">
+      <span class="admin-tile-label">Ready to publish</span>
+      <span class="admin-tile-value">{{ counts.ready_unpublished }}</span>
+      <span class="admin-tile-note">consented, not published</span>
+    </a>
 
-  <p class="mt-4 text-xs text-ink-500" lang="bn">
-    পাঁচটি অবস্থার যোগফল মোটের সমান:
-    <span class="num">{{ buckets_total | bn_num }}</span> —
-    কোনো প্রশিক্ষণার্থী কোনো অবস্থার বাইরে নেই।
+    {# The state this screen exists to make visible. Gold, not red: it is not an
+       error, it is a decision nobody has recorded yet. #}
+    <a class="admin-tile admin-tile--alert"
+       href="{{ url_for('admin.participants_list', consent='missing_date') }}">
+      <span class="admin-tile-label font-semibold text-ink-900">Consented, no date</span>
+      <span class="admin-tile-value">{{ counts.consent_missing_date }}</span>
+      <span class="admin-tile-note">blocked from publishing until dated</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='none') }}">
+      <span class="admin-tile-label">Awaiting consent</span>
+      <span class="admin-tile-value">{{ counts.awaiting_consent }}</span>
+      <span class="admin-tile-note">no consent recorded</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.participants_list', consent='withdrawn') }}">
+      <span class="admin-tile-label">Withdrawn</span>
+      <span class="admin-tile-value">{{ counts.withdrawn }}</span>
+      <span class="admin-tile-note">asked to be removed</span>
+    </a>
+  </div>
+
+  <p class="mt-2 text-xs text-ink-500">
+    The five states sum to the total: <span class="num">{{ buckets_total }}</span> —
+    nobody is outside a category.
+    {% if counts.consent_missing_date %}
+    <strong class="text-ink-900">
+      {{ counts.consent_missing_date }} record(s) believe they consented while nothing
+      publishes them.
+    </strong>
+    {% endif %}
   </p>
 </section>
 
-{# ── pages ─────────────────────────────────────────────────────────────────── #}
-<section class="mt-12" aria-labelledby="pages-heading">
-  <h2 id="pages-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
-    পৃষ্ঠা
-  </h2>
-  <dl class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">প্রকাশিত</dt>
-      <dd class="stat-figure mt-1">{{ pages_published | bn_num }}</dd>
-    </div>
-    <div class="border-t border-line-strong pt-3">
-      <dt class="text-sm text-ink-500" lang="bn">খসড়া</dt>
-      <dd class="stat-figure mt-1">{{ pages_draft | bn_num }}</dd>
-    </div>
-  </dl>
+{# ── What the site is made of ─────────────────────────────────────────────── #}
+<section class="mt-8" aria-labelledby="content-heading">
+  <h2 id="content-heading" class="admin-panel-title">The site</h2>
+
+  <div class="admin-tiles mt-3">
+    <a class="admin-tile" href="{{ url_for('admin.pages_list') }}">
+      <span class="admin-tile-label">Pages</span>
+      <span class="admin-tile-value">{{ content.pages_published }}<span
+        class="text-base text-ink-500">/{{ content.pages }}</span></span>
+      <span class="admin-tile-note">published of total · {{ content.sections }} sections</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.media_library') }}">
+      <span class="admin-tile-label">Media</span>
+      <span class="admin-tile-value">{{ content.media }}</span>
+      <span class="admin-tile-note">stored images</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.messages_list') }}">
+      <span class="admin-tile-label">Open messages</span>
+      <span class="admin-tile-value">{{ messages_open }}</span>
+      <span class="admin-tile-note">contact form, not closed</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.admin_course_modules') }}">
+      <span class="admin-tile-label">Modules</span>
+      <span class="admin-tile-value">{{ content.modules }}</span>
+      <span class="admin-tile-note">ordered course modules</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.admin_faqs') }}">
+      <span class="admin-tile-label">Questions</span>
+      <span class="admin-tile-value">{{ content.faqs }}</span>
+      <span class="admin-tile-note">grouped by category</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.admin_stats') }}">
+      <span class="admin-tile-label">Statistics</span>
+      <span class="admin-tile-value">{{ content.stats }}</span>
+      <span class="admin-tile-note">figures in the stat strips</span>
+    </a>
+
+    <a class="admin-tile" href="{{ url_for('admin.admin_institutions') }}">
+      <span class="admin-tile-label">Institutions</span>
+      <span class="admin-tile-value">{{ content.institutions }}</span>
+      <span class="admin-tile-note">training centre and partners</span>
+    </a>
+  </div>
 </section>
 
-{# ── recent activity ───────────────────────────────────────────────────────── #}
-<section class="mt-12" aria-labelledby="activity-heading">
-  <h2 id="activity-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
-    সাম্প্রতিক কার্যক্রম
-  </h2>
+{# ── 2 and 3: what changed, what is waiting ───────────────────────────────── #}
+<div class="admin-split mt-8">
 
-  {% if recent_activity %}
-    <div class="table-scroll mt-4">
+  {% call panel('Recent activity', note='The last eight writes, newest first.') %}
+    {% if recent_activity %}
+    <div class="table-scroll">
       <table class="table-ruled">
-        <caption class="sr-only" lang="bn">সর্বশেষ দশটি প্রশাসনিক পরিবর্তন</caption>
+        <caption class="sr-only">The most recent administrative changes</caption>
         <thead>
           <tr>
-            <th scope="col" lang="bn">সময়</th>
-            <th scope="col" lang="bn">কার্যক্রম</th>
-            <th scope="col" lang="bn">বিষয়</th>
+            <th scope="col">When</th>
+            <th scope="col">Action</th>
+            <th scope="col">Record</th>
           </tr>
         </thead>
         <tbody>
           {% for row in recent_activity %}
-            <tr>
-              <td class="num">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-              <td><code>{{ row.action }}</code></td>
-              <td>{{ row.entity_type or '—' }}{% if row.entity_id %} <span class="num">#{{ row.entity_id }}</span>{% endif %}</td>
-            </tr>
+          <tr>
+            <td class="numeric">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td><span class="badge badge-neutral">{{ admin_label(row.action) }}</span></td>
+            <td>
+              {{ admin_label(row.entity_type or '—') }}
+              {% if row.entity_id %}<span class="num text-ink-500">#{{ row.entity_id }}</span>{% endif %}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  {% else %}
-    <p class="mt-3 text-sm text-ink-500" lang="bn">
-      এখনো কোনো প্রশাসনিক পরিবর্তন হয়নি। পরিবর্তন হলে এখানে দেখা যাবে।
+    <p class="mt-2 text-xs text-ink-500">
+      Full history, with before/after values, in the
+      <a class="text-green-700 hover:underline" href="{{ url_for('admin.audit_list') }}">audit log</a>.
     </p>
-  {% endif %}
-</section>
+    {% else %}
+    {{ empty_state(
+         'Nothing has been changed yet.',
+         'Every write in this panel is recorded here with who did it and what the value was before and after.') }}
+    {% endif %}
+  {% endcall %}
 
-{# ── backup status ─────────────────────────────────────────────────────────── #}
-<section class="mt-12" aria-labelledby="backup-heading">
-  <h2 id="backup-heading" class="font-display text-lg font-bold text-ink-900" lang="bn">
-    ব্যাকআপ
-  </h2>
-  {% if latest_backup %}
-    <dl class="mt-4 max-w-lg grid gap-y-4">
-      <div class="border-t border-line-strong pt-3">
-        <dt class="text-sm text-ink-500" lang="bn">সর্বশেষ</dt>
-        <dd class="mt-1 text-ink-900">
-          <span class="num">{{ latest_backup.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-          · <span lang="bn">{{ latest_backup.status.value }}</span>
-          · <span lang="bn">{{ 'অফসাইটে সংরক্ষিত' if latest_backup.offsite_ok else 'কেবল সার্ভারে' }}</span>
-        </dd>
-      </div>
-    </dl>
-  {% else %}
-    <p class="mt-3 text-sm text-ink-500" lang="bn">
-      এখনো কোনো ব্যাকআপ নেওয়া হয়নি। ব্যাকআপ সেটআপ ধাপ ৮-এ যুক্ত হবে।
-    </p>
-  {% endif %}
-</section>
+  <div>
+    {% call panel('Waiting on you', note=messages_open ~ ' open') %}
+      {% if open_messages %}
+      <ul class="space-y-3">
+        {% for message in open_messages %}
+        <li class="border-t border-line pt-2 first:border-0 first:pt-0">
+          <p class="text-sm font-semibold text-ink-900">{{ message.subject or 'No subject' }}</p>
+          <p class="text-xs text-ink-500">
+            <span lang="bn">{{ message.name }}</span>
+            · {{ message.created_at.strftime('%Y-%m-%d') }}
+            · <span class="badge badge-neutral">{{ admin_label(message.status.value) }}</span>
+          </p>
+          <p class="mt-1 line-clamp-2 text-sm text-ink-700" lang="bn">{{ message.message }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      <a class="btn btn-secondary btn-sm mt-3" href="{{ url_for('admin.messages_list') }}">Read and reply</a>
+      {% else %}
+      <p class="text-sm text-ink-500">
+        No open messages. Submissions from the contact form arrive here.
+      </p>
+      {% endif %}
+    {% endcall %}
+
+    {% call panel('Backups') %}
+      {% if latest_backup %}
+      <dl class="grid gap-3">
+        <div class="border-t border-line-strong pt-2">
+          <dt class="text-xs text-ink-500">Most recent</dt>
+          <dd class="text-sm">{{ latest_backup.filename }}</dd>
+        </div>
+        <div class="border-t border-line-strong pt-2">
+          <dt class="text-xs text-ink-500">Status</dt>
+          <dd>
+            {% if latest_backup.status.value == 'ok' %}
+              <span class="badge">Succeeded</span>
+            {% else %}
+              <span class="badge badge-withdrawn">{{ latest_backup.status.value }}</span>
+            {% endif %}
+          </dd>
+        </div>
+      </dl>
+      {% else %}
+      <p class="text-sm text-ink-500">
+        No backup has ever run. The job is a server cron task (§17.5) — set it up before
+        the site carries real records.
+      </p>
+      {% endif %}
+      <a class="btn btn-secondary btn-sm mt-3" href="{{ url_for('admin.backups_list') }}">Backup report</a>
+    {% endcall %}
+  </div>
+</div>
 
 {% endblock %}

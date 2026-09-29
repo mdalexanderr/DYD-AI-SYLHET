@@ -13,6 +13,7 @@ not a command that refuses to run; it is one that runs when it was not meant to.
 from __future__ import annotations
 
 import json
+import sys
 
 import click
 from flask import current_app, render_template
@@ -20,6 +21,21 @@ from flask.cli import with_appcontext
 from sqlalchemy import inspect, text
 
 from app.extensions import db
+
+
+# ── Output encoding, before anything prints ──────────────────────────────────
+# These commands draw with box characters and print Bangla, and on Windows the
+# console is cp1252 by default: `flask check-config` crashed with
+# UnicodeEncodeError *inside click.echo* before printing a single finding, which
+# makes every command here look broken on the machine a developer is sitting at.
+#
+# `errors="replace"` rather than raising, for the same reason the tools/ scripts
+# do it: a mojibake box character is a cosmetic problem, and a command that dies
+# halfway through the seeding it was doing is not. Redirected output — a pipe, a
+# log file — has no `reconfigure`, hence the guard.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 def _out(message: str = "") -> None:
@@ -43,6 +59,8 @@ def register_cli(app) -> None:
     app.cli.add_command(seed)
     app.cli.add_command(create_admin)
     app.cli.add_command(seed_demo_participants)
+    app.cli.add_command(seed_programme)
+    app.cli.add_command(clear_people)
     app.cli.add_command(publish_pages)
     app.cli.add_command(admin_reset_2fa)
     app.cli.add_command(check_db)
@@ -125,10 +143,31 @@ def check_config() -> None:
             problems.append("APP_URL is empty in production.")
 
     prefix = cfg.get("ADMIN_URL_PREFIX") or ""
-    if cfg.get("APP_ENV") == "production" and prefix.strip("/") in {
-        "", "admin", "login", "panel", "dashboard", "manage", "cms",
-    }:
-        problems.append(f"ADMIN_URL_PREFIX {prefix!r} is guessable (§12.1).")
+    if cfg.get("APP_ENV") == "production" and not prefix.strip("/"):
+        problems.append("ADMIN_URL_PREFIX is empty in production.")
+    elif prefix.strip("/") in {"admin", "administrator", "login", "panel", "cms"}:
+        # A WARNING, NOT A PROBLEM. §12.1 asks for a non-guessable prefix and this
+        # deploy has chosen a readable one; the decision is the owner's, and a check
+        # that refuses to pass on a configuration somebody deliberately chose is a
+        # check that gets bypassed. It still says so, every time.
+        _warn(
+            f"ADMIN_URL_PREFIX {prefix!r} is guessable (§12.1). The account, the "
+            "lockout and the audit trail are what protect the CMS; the path only "
+            "hides it."
+        )
+
+    # 2FA OFF IS SAID OUT LOUD, IN PRODUCTION, EVERY TIME.
+    # `ADMIN_2FA_REQUIRED=false` is the owner's instruction, so it is not a problem to
+    # be fixed — but "the password is the only thing in front of participant data" is
+    # not something to discover later from a plan document. The password stays out of
+    # this message; the state does not.
+    if not cfg.get("ADMIN_2FA_REQUIRED", True) and cfg.get("APP_ENV") == "production":
+        _warn(
+            "ADMIN_2FA_REQUIRED is false in production (§12.1 wants TOTP before "
+            "go-live). The admin password is the only credential in front of the "
+            "participant data. Re-enable with ADMIN_2FA_REQUIRED=true plus "
+            "`flask admin-reset-2fa <email>`."
+        )
 
     if not cfg.get("WTF_CSRF_ENABLED", True) and cfg.get("APP_ENV") == "production":
         problems.append("CSRF protection is disabled in production.")
@@ -338,6 +377,254 @@ def seed_demo_participants(count: int, consent_rate: float, batch: int, yes: boo
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+@click.command("seed-programme")
+@click.option("--yes", is_flag=True, default=False, help="Skip the confirmation prompt.")
+@click.option(
+    "--with-people",
+    is_flag=True,
+    default=False,
+    help="ALSO load the invented register and trainers. Demo databases only.",
+)
+@click.option(
+    "--unpublished",
+    is_flag=True,
+    default=False,
+    help="With --with-people: load the register without publishing it.",
+)
+@with_appcontext
+def seed_programme(yes: bool, with_people: bool, unpublished: bool) -> None:
+    """Load the programme's reference content: phases, tools, modules, works, stats.
+
+    The 13 modules, 3 phases, 11 tools, 5 works and 4 statistics were constants in
+    `frontend/src/data/mockData.ts`, which is why the CMS could not reach them. This
+    moves them into the tables the admin edits.
+
+    THE PEOPLE ARE SEPARATE, AND OPT-IN
+        The same file also holds 25 invented participants and 3 invented trainers.
+        They are NOT loaded unless `--with-people` is passed, because the real cohort
+        arrives through the consent import (§11.4) and the real trainers are typed into
+        the CMS — and a seeder that re-inserted fictional names on every run would put
+        them back on a live site the first time somebody refreshed a course module. The
+        same flag refuses in production for the same reason (§5.3, R4).
+    """
+    import json
+
+    from app.seeds.programme import DATA_FILE, seed_programme_content
+
+    if with_people and current_app.config["APP_ENV"] == "production":
+        raise click.ClickException(
+            "refusing --with-people in production: the register in this file is "
+            "INVENTED names, and a public government site must never show one "
+            "(§5.3, R4). Content alone is fine: drop the flag."
+        )
+
+    if not DATA_FILE.is_file():
+        raise click.ClickException(f"{DATA_FILE} is missing")
+
+    if not yes:
+        what = "the reference content AND the invented register" if with_people else "the reference content"
+        click.confirm(
+            f"Load {what} from {DATA_FILE.name} into "
+            f"{current_app.config.get('SQLALCHEMY_DATABASE_URI', '?')}?",
+            abort=True,
+        )
+
+    payload = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    counts = seed_programme_content(payload, people=with_people, publish=not unpublished)
+
+    _out()
+    for key, value in counts.items():
+        if key in {"participants", "instructors"} and not with_people:
+            continue
+        _ok(f"{key}: {value}")
+    if not with_people:
+        _warn(
+            "the register and the trainers were NOT loaded — those are invented "
+            "people. Import the real cohort, or pass --with-people for a demo."
+        )
+    elif unpublished:
+        _warn("the register was loaded UNPUBLISHED — publish each name deliberately")
+    else:
+        _warn("the seeded register is published: these are invented people (§5.3, R4)")
+    _out()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+@click.command("clear-people")
+@click.option("--yes", is_flag=True, default=False, help="Skip the confirmation prompt.")
+@click.option(
+    "--keep-media",
+    is_flag=True,
+    default=False,
+    help="Delete the media ROWS but leave the files on disk.",
+)
+@with_appcontext
+def clear_people(yes: bool, keep_media: bool) -> None:
+    """Remove every participant, trainer and media item — and NOTHING else.
+
+    WHAT IT IS FOR
+        A database that has been seeded with invented people cannot be handed to the
+        programme office, and it cannot be topped up with real people either: the two
+        would be indistinguishable in the register. Emptying those three tables is the
+        step between "demo data" and "the real cohort", and it has to be a command with
+        a name rather than four hand-written DELETEs, because the second one is how a
+        course module gets deleted by accident.
+
+    WHAT IT DELETES
+        participants   — every row, and with it every consent_event (ON DELETE CASCADE)
+        instructors    — every row
+        media_items    — every row, plus the files themselves under UPLOAD_ROOT
+
+    WHAT IT LEAVES ALONE, DELIBERATELY
+        course_phases, training_tools, course_modules, batch_works, stats, pages,
+        faqs, settings, institutions, the admin account and the audit log. The syllabus
+        is real content that somebody has to type in; the people are the part that is
+        being replaced. `--keep-media` narrows the delete to the rows for an operator
+        who wants to review the files before they go.
+
+    IT DOES NOT RUN IN PRODUCTION WITHOUT SAYING SO
+        There is no `--force`. The confirmation prompt names the database, and on a
+        live site the command still stops and asks — deleting the register is a
+        deliberate act on every environment, not only the risky one.
+    """
+    from app.models import Instructor, MediaItem, Participant
+
+    cfg = current_app.config
+    counts = {
+        "participants": db.session.query(Participant).count(),
+        "consent_events": _count_rows("consent_events"),
+        "instructors": db.session.query(Instructor).count(),
+        "media_items": db.session.query(MediaItem).count(),
+    }
+
+    _out()
+    _out(f"  Database: {cfg.get('SQLALCHEMY_DATABASE_URI', '?')}")
+    _out(f"  Uploads:  {cfg.get('UPLOAD_ROOT', '(unset)')}")
+    _out()
+    for key, value in counts.items():
+        _out(f"  {key:<16} {value:,}")
+    _out()
+
+    if not any(counts[k] for k in ("participants", "instructors", "media_items")):
+        _ok("nothing to remove — the register, the trainers and the media are empty")
+        _out()
+        return
+
+    if not yes:
+        click.confirm(
+            "DELETE all of the above? Course modules, phases, tools, works, stats and "
+            "pages are NOT touched.",
+            abort=True,
+        )
+
+    # ORM deletes rather than a bulk DELETE: the consent events hang off each
+    # participant with `delete-orphan`, so the cascade is a Python-level decision here,
+    # and the audit trail is written per row.
+    for participant in db.session.execute(db.select(Participant)).scalars():
+        db.session.delete(participant)
+    for trainer in db.session.execute(db.select(Instructor)).scalars():
+        db.session.delete(trainer)
+
+    # THE DANGLING IDS ARE CLEARED BY HAND, DELIBERATELY.
+    # FOUR COLUMNS POINT AT A MEDIA ROW, and every one of them is cleared by hand
+    # rather than left to the database: `Page.og_image_id`, `Institution.logo_id`,
+    # `BatchWork.media_id` and `Instructor.photo_id`, all declared
+    # ON DELETE SET NULL. MySQL honours that; SQLite only honours it when
+    # `PRAGMA foreign_keys` is on, and it is off by default. A suppressed integrity
+    # error would be bad; a page that 500s because its share image points at a deleted
+    # row is worse, and it would happen only on a developer's machine, which is the
+    # worst place for a difference to live.
+    from app.models import BatchWork, Institution, Page, Participant
+
+    for model, column in (
+        (Page, Page.og_image_id),
+        (Institution, Institution.logo_id),
+        (BatchWork, BatchWork.media_id),
+        (Instructor, Instructor.photo_id),
+        # A participant's photograph, from the portrait feature. Clearing the media rows
+        # without clearing this would leave a face pointing at a file that is gone.
+        (Participant, Participant.photo_id),
+    ):
+        updated = db.session.execute(
+            db.update(model).values({column: None}).where(column.is_not(None))
+        ).rowcount
+        if updated:
+            _ok(f"{model.__tablename__}.{column.key}: {updated} reference(s) cleared")
+
+    media = list(db.session.execute(db.select(MediaItem)).scalars())
+    for item in media:
+        db.session.delete(item)
+
+    db.session.commit()
+    _ok(f"participants: {counts['participants']:,} deleted (with their consent events)")
+    _ok(f"instructors: {counts['instructors']:,} deleted")
+    _ok(f"media_items: {counts['media_items']:,} deleted")
+
+    if not keep_media and media:
+        removed = _remove_media_files(media)
+        _ok(f"media files: {removed:,} removed from disk")
+
+    _out()
+    _warn(
+        "the register is now EMPTY. Add the real participants at /admin/participants "
+        "→ Import (CSV, consent per person), and the real trainers at "
+        "/admin/instructors."
+    )
+    _out()
+
+
+def _count_rows(table: str) -> int:
+    """Row count for a table by name — used only for the report before a delete."""
+    try:
+        return int(db.session.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one())
+    except Exception:  # pragma: no cover - a missing table only changes a number
+        return 0
+
+
+def _remove_media_files(items: list) -> int:
+    """Delete the files behind media rows, and count what actually went.
+
+    ASSEMBLED FROM THE ROW, NOT FROM THE URL
+        `MediaItem.path` is relative to `UPLOAD_ROOT`; `original_name` is the browser's
+        filename and is never a path. Both are resolved against the root and checked
+        before anything is unlinked, because a delete that trusts a stored string is a
+        delete that can be pointed at a file outside the media directory.
+
+        A MISSING FILE IS NOT AN ERROR. The row is the record; a file already removed
+        by hand, or lost in a restore, is skipped rather than aborting a half-finished
+        clear.
+    """
+    import os
+    from pathlib import Path
+
+    raw_root = current_app.config.get("UPLOAD_ROOT")
+    if not raw_root:
+        return 0
+    root = Path(raw_root).resolve()
+
+    removed = 0
+    for item in items:
+        stored = getattr(item, "path", None)
+        if not stored:
+            continue
+        try:
+            resolved = (root / str(stored)).resolve()
+            # Refuse to follow a path that escapes UPLOAD_ROOT, however it got there.
+            # `Path.parents` rather than a string prefix: `C:/uploads-evil` starts with
+            # the same characters as `C:/uploads` and is not inside it.
+            if root != resolved and root not in resolved.parents:
+                _warn(f"skipped {stored!r}: outside the upload root")
+                continue
+            if resolved.is_file():
+                os.remove(resolved)
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 @click.command("publish-pages")
 @click.option("--slug", default=None, help="Publish one page by slug (default: all of them).")
 @with_appcontext
@@ -427,6 +714,8 @@ def check_db() -> None:
         _warn(f"tables not in the plan: {', '.join(sorted(extra))}")
 
     if "participants" in actual:
+        from app.models import CONSENTED_PARTICIPANT_COLUMNS
+
         columns = {c["name"] for c in inspector.get_columns("participants")}
         leaked = columns & PROHIBITED_PARTICIPANT_COLUMNS
         if leaked:
@@ -436,6 +725,22 @@ def check_db() -> None:
             )
         else:
             _ok("participants contains no prohibited PII columns")
+
+        # THE ONE AMENDMENT, CHECKED AS A PAIR. `photo_id` is allowed — the office
+        # asked for portraits — and ONLY with the column that records the permission for
+        # one. A `photo_id` with no `image_consent` beside it is a face on a public site
+        # with nothing saying its subject agreed, so the exception cannot outlive the
+        # permission it depends on.
+        for column, authority in CONSENTED_PARTICIPANT_COLUMNS.items():
+            if column not in columns:
+                continue
+            if authority not in columns:
+                problems.append(
+                    f"participants.{column} exists without {authority} — §5.1's amendment "
+                    "is only valid while the permission column sits beside it."
+                )
+            else:
+                _ok(f"{column} is paired with {authority}")
 
         # The publish guard must exist as a real database constraint, not only as
         # Python. §5.3 requires defence in the form, the model AND the database,
@@ -457,6 +762,31 @@ def check_db() -> None:
             )
         else:
             _ok("CHECK constraint provably rejected an unconsented publish")
+
+        # AND THE SAME PROOF FOR THE PORTRAIT, because this one guards a face rather
+        # than a name: a photograph stored without `image_consent` must be refused by
+        # the database, not only by the form that usually supplies it.
+        if "photo_id" in columns:
+            if "ck_participants_photo_requires_consent" not in ddl:
+                problems.append(
+                    "the photo-requires-consent CHECK constraint is MISSING. "
+                    "photo_id with image_consent=0 is currently insertable."
+                )
+            else:
+                _ok("photo-requires-consent CHECK constraint is present")
+                probed = _probe_photo_guard()
+                if probed is False:
+                    problems.append(
+                        "the photo CHECK constraint exists but did NOT reject a portrait "
+                        "without its permission. Do not trust the schema until this passes."
+                    )
+                elif probed is None:
+                    _warn(
+                        "no image has been uploaded yet, so the photo guard could not be "
+                        "probed with an INSERT — the constraint is present but unproven"
+                    )
+                else:
+                    _ok("photo-requires-consent CHECK constraint provably rejected a portrait")
 
     _out()
     if problems:
@@ -516,6 +846,39 @@ def _probe_publish_guard() -> bool:
             db.session.rollback()
             return False
     return False
+
+
+def _probe_photo_guard() -> bool:
+    """Insert a portrait without its permission and require the database to refuse.
+
+    THE PROBE POINTS AT A MEDIA ROW, so it can only run once something has been
+    uploaded. It returns None in that case — "not probed" — rather than True, because a
+    tick printed for a probe that never ran is worse than no line at all.
+    """
+    try:
+        media_id = db.session.execute(text("SELECT id FROM media_items LIMIT 1")).scalar()
+    except Exception:  # noqa: BLE001 — no media table at all means no portrait either
+        return True
+    if media_id is None:
+        # Nothing uploaded yet, so there is no id to point at. Report that honestly
+        # rather than printing a tick for a probe that never ran.
+        return None
+
+    statement = (
+        "INSERT INTO participants "
+        "(slug, name_bn, photo_id, image_consent, created_at, updated_at, search_blob) "
+        f"VALUES ('__photo_probe__', 'পরীক্ষা', {int(media_id)}, 0, CURRENT_TIMESTAMP, "
+        " CURRENT_TIMESTAMP, '')"
+    )
+    try:
+        with db.session.begin_nested():
+            db.session.execute(text(statement))
+    except Exception:  # noqa: BLE001 — the refusal is the desired outcome
+        db.session.rollback()
+        return True
+    else:
+        db.session.rollback()
+        return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────

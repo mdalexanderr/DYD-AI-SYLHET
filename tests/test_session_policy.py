@@ -16,8 +16,8 @@ import time
 import pytest
 
 PASSWORD = "correct-horse-battery-staple"
-ADMIN_URL = "/ops-sylhet/"
-LOGIN_URL = "/login"
+ADMIN_URL = "/admin/"
+LOGIN_URL = "/admin/login"
 
 
 @pytest.fixture

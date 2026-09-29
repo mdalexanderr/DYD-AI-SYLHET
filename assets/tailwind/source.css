@@ -984,6 +984,528 @@
 }
 
 /* =============================================================================
+   §11.1 The admin shell — 「রেজিস্টার」 the register rail
+   =============================================================================
+   The admin is the records office of the same institution as the public site, so
+   it is built from the same materials: warm paper, hairline rules, deep green for
+   state, gold only for honours, flag-red only for destruction. No new colours, no
+   new radii, no shadow that the Surma Protocol does not already allow (§7.2, §7.6).
+
+   Its one structural idea is that the LEFT RAIL IS A FILE INDEX, not a toolbar of
+   pills: five numbered groups (01–05), a hairline between them, and a live record
+   count on the entries that have records. The count is the point — an operator can
+   see that there are 3 messages waiting without opening the screen — and it also
+   makes the rail informative rather than decorative, which is what keeps a 16rem
+   column from being sixteen stacked rounded rectangles (the shape every dashboard
+   template reaches for).
+
+   BELOW 64rem THE RAIL BECOMES A HORIZONTAL STRIP. Fifteen entries do not fit in a
+   phone-width drawer, and a hamburger would need JavaScript — which §15.1 does not
+   allow anywhere in this project. A scrolling strip keeps every destination one
+   swipe away and works with scripting off.
+   ============================================================================= */
+
+@layer components {
+  .admin-shell {
+    display: grid;
+    /* minmax(0, 1fr), NOT 1fr. A `1fr` track has an automatic minimum of `auto`, so
+       it sizes itself to its widest content — and the rail strip below 64rem is
+       fifteen links in a row, which made the whole DOCUMENT 1450px wide on a 390px
+       phone. Caught by measuring scrollWidth in a real browser, not by looking. */
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-block-size: 100%;
+  }
+
+  /* Grid and flex children default to `min-width: auto` as well: the rail's inner
+     strip must be allowed to be narrower than its contents so IT scrolls rather than
+     the page. */
+  .admin-rail,
+  .admin-main,
+  .admin-rail-inner {
+    min-inline-size: 0;
+  }
+
+  @media (min-width: 64rem) {
+    .admin-shell {
+      grid-template-columns: 15.5rem minmax(0, 1fr);
+    }
+  }
+
+  /* ── The rail ───────────────────────────────────────────────────────────── */
+  .admin-rail {
+    background-color: var(--color-paper-2);
+    border-block-end: 1px solid var(--color-line-strong);
+  }
+
+  @media (min-width: 64rem) {
+    .admin-rail {
+      position: sticky;
+      inset-block-start: 0;
+      block-size: 100vh;              /* fallback */
+      block-size: 100dvh;
+      border-block-end: 0;
+      border-inline-end: 1px solid var(--color-line-strong);
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+    }
+  }
+
+  .admin-rail-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* The masthead uses the display face, which is the one deliberate borrow from
+     the public site — it is what keeps the panel belonging to the same programme
+     instead of looking like a tool that happens to sit beside it. */
+  .admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 0.9rem;
+    border-block-end: 1px solid var(--color-line);
+    text-decoration: none;
+  }
+
+  .admin-brand-name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--color-ink-900);
+  }
+
+  .admin-brand-sub {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    color: var(--color-ink-500);
+  }
+
+  /* The index groups. Numbered 01–05 because the order IS information here: it
+     runs from "what the reader sees" to "what the system keeps", which is the
+     order an operator's attention moves through the panel. */
+  .admin-rail-group {
+    padding-block: 0.5rem;
+    border-block-end: 1px solid var(--color-line);
+  }
+
+  .admin-rail-group:last-of-type {
+    border-block-end: 0;
+  }
+
+  .admin-rail-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding-inline: 0.9rem;
+    padding-block-end: 0.35rem;
+    font-family: var(--font-num);
+    font-size: 0.6875rem;            /* 11px — an index label, not content */
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-300);
+  }
+
+  .admin-rail-link {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.9rem 0.4rem calc(0.9rem - 2px);
+    border-inline-start: 2px solid transparent;
+    color: var(--color-ink-700);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+  }
+
+  .admin-rail-link:hover {
+    background-color: var(--color-paper-3);
+    color: var(--color-ink-900);
+  }
+
+  /* The active marker is the 2px bar on the rail edge plus the tint. Two signals
+     because one of them is colour alone, and colour alone is not a state anybody
+     should have to see (§7.8). */
+  .admin-rail-link[aria-current="page"] {
+    border-inline-start-color: var(--color-green-500);
+    background-color: var(--color-green-50);
+    color: var(--color-green-700);
+    font-weight: 600;
+  }
+
+  .admin-rail-link svg {
+    flex: none;
+    inline-size: 1rem;
+    block-size: 1rem;
+    color: var(--color-ink-300);
+  }
+
+  .admin-rail-link[aria-current="page"] svg,
+  .admin-rail-link:hover svg {
+    color: currentColor;
+  }
+
+  .admin-rail-count {
+    margin-inline-start: auto;
+    padding-inline: 0.35rem;
+    min-inline-size: 1.4rem;
+    text-align: center;
+    background-color: var(--color-paper-3);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-num);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-500);
+  }
+
+  .admin-rail-link[aria-current="page"] .admin-rail-count {
+    background-color: var(--color-green-100);
+    color: var(--color-green-800);
+  }
+
+  /* ── The rail on a narrow screen ────────────────────────────────────────── */
+  @media (max-width: 63.99rem) {
+    /* A strip pinned to the top, above the top bar. Fifteen destinations cost one
+       swipe, and it stays usable with the page scrolled — the alternative, a
+       hamburger, needs JavaScript, which §15.1 does not allow anywhere here. */
+    .admin-rail {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 30;
+      background-color: var(--color-paper);
+    }
+
+    .admin-rail-inner {
+      flex-direction: row;
+      align-items: stretch;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      gap: 0;
+    }
+
+    .admin-brand,
+    .admin-rail-label {
+      display: none;
+    }
+
+    .admin-rail-group {
+      display: flex;
+      border-block-end: 0;
+      border-inline-end: 1px solid var(--color-line);
+      padding-block: 0;
+    }
+
+    .admin-rail-link {
+      border-inline-start: 0;
+      border-block-end: 2px solid transparent;
+      white-space: nowrap;
+      padding: 0.6rem 0.7rem;
+    }
+
+    .admin-rail-link[aria-current="page"] {
+      border-inline-start-color: transparent;
+      border-block-end-color: var(--color-green-500);
+    }
+
+    .admin-rail-count {
+      display: none;
+    }
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────────────────── */
+  .admin-topbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    min-block-size: 3rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--color-paper);
+    border-block-end: 1px solid var(--color-line-strong);
+  }
+
+  @media (max-width: 63.99rem) {
+    .admin-topbar {
+      /* The rail strip is sticky above it, so the bar must not fight for row 0. */
+      position: static;
+    }
+  }
+
+  .admin-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+  }
+
+  .admin-crumbs a {
+    color: var(--color-ink-500);
+    text-decoration: none;
+  }
+
+  .admin-crumbs a:hover {
+    color: var(--color-green-700);
+    text-decoration: underline;
+  }
+
+  .admin-crumbs [aria-current="page"] {
+    color: var(--color-ink-900);
+    font-weight: 600;
+  }
+
+  .admin-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-inline-start: auto;
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+  }
+
+  /* ── Page header ────────────────────────────────────────────────────────── */
+  .admin-page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding-block-end: 0.9rem;
+    border-block-end: 1px solid var(--color-line-strong);
+  }
+
+  .admin-eyebrow {
+    font-family: var(--font-num);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-500);
+  }
+
+  .admin-lede {
+    max-inline-size: 62ch;
+    margin-block-start: 0.35rem;
+    font-size: var(--text-sm);
+    color: var(--color-ink-500);
+  }
+
+  .admin-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* ── Panels — the admin's card. A rule, not a shadow (§7.6). ─────────────── */
+  .admin-panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+  }
+
+  .admin-panel + .admin-panel {
+    margin-block-start: 1rem;
+  }
+
+  .admin-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.55rem 0.8rem;
+    background-color: var(--color-paper-2);
+    border-block-end: 1px solid var(--color-line);
+    border-start-start-radius: var(--radius-sm);
+    border-start-end-radius: var(--radius-sm);
+  }
+
+  .admin-panel-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-ink-900);
+  }
+
+  .admin-panel-note {
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+  }
+
+  .admin-panel-body {
+    padding: 0.8rem;
+  }
+
+  .admin-panel-body > :first-child {
+    margin-block-start: 0;
+  }
+
+  /* ── Statistic tiles — a ruled column, not a floating card ──────────────── */
+  .admin-tiles {
+    display: grid;
+    gap: 1px;
+    background-color: var(--color-line);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  }
+
+  .admin-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.7rem 0.8rem;
+    background-color: var(--color-surface);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  a.admin-tile:hover {
+    background-color: var(--color-green-50);
+  }
+
+  .admin-tile-label {
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+  }
+
+  .admin-tile-value {
+    font-family: var(--font-num);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-900);
+  }
+
+  .admin-tile-note {
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+  }
+
+  /* The one tile that is asking for something. Not red — it is not an error, it is
+     the state that blocks publication (§5.6). */
+  .admin-tile--alert {
+    box-shadow: inset 3px 0 0 var(--color-gold);
+  }
+
+  /* ── Small parts ────────────────────────────────────────────────────────── */
+  /* A section's order number, a row's index: data, so it is set in the numeric
+     face and given a fixed width so a list of ten stays aligned. */
+  .admin-index {
+    display: inline-block;
+    min-inline-size: 1.6rem;
+    font-family: var(--font-num);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-300);
+  }
+
+  .admin-path {
+    font-family: var(--font-num);
+    font-size: var(--text-xs);
+    color: var(--color-ink-500);
+    overflow-wrap: anywhere;
+  }
+
+  /* The publish gate and any other "this is why you cannot" message. A rule and a
+     tint, matching .page-placeholder on the public side so the two read as family. */
+  .admin-callout {
+    padding: 0.6rem 0.8rem;
+    background-color: var(--color-gold-100);
+    border: 1px solid var(--color-line);
+    border-inline-start: 3px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--color-ink-900);
+  }
+
+  .admin-callout--error {
+    background-color: var(--color-flag-red-100);
+    border-inline-start-color: var(--color-flag-red);
+  }
+
+  .admin-callout--quiet {
+    background-color: var(--color-paper-2);
+    border-inline-start-color: var(--color-ink-300);
+  }
+
+  /* Main column plus a narrower side column, for screens that have one thing to do
+     and several things to know about it (the participant record, the page meta). */
+  .admin-split {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  @media (min-width: 64rem) {
+    .admin-split {
+      grid-template-columns: minmax(0, 1fr) 20rem;
+    }
+  }
+
+  .admin-form-grid {
+    display: grid;
+    gap: 0.75rem 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+
+  /* Actions that sit inside a table row: identical width, so the last column reads
+     as a column instead of as a ragged edge. */
+  .admin-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.6rem;
+  }
+
+  .admin-toolbar form {
+    display: contents;
+  }
+
+  /* The bottom-of-page pager. */
+  .admin-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-block-start: 0.8rem;
+    border-block-start: 1px solid var(--color-line);
+    font-size: var(--text-sm);
+    color: var(--color-ink-500);
+  }
+
+  /* Selection counts and other "you have selected N" bars. */
+  .admin-selection-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    background-color: var(--color-green-50);
+    border-block-end: 1px solid var(--color-line-green);
+  }
+}
+
+/* =============================================================================
    Print — the participant register prints as a clean document (§8.1 rule 5)
    ============================================================================= */
 

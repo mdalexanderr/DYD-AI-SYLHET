@@ -125,7 +125,7 @@ def render_page(page, request: Any = None) -> PageRender:
         if not ok:
             # Rule 2: dropped, NOT rendered, and flagged with the section type and the
             # reason so an editor is told which block and which field.
-            result.problems.append(f"“{row.type}” সেকশনটি দেখানো হয়নি: {reason}")
+            result.problems.append(f"The '{row.type}' section was not rendered: {reason}")
             continue
 
         rendered = render_section(row, request)

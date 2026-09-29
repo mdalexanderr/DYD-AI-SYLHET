@@ -21,8 +21,8 @@ from __future__ import annotations
 import pytest
 
 PASSWORD = "correct-horse-battery-staple"
-ADMIN_URL = "/ops-sylhet/"
-LOGIN_URL = "/login"
+ADMIN_URL = "/admin/"
+LOGIN_URL = "/admin/login"
 
 
 @pytest.fixture
@@ -60,10 +60,17 @@ def test_the_landing_page_renders_inside_the_shell(client, admin_user, no_csrf):
     body = client.get(ADMIN_URL).get_data(as_text=True)
 
     assert "<main" in body.lower(), "no main landmark"
-    assert 'aria-label="প্রশাসনিক মেনু"' in body, "no admin navigation landmark"
-    assert 'aria-label="আপনি এখানে আছেন"' in body, "no breadcrumb landmark"
+    # THE RAIL IS OUTSIDE <main>, where a navigation landmark belongs. A nav inside
+    # main is a screen reader that cannot jump past fifteen links to reach the page.
+    assert body.find('aria-label="Admin sections"') < body.find("<main"), (
+        "the section rail is inside the main landmark"
+    )
+    assert 'aria-label="Breadcrumb"' in body, "no breadcrumb landmark"
     # The page heading comes from the shell, so a screen cannot forget it.
-    assert "ড্যাশবোর্ড" in body
+    assert "Dashboard" in body
+    # English interface, Bangla content: the document says which, and the two do not
+    # disagree.
+    assert '<html lang="en"' in body
 
 
 def test_the_shell_marks_the_current_screen(client, admin_user, no_csrf):
@@ -117,11 +124,11 @@ def test_the_flash_region_renders_a_real_message(client, admin_user, no_csrf):
     flashes — and then checks the message reached a page.
     """
     _sign_in(client)
-    client.post("/logout")
+    client.post("/admin/logout")
 
     body = client.get(LOGIN_URL).get_data(as_text=True)
 
-    assert "প্রস্থান করেছেন" in body, "the flash message did not render"
+    assert "signed out" in body.lower(), "the flash message did not render"
 
 
 def test_a_screen_cannot_forget_the_page_heading(client, admin_user, no_csrf):

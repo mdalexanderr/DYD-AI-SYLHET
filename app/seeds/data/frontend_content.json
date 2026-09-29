@@ -1,0 +1,1365 @@
+{
+ "PROGRAMME_STATS": [
+  {
+   "key": "participants",
+   "numberBn": "২৫",
+   "labelBn": "জন তরুণ অংশগ্রহণকারী",
+   "contextBn": "প্রতি ব্যাচে ২৫ জন · ১ম ব্যাচ সম্পন্ন"
+  },
+  {
+   "key": "modules",
+   "numberBn": "১৩",
+   "labelBn": "টি সমন্বিত মডিউল (৩ ফেজ)",
+   "contextBn": "AI Training Module অনুযায়ী সাজানো"
+  },
+  {
+   "key": "weeks",
+   "numberBn": "৩০০",
+   "labelBn": "ঘণ্টা বাস্তব ল্যাব সেশন",
+   "contextBn": "৫০ দিনব্যাপী নিবিড় প্রশিক্ষণ কর্মসূচি"
+  },
+  {
+   "key": "campus",
+   "numberBn": "১১",
+   "labelBn": "টি প্রধান এআই টুলস",
+   "contextBn": "সিলেট কার্যালয়ে পরিচালিত"
+  }
+ ],
+ "TRAINING_TOOLS_LIST": [
+  {
+   "slNo": "০১",
+   "name": "ChatGPT",
+   "categoryBn": "লার্জ ল্যাঙ্গুয়েজ মডেল ও প্রম্পটিং",
+   "descriptionBn": "উন্নত টেক্সট বিশ্লেষণ, কনটেন্ট ড্রাফটিং, রিসার্চ পেপার সামারি ও অ্যাডভান্সড ডেটা অ্যানালাইসিস।"
+  },
+  {
+   "slNo": "০২",
+   "name": "Copilot",
+   "categoryBn": "অফিস ও মাইক্রোসফট ৩৬৫ ইন্টিগ্রেশন",
+   "descriptionBn": "স্মার্ট ডকুমেন্টেশন, স্প্রেডশিট ফর্মুলা, ডাটা ইনসাইট ও প্রফেশনাল কমিউনিকেশন।"
+  },
+  {
+   "slNo": "০৩",
+   "name": "DeepSeek",
+   "categoryBn": "রিসার্চ ও লজিক্যাল অ্যানালাইসিস",
+   "descriptionBn": "জটিল সমস্যা সমাধান, কোডিং লজিক ও নির্ভুল টেকনিক্যাল রিসার্চ সাপোর্ট।"
+  },
+  {
+   "slNo": "০৪",
+   "name": "Gemini",
+   "categoryBn": "গুগল ওয়ার্কস্পেস ও মাল্টিমোডাল এআই",
+   "descriptionBn": "গুগল ডক্স/শিটস সমন্বয়, রিয়েল-টাইম তথ্য অনুসন্ধান ও মার্কেট অ্যানালাইসিস।"
+  },
+  {
+   "slNo": "০৫",
+   "name": "Grammarly",
+   "categoryBn": "স্মার্ট ব্যাকরণ ও টোন অ্যাডজাস্টমেন্ট",
+   "descriptionBn": "আন্তর্জাতিক মানের ব্যাকরণ সংশোধন, প্রফেশনাল টোন টিউনিং ও প্লেজিয়ারিজম চেকিং।"
+  },
+  {
+   "slNo": "০৬",
+   "name": "QuillBot",
+   "categoryBn": "প্যারাফ্রেজিং ও বহুভাষিক অনুবাদ",
+   "descriptionBn": "লেখার সাবলীলতা ও সংক্ষিপ্তকরণ, বহুভাষিক ট্রান্সলেশন ও রিসার্চ অ্যাসিস্ট্যান্স।"
+  },
+  {
+   "slNo": "০৭",
+   "name": "Jasper",
+   "categoryBn": "মার্কেটিং কপিরাইটিং ও সেলস",
+   "descriptionBn": "ব্র্যান্ড ভয়েস অনুযায়ী মার্কেটিং কপি, সেলস মেসেজ, ব্লগ পোস্ট ও ইমেইল ক্যাম্পেইন তৈরি।"
+  },
+  {
+   "slNo": "০৮",
+   "name": "Canva",
+   "categoryBn": "গ্রাফিক ডিজাইন ও ম্যাজিক এআই",
+   "descriptionBn": "ম্যাজিক ডিজাইন, সোশ্যাল মিডিয়া পোস্ট, ব্যানার, প্রেজেন্টেশন ও ডিজিটাল বিজ্ঞাপন।"
+  },
+  {
+   "slNo": "০৯",
+   "name": "Pixlr",
+   "categoryBn": "ইমেজ এডিটিং ও ফটো ম্যানিপুলেশন",
+   "descriptionBn": "লেয়ারিং, মাস্কিং, জেনারেটিভ ফিল, ব্যাকগ্রাউন্ড রিমুভাল ও প্রোমোশনাল আর্টওয়ার্ক।"
+  },
+  {
+   "slNo": "১০",
+   "name": "InVideo",
+   "categoryBn": "ভিডিও জেনারেশন ও স্ক্রিপ্ট-টু-ভিডিও",
+   "descriptionBn": "এআই ভিডিও স্ক্রিপ্ট, সিন প্ল্যানিং, ভয়েসওভার ও সোশ্যাল মিডিয়া ভিডিও বিজ্ঞাপন।"
+  },
+  {
+   "slNo": "১১",
+   "name": "ElevenLabs",
+   "categoryBn": "ন্যাচারাল অডিও ও ভয়েস ক্লোনিং",
+   "descriptionBn": "মানুষের মতো প্রাকৃতিক ভয়েসওভার, ভয়েস ক্লোনিং, পডকাস্ট ও ইউটিউব অডিও প্রোডাকশন।"
+  }
+ ],
+ "COURSE_PHASES_DATA": [
+  {
+   "id": "phase-1",
+   "phaseNumberBn": "ফেজ ০১",
+   "titleBn": "AI Essentials for Everyone Use",
+   "titleEn": "Phase 1: AI Essentials for Everyone Use",
+   "hoursBn": "১১৪ ঘণ্টা",
+   "daysBn": "১৯ দিন (Day 01 - 19)",
+   "objectiveBn": "এআই ভিত্তি, দৈনন্দিন জীবন, অফিস ও স্প্রেডশিট প্রোডাক্টিভিটি, স্মার্ট যোগাযোগ ও নৈতিক ব্যবহার।",
+   "toolsCountBn": "৫টি+"
+  },
+  {
+   "id": "phase-2",
+   "phaseNumberBn": "ফেজ ০২",
+   "titleBn": "Basic AI for Work & Employment",
+   "titleEn": "Phase 2: Basic AI for Work & Employment",
+   "hoursBn": "১১৪ ঘণ্টা",
+   "daysBn": "১৯ দিন (Day 20 - 38)",
+   "objectiveBn": "Canva, Pixlr, InVideo ও ElevenLabs দিয়ে মার্কেটিং, কাস্টমার সার্ভিস, ডেটা অ্যানালাইসিস ও এইচআর।",
+   "toolsCountBn": "৪টি প্রধান"
+  },
+  {
+   "id": "phase-3",
+   "phaseNumberBn": "ফেজ ০৩",
+   "titleBn": "Freelancing & International Marketplaces",
+   "titleEn": "Phase 3: Freelancing & Marketplaces",
+   "hoursBn": "৭২ ঘণ্টা",
+   "daysBn": "১২ দিন (Day 39 - 50)",
+   "objectiveBn": "Fiverr, Freelancer.com ও Upwork-এ অ্যাকাউন্ট, গিগ অপ্টিমাইজেশন, বিডিং ও উইনিং প্রপোজাল।",
+   "toolsCountBn": "৩টি মার্কেটপ্লেস"
+  }
+ ],
+ "BATCH_1_WORKS": [
+  {
+   "id": "work-video-1",
+   "type": "video",
+   "typeLabelBn": "ভিডিও",
+   "titleBn": "সিলেটের গল্প, আমাদের চোখে",
+   "metaBn": "ব্যাচ - ১ · ডকুমেন্টারি ভিডিও",
+   "durationOrPages": "৪:২৫ মিনিট",
+   "descriptionBn": "সুরমা নদীর দুই পাড়ের লোকঐতিহ্য ও চা বাগানের শ্রমজীবী মানুষের দিনলিপি নিয়ে অংশগ্রহণকারীদের নির্মিত প্রামাণ্যচিত্র।",
+   "teamOrCreatorBn": "সুরমা স্টোরিটেলার্স গ্রুপ (ব্যাচ ১)",
+   "dateBn": "ফেব্রুয়ারি ২০২৫",
+   "details": {
+    "synopsisBn": "সিলেট অঞ্চলের লোকসংস্কৃতি, চা শিল্প এবং সুরমা নদীর জীবনপ্রবাহকে কৃত্রিম বুদ্ধিমত্তার চিত্রনাট্য বিন্যাস, ভিডিও সম্পাদনা এবং ব্যাকগ্রাউন্ড স্কোর প্রসেসিংয়ের মাধ্যমে তুলে ধরা হয়েছে।",
+    "keyThemesBn": [
+     "স্থানীয় ঐতিহ্য",
+     "সুরমা নদী অববাহিকা",
+     "চা-বাগান সমাজ",
+     "ডিজিটাল আর্কাইভ"
+    ],
+    "toolsBn": [
+     "Open-Source Video Edit",
+     "AI Prompt Scripting",
+     "Generative Audio Synth"
+    ],
+    "transcriptOrExcerptsBn": [
+     "০:১৫ — সুরমা নদীর ভোর ও মাঝিদের গানের আবহ",
+     "১:২০ — লাক্কাতুরা চা বাগানের সবুজ টিলা ও পাতার গুঞ্জন",
+     "২:৪৫ — সিলেটের তরুণদের আধুনিক প্রযুক্তিতে পদচারণা",
+     "৩:৫০ — ভবিষ্যৎ স্বপ্ন ও আত্মনির্ভরতার বার্তা"
+    ]
+   }
+  },
+  {
+   "id": "work-poster-1",
+   "type": "poster",
+   "typeLabelBn": "পোস্টার",
+   "titleBn": "কৃত্রিম বুদ্ধিমত্তা: সম্ভাবনা ও দায়িত্ব",
+   "metaBn": "ব্যাচ - ১ · এথিক্স ও সচেতনতামূলক পোস্টার",
+   "durationOrPages": "মুদ্রিত সংস্করণ (A2)",
+   "descriptionBn": "যুব সমাজের দায়িত্বশীল এআই ব্যবহার, তথ্যের সত্যতা যাচাই এবং কপিরাইট সুরক্ষার রূপরেখা সংবলিত প্রাতিষ্ঠানিক পোস্টার।",
+   "teamOrCreatorBn": "ডিজাইন ও এথিক্স ওয়ার্কগ্রুপ",
+   "dateBn": "জানুয়ারি ২০২৫",
+   "details": {
+    "synopsisBn": "প্রযুক্তির উৎকর্ষে মানুষের সততা ও দায়িত্বশীলতাই প্রধান দিশারি। এই পোস্টার সিরিজে এআই অপব্যবহার রোধ ও ইতিবাচক কাজের নির্দেশনা গ্রাফিক্যালি ফুটিয়ে তোলা হয়েছে।",
+    "keyThemesBn": [
+     "দায়িত্বশীল এআই ব্যবহার",
+     "কপিরাইট সচেতনতা",
+     "ভুয়া তথ্য প্রতিরোধ",
+     "ডিজিটাল নিরাপত্তা"
+    ],
+    "toolsBn": [
+     "Vector Typography",
+     "Prompt Crafting",
+     "Editorial Layout Tools"
+    ],
+    "transcriptOrExcerptsBn": [
+     "নীতিমালা ০১: যে কোনো আউটপুটের সত্যতা যাচাই করুন",
+     "নীতিমালা ০২: অন্যের মেধাস্বত্ব ও তথ্যের গোপনীয়তা রক্ষা করুন",
+     "নীতিমালা ০৩: পক্ষপাতহীন ও মানবিক দৃষ্টিভঙ্গি বজায় রাখুন"
+    ]
+   }
+  },
+  {
+   "id": "work-music-1",
+   "type": "music",
+   "typeLabelBn": "মিউজিক",
+   "titleBn": "আমাদের স্বপ্ন",
+   "metaBn": "ব্যাচ - ১ · অডিও ও আধুনিক সাউন্ডস্কেপ",
+   "durationOrPages": "৩:৪০ মিনিট",
+   "descriptionBn": "সিলেটের ঐতিহ্যবাহী লোকসুর ও দোতারার সুরমূর্ছনাকে আধুনিক ডিজিটাল অডিও প্রসেসিং ও অ্যাম্বিয়েন্ট মিউজিকের সাথে মেলবন্ধন।",
+   "teamOrCreatorBn": "শব্দ ও সাউন্ড ল্যাব টিম",
+   "dateBn": "ফেব্রুয়ারি ২০২৫",
+   "details": {
+    "synopsisBn": "রাধাবল্লভ ও হাছন রাজার দেশ সিলেটের মাটির সুরকে তরুণ প্রজন্ম ডিজিটাল কম্পোজিশন টুলের সাহায্যে নতুনভাবে ধারণ করেছে।",
+    "keyThemesBn": [
+     "সিলেটি লোকসুর",
+     "দোতারা ও বাঁশি",
+     "অ্যাম্বিয়েন্ট সাউন্ডস্কেপ",
+     "ডিজিটাল সাউন্ড ডিজাইন"
+    ],
+    "toolsBn": [
+     "DAW Digital Audio",
+     "Harmonic AI Synthesis",
+     "Acoustic Foley Track"
+    ],
+    "audioDuration": "৩ মিনিট ৪০ সেকেন্ড",
+    "transcriptOrExcerptsBn": [
+     "ভূমিকা: সুরমার মৃদু ঢেউ ও দোতারার আগমনী তান",
+     "অন্তরা: তারুণ্যের আশা ও শ্রমের ছন্দময় মেলোডি",
+     "সমাপ্তি: ঐতিহ্য ও আধুনিকতার মেলবন্ধন"
+    ]
+   }
+  },
+  {
+   "id": "work-document-1",
+   "type": "document",
+   "typeLabelBn": "ডকুমেন্ট",
+   "titleBn": "এআই শেখার গাইডবুক",
+   "metaBn": "ব্যাচ - ১ · ব্যবহারিক হ্যান্ডবুক (৪৪ পৃষ্ঠা)",
+   "durationOrPages": "৪৪ পৃষ্ঠা",
+   "descriptionBn": "নতুন প্রশিক্ষণার্থী ও তরুণদের জন্য প্রম্পট লেখার নিয়মাবলী, ফ্রিল্যান্সিং দক্ষতা এবং এআই টুলসের বাংলা নির্দেশিকা।",
+   "teamOrCreatorBn": "কারিকুলাম গবেষণা দল (ব্যাচ ১)",
+   "dateBn": "ফেব্রুয়ারি ২০২৫",
+   "details": {
+    "synopsisBn": "সিলেটের সাধারণ শিক্ষার্থীদের প্রযুক্তি ভীতি দূর করতে সহজ বাংলায় বিভিন্ন মুক্ত ও বাণিজ্যিক এআই টুলসের ব্যবহারিক নিয়ম এতে সংকলিত হয়েছে।",
+    "keyThemesBn": [
+     "সহজ প্রম্পট গাইড",
+     "কনটেন্ট তৈরিতে এআই",
+     "ফ্রিল্যান্সিং টিপস",
+     "ব্যবহারিক উদাহরণ"
+    ],
+    "toolsBn": [
+     "Markdown Documentation",
+     "Institutional Typesetting",
+     "Print Layout Engine"
+    ],
+    "transcriptOrExcerptsBn": [
+     "অধ্যায় ১: কৃত্রিম বুদ্ধিমত্তা কী এবং এটি কীভাবে কাজ করে",
+     "অধ্যায় ২: কার্যকর প্রম্পট লেখার ৫টি সোনালী সূত্র",
+     "অধ্যায় ৩: দৈনন্দিন অফিস ও একাডেমিক কাজে এআই-এর প্রয়োগ",
+     "অধ্যায় ৪: আন্তর্জাতিক মার্কেটপ্লেসে আত্মপ্রকাশের গাইড"
+    ]
+   }
+  },
+  {
+   "id": "work-gallery-1",
+   "type": "gallery",
+   "typeLabelBn": "গ্যালারি",
+   "titleBn": "কাজের ঝলক",
+   "metaBn": "ব্যাচ - ১ · কম্পিউটার ল্যাব ও দলীয় কার্যক্রম",
+   "durationOrPages": "১২টি নির্বাচিত ফ্রেম",
+   "descriptionBn": "সিলেট কম্পিউটার ল্যাবে প্রশিক্ষণার্থীদের নিবিড় ল্যাব অনুশীলন, দলগত ব্রেইনস্টর্মিং এবং প্রজেক্ট ডিফেন্সের প্রামাণ্য স্থিরচিত্র।",
+   "teamOrCreatorBn": "ডকুমেন্টেশন ও আর্কাইভ টিম",
+   "dateBn": "জানুয়ারি ২০২৫",
+   "details": {
+    "synopsisBn": "তাত্ত্বিক আলোচনার চেয়ে বাস্তব প্রয়োগেই বেশি জোর দেওয়া হয়েছিল। দলীয় সমন্বয় ও একাগ্রতার নানা মুহূর্ত ক্যামেরার চোখে বন্দি হয়েছে।",
+    "keyThemesBn": [
+     "হাতে-কলমে ল্যাব সেশন",
+     "দলীয় প্রেজেন্টেশন",
+     "মেন্টরশিপ গাইডেন্স",
+     "ক্যাম্পাস পরিবেশ"
+    ],
+    "toolsBn": [
+     "35mm Documentary Camera",
+     "Natural Light Framing",
+     "Archival Metadata Catalog"
+    ],
+    "transcriptOrExcerptsBn": [
+     "ফ্রেম ০১: সকালে ল্যাবে কোডিং ও প্রম্পট টিউনিং অনুশীলন",
+     "ফ্রেম ০২: স্ক্রিনে ডেটা অ্যানালাইসিস চার্ট নিরীক্ষণ",
+     "ফ্রেম ০৩: দলগতভাবে পোস্টার লেআউটের ড্রাফট যাচাই",
+     "ফ্রেম ০৪: শিক্ষক ও মেন্টরদের সাথে সরাসরি সমস্যা সমাধান"
+    ]
+   }
+  }
+ ],
+ "PARTICIPANTS_REGISTER": [
+  {
+   "id": "p-1",
+   "slug": "rayhan-islam",
+   "nameBn": "রায়হান ইসলাম",
+   "nameEn": "Rayhan Islam",
+   "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "RI",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "স্থানীয় একটি সফটওয়্যার এজেন্সিতে প্রম্পট ও কনটেন্ট স্ট্র্যাটেজিস্ট হিসেবে যুক্ত হয়েছেন।",
+   "quoteBn": "প্রযুক্তি এখন আর শহরের গণ্ডিতে সীমাবদ্ধ নয়, সিলেট থেকেই বিশ্বমানের কাজ তৈরি সম্ভব।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৫ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-2",
+   "slug": "nusrat-jahan",
+   "nameBn": "নুসরাত জাহান",
+   "nameEn": "Nusrat Jahan",
+   "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "NJ",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "আন্তর্জাতিক ডিজিটাল মার্কেটপ্লেসে এআই চালিত ডেটা অ্যানালিস্ট ও রিপোর্ট রিসার্চার হিসেবে কাজ করছেন।",
+   "quoteBn": "কোর্সের ৩০০ ঘণ্টার ব্যবহারিক ল্যাব আমার কর্মজীবনে আত্মবিশ্বাসের ভিত তৈরি করে দিয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৬ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-3",
+   "slug": "mahmudur-rahman",
+   "nameBn": "মাহমুদুর রহমান",
+   "nameEn": "Mahmudur Rahman",
+   "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "MR",
+   "education": "এইচএসসি",
+   "occupationBefore": "আইটি প্রশিক্ষণার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "ইউরোপীয় ক্লায়েন্টদের জন্য এআই কনটেন্ট প্রজেক্ট ও সোশ্যাল মিডিয়া অটোমেশন সার্ভিস দিচ্ছেন।",
+   "quoteBn": "প্রম্পট ইঞ্জিনিয়ারিংয়ের খুঁটিনাটি শেখার পর কাজের গতি বহুগুণ বৃদ্ধি পেয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৭ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-4",
+   "slug": "syeda-farhana-akhter",
+   "nameBn": "সৈয়দা ফারহানা আখতার",
+   "nameEn": "Syeda Farhana Akhter",
+   "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "SF",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "গৃহিণী ও সমাজকর্মী",
+   "outcomeType": "business",
+   "outcomeTypeBn": "ব্যবসা ও উদ্যোগ",
+   "outcomeText": "সিলেটের ঐতিহ্যবাহী পণ্যের বিপণনে এআই ব্র্যান্ডিং ও ডিজিটাল মার্কেটিংভিত্তিক ক্ষুদ্র উদ্যোগ শুরু করেছেন।",
+   "quoteBn": "নারীদের জন্য ঘরে বসে আয়ের যে অবারিত সুযোগ এআই তৈরি করেছে, এই প্রশিক্ষণ তা বাস্তবে প্রমাণ করল।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৮ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-5",
+   "slug": "tanvir-ahmed-chowdhury",
+   "nameBn": "তানভীর আহমেদ চৌধুরী",
+   "nameEn": "Tanvir Ahmed Chowdhury",
+   "avatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "TC",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "ফ্রিল্যান্সার",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেটের একটি প্রযুক্তি প্রতিষ্ঠানে জুনিয়র এআই সিস্টেম ও অটোমেশন অ্যাসিস্ট্যান্ট পদে যোগদান করেছেন।",
+   "quoteBn": "বাস্তব প্রজেক্টে এথিক্স ও সঠিক টুলসের সমন্বয় শেখানোই ছিল এই কোর্সের সবচেয়ে বড় শক্তি।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৮ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-6",
+   "slug": "jannatul-ferdous",
+   "nameBn": "জান্নাতুল ফেরদৌস",
+   "nameEn": "Jannatul Ferdous",
+   "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "JF",
+   "education": "স্নাতক (পাস)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "teaching",
+   "outcomeTypeBn": "শিক্ষকতা ও প্রশিক্ষণ",
+   "outcomeText": "একটি স্থানীয় কারিগরি শিক্ষা কেন্দ্রে তরুণীদের মৌলিক এআই ও কম্পিউটার লিটারেসি মেন্টরিং করছেন।",
+   "quoteBn": "নিজে শেখার পর অন্যকে শেখানোর আনন্দ অন্যরকম। যুব সমাজকে সঠিক দিশা দেওয়াই লক্ষ্য।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "১৯ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-7",
+   "slug": "ariful-haque",
+   "nameBn": "আরিফুল হক",
+   "nameEn": "Ariful Haque",
+   "avatarUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "AH",
+   "education": "এইচএসসি",
+   "occupationBefore": "ক্ষুদ্র ব্যবসায়ী",
+   "outcomeType": "further_study",
+   "outcomeTypeBn": "আরও পড়াশোনা",
+   "outcomeText": "উচ্চশিক্ষায় কম্পিউটার বিজ্ঞান ও এআই স্পেশালাইজেশনে অধ্যয়নের প্রস্তুতি নিচ্ছেন।",
+   "quoteBn": "এই কোর্সটি আমার ভেতরে প্রযুক্তির গভীরতর জ্ঞান অর্জনের তীব্র স্পৃহা তৈরি করেছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২০ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-8",
+   "slug": "sumaiya-binte-zaman",
+   "nameBn": "সুমাইয়া বিনতে জামান",
+   "nameEn": "Sumaiya Binte Zaman",
+   "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "SZ",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "আন্তর্জাতিক ডিজিটাল কনটেন্ট প্ল্যাটফর্মে টেকনিক্যাল কপিরাইটিং ও এআই আর্ট ডিরেকশনে কাজ করছেন।",
+   "quoteBn": "সিলেট থেকে ইন্টারনেটের শক্তিতে বৈশ্বিক কর্মক্ষেত্রে অংশগ্রহণ এখন বাস্তবতা।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২১ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-9",
+   "slug": "kazi-ashraful-alam",
+   "nameBn": "কাজী আশরাফুল আলম",
+   "nameEn": "Kazi Ashraful Alam",
+   "avatarUrl": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "KA",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "কম্পিউটার অপারেটর",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেটের একটি উৎপাদনকারী প্রতিষ্ঠানে ইনভেন্টরি ডেটা প্রসেসিং ও অটোমেশন স্পেশালিস্ট হিসেবে নিযুক্ত।",
+   "quoteBn": "এক্সেল ও ডেটাবেজে এআই ফর্মুলা ব্যবহার করে আগের ৩ দিনের কাজ এখন ৩ ঘণ্টায় শেষ করা সম্ভব হচ্ছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২১ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-10",
+   "slug": "roksana-begum",
+   "nameBn": "রোকসানা বেগম",
+   "nameEn": "Roksana Begum",
+   "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "RB",
+   "education": "স্নাতক (পাস)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "আন্তর্জাতিক এলএলএম গবেষণার জন্য বাংলা ভাষা ডেটাসেট কিউরেশন ও অনুবাদ প্রজেক্টে যুক্ত।",
+   "quoteBn": "বাংলা ভাষার প্রযুক্তিগত সমৃদ্ধিতে নিজের অংশগ্রহণ নিশ্চিত করতে পেরে গর্বিত।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২২ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-11",
+   "slug": "jamil-hossain",
+   "nameBn": "জামিল হোসেন",
+   "nameEn": "Jamil Hossain",
+   "avatarUrl": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "JH",
+   "education": "এইচএসসি",
+   "occupationBefore": "ভিডিও এডিটিং সহকারী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "ইউটিউব ও শিক্ষামূলক চ্যানেলের জন্য এআই ভয়েসওভার ও স্মার্ট ভিডিও রেন্ডারিং ফ্রিল্যান্সিং করছেন।",
+   "quoteBn": "ক্লিপচ্যাম্প ও অডিও সিন্থেসিসের সঠিক ব্যবহারে আমার কাজের মান আন্তর্জাতিক মানে উন্নীত হয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২২ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-12",
+   "slug": "sadia-tasnim",
+   "nameBn": "সাদিয়া তাসনিম",
+   "nameEn": "Sadia Tasnim",
+   "avatarUrl": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "ST",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "ঢাকাভিত্তিক একটি ডিজিটাল এজেন্সিতে রিমোট এআই ডিজিটাল মার্কেটিং কনসালট্যান্ট পদে কর্মরত।",
+   "quoteBn": "কোর্সের বাস্তব প্রজেক্ট ডিফেন্স আমাকে সরাসরি করপোরেট ইন্টারভিউতে এগিয়ে রেখেছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৩ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-13",
+   "slug": "maruf-hasan",
+   "nameBn": "মারুফ হাসান",
+   "nameEn": "Maruf Hasan",
+   "avatarUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "MH",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "গ্রাফিক ডিজাইনার",
+   "outcomeType": "business",
+   "outcomeTypeBn": "ব্যবসা ও উদ্যোগ",
+   "outcomeText": "জেনারেটিভ পোস্টার ও ব্র্যান্ড আইডেন্টিটি সলিউশন দিতে সিলেটে নিজস্ব ডিজিটাল ডিজাইন স্টুডিও শুরু করেছেন।",
+   "quoteBn": "এআই গ্রাফিক ডিজাইনারের শত্রু নয়, বরং কল্পনার সীমাবদ্ধতা অতিক্রম করার অসীম হাতিয়ার।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৩ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-14",
+   "slug": "fatema-tuz-zohra",
+   "nameBn": "ফাতেমা তুজ জোহরা",
+   "nameEn": "Fatema Tuz Zohra",
+   "avatarUrl": "https://images.unsplash.com/photo-1548142813-c348350df52b?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "FZ",
+   "education": "স্নাতক (পাস)",
+   "occupationBefore": "গৃহশিক্ষক",
+   "outcomeType": "teaching",
+   "outcomeTypeBn": "শিক্ষকতা ও প্রশিক্ষণ",
+   "outcomeText": "সিলেটের একটি মডেল হাই স্কুলে শিক্ষার্থীবান্ধব এআই টিচিং এইড ও ডিজিটাল ল্যাব কো-অর্ডিনেটর।",
+   "quoteBn": "শিশুদের পড়াশোনায় প্রযুক্তিকে আনন্দময় ও ইন্টারেক্টিভ করে তোলাই আমার মূল লক্ষ্য।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৪ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-15",
+   "slug": "abid-iqbal",
+   "nameBn": "আবিদ ইকবাল",
+   "nameEn": "Abid Iqbal",
+   "avatarUrl": "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "AI",
+   "education": "এইচএসসি",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "বিদেশের বিভিন্ন পডকাস্টার ও কনটেন্ট নির্মাতাদের জন্য প্রম্পট স্ক্রিপ্ট ও সামারি ফ্রিল্যান্সিং করছেন।",
+   "quoteBn": "শুধু ইংরেজি জানা নয়, এআই কে নিখুঁত ইনস্ট্রাকশন দেওয়াই বর্তমান সময়ের সেরা ফ্রিল্যান্সিং স্কিল।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৪ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-16",
+   "slug": "tahmina-chowdhury",
+   "nameBn": "তাহমিনা চৌধুরী",
+   "nameEn": "Tahmina Chowdhury",
+   "avatarUrl": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "TC",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "ক্ষুদ্র উদ্যোক্তা",
+   "outcomeType": "business",
+   "outcomeTypeBn": "ব্যবসা ও উদ্যোগ",
+   "outcomeText": "সিলেটের ঐতিহ্যবাহী শীতলপাটি ও হস্তশিল্প সামগ্রী এআই সোশ্যাল ক্যাম্পেইনের মাধ্যমে দেশজুড়ে বিক্রি করছেন।",
+   "quoteBn": "মার্কেট রিসার্চ এবং কাস্টমার চ্যাটবটের কল্যাণে আমার বিক্রয় তিন মাসে দ্বিগুণ হয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৫ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-17",
+   "slug": "shahriar-nafis",
+   "nameBn": "শাহরিয়ার নাফিস",
+   "nameEn": "Shahriar Nafis",
+   "avatarUrl": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "SN",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "নেটওয়ার্ক টেকনিশিয়ান",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেটের একটি শীর্ষস্থানীয় ইন্টারনেট সার্ভিস প্রোভাইডারে জুনিয়র অটোমেশন অ্যানালিস্ট হিসেবে কর্মরত।",
+   "quoteBn": "নেটওয়ার্ক লগ অ্যানালাইসিসে এআই টুলস যুক্ত করায় সিস্টেম ক্র্যাশ শনাক্তকরণ দ্রুততর হয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৫ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-18",
+   "slug": "nadia-sharmin",
+   "nameBn": "নাদিয়া শারমিন",
+   "nameEn": "Nadia Sharmin",
+   "avatarUrl": "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "NS",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "further_study",
+   "outcomeTypeBn": "আরও পড়াশোনা",
+   "outcomeText": "এআই নির্ভর হেলথকেয়ার ডেটা ম্যানেজমেন্টে পোস্ট-গ্র্যাজুয়েট গবেষণার প্রস্তুতি সম্পন্ন করেছেন।",
+   "quoteBn": "চিকিৎসা বিজ্ঞানে এআই যে ইতিবাচক পরিবর্তন আনছে, সেই গবেষণায় অংশ নেওয়াই আমার স্বপ্ন।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৬ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-19",
+   "slug": "imran-khandaker",
+   "nameBn": "ইমরান খন্দকার",
+   "nameEn": "Imran Khandaker",
+   "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "IK",
+   "education": "এইচএসসি",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেটের একটি স্থানীয় অনলাইন সংবাদ মাধ্যমে ডিজিটাল কনটেন্ট অপ্টিমাইজার পদে যুক্ত হয়েছেন।",
+   "quoteBn": "ফ্যাক্ট চেকিং ও সঠিক হেডিং নির্বাচনে এআই আমাদের সাংবাদিকদের মূল্যবান সময় বাঁচিয়ে দিচ্ছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৬ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-20",
+   "slug": "meherun-nesa",
+   "nameBn": "মেহেরুন নেসা",
+   "nameEn": "Meherun Nesa",
+   "avatarUrl": "https://images.unsplash.com/photo-1586297135537-94bc9ba060aa?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "MN",
+   "education": "স্নাতক (পাস)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "teaching",
+   "outcomeTypeBn": "শিক্ষকতা ও প্রশিক্ষণ",
+   "outcomeText": "অনলাইন এডুকেশনাল প্ল্যাটফর্মে স্কুল শিক্ষার্থীদের জন্য বিজ্ঞান ও গণিতের এআই সচিত্র কনটেন্ট নির্মাতা।",
+   "quoteBn": "জটিল বৈজ্ঞানিক ধারণা সহজে ভিজ্যুয়ালাইজ করতে এআই এর তুলনা নেই।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৭ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-21",
+   "slug": "zahirul-islam-raju",
+   "nameBn": "জহিরুল ইসলাম রাজু",
+   "nameEn": "Zahirul Islam Raju",
+   "avatarUrl": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "ZR",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "কৃষি ডিপ্লোমা শিক্ষার্থী",
+   "outcomeType": "business",
+   "outcomeTypeBn": "ব্যবসা ও উদ্যোগ",
+   "outcomeText": "সিলেটের চা বাগান ও কৃষকদের জন্য আবহাওয়া ও ফসলের রোগ শনাক্তকরণ সহায়ক ডিজিটাল পরামর্শ সেবা চালু করছেন।",
+   "quoteBn": "মাটির মানুষের জন্য আধুনিক প্রযুক্তির সেবা পৌঁছে দেওয়াই আমার জীবনের সবচেয়ে বড় সার্থকতা।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৭ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-22",
+   "slug": "afsana-mirza",
+   "nameBn": "আফসানা মির্জা",
+   "nameEn": "Afsana Mirza",
+   "avatarUrl": "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "AM",
+   "education": "স্নাতক (সম্মান)",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "আন্তর্জাতিক ক্লায়েন্টদের জন্য ইউআই/ইউএক্স প্রোটোটাইপিং ও ফিগমা এআই প্লাগইন বিশেষজ্ঞ হিসেবে ফ্রিল্যান্সিং করছেন।",
+   "quoteBn": "ডিজাইন থিংকিং এবং এআই অ্যালগরিদমের মেলবন্ধন আমাকে আন্তর্জাতিক বাজারে প্রতিযোগিতাসক্ষম করেছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৮ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-23",
+   "slug": "farhan-sadik",
+   "nameBn": "ফারহান সাদিক",
+   "nameEn": "Farhan Sadik",
+   "avatarUrl": "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "FS",
+   "education": "এইচএসসি",
+   "occupationBefore": "মিউজিক শিক্ষানবিস",
+   "outcomeType": "freelancing",
+   "outcomeTypeBn": "ফ্রিল্যান্সিং",
+   "outcomeText": "অডিও মাস্টারিং, ফলি ইফেক্টস এবং পটভূমির অ্যাম্বিয়েন্ট মিউজিক তৈরিতে এআই ভিত্তিক সেবা প্রদান করছেন।",
+   "quoteBn": "সিলেটের লোকঐতিহ্যের সুরকে বিশ্ব দরবারে নতুন সাজে উপস্থাপন করতে পারছি।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৮ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-24",
+   "slug": "nazneen-akter",
+   "nameBn": "নাজনীন আক্তার",
+   "nameEn": "Nazneen Akter",
+   "avatarUrl": "https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "NA",
+   "education": "ডিপ্লোমা",
+   "occupationBefore": "শিক্ষার্থী",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেট বিভাগীয় পর্যটন উন্নয়ন সংস্থার ডিজিটাল ট্যুরিস্ট গাইড প্ল্যাটফর্মে এআই কনটেন্ট কিউরেটর।",
+   "quoteBn": "জাফলং ও বিছনাকান্দির রূপ সৌন্দর্য বিশ্ব পর্যটকদের কাছে এআই প্রেজেন্টেশনের মাধ্যমে তুলে ধরছি।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৯ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  },
+  {
+   "id": "p-25",
+   "slug": "shakil-ahmed",
+   "nameBn": "শাকিল আহমেদ",
+   "nameEn": "Shakil Ahmed",
+   "avatarUrl": "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=300&auto=format&fit=crop&q=80",
+   "avatarInitials": "SA",
+   "education": "স্নাতক (পাস)",
+   "occupationBefore": "অফিস সহকারী",
+   "outcomeType": "employment",
+   "outcomeTypeBn": "কর্মসংস্থান",
+   "outcomeText": "সিলেটের একটি এনজিওতে ডেটা ভ্যালিডেশন, রিপোর্টিং ও প্রাতিষ্ঠানিক ডকুমেন্টেশন এক্সিকিউটিভ পদে পদোন্নতি পেয়েছেন।",
+   "quoteBn": "প্রশিক্ষণ থেকে শেখা অটোমেশন আমার অফিসিয়াল কাজের নির্ভুলতা এবং গতি অনেক বাড়িয়েছে।",
+   "batch": "ব্যাচ - ১",
+   "institutionBn": "যুব উন্নয়ন অধিদপ্তর, সিলেট",
+   "consentDateBn": "২৯ জানুয়ারি ২০২৫",
+   "consentSource": "লিখিত সম্মতিপত্র"
+  }
+ ],
+ "COURSE_MODULES": [
+  {
+   "id": "mod-1",
+   "code": "01",
+   "codeBn": "০১",
+   "phaseId": "phase-1",
+   "phaseTitleBn": "ফেজ ০১: AI Essentials for Everyone Use",
+   "phaseTitleEn": "Phase 1: AI Essentials for Everyone Use",
+   "daysRangeBn": "Day 01 - 05",
+   "titleBn": "এআই-এর ভিত্তি ও দৈনন্দিন জীবনে কৃত্রিম বুদ্ধিমত্তা",
+   "titleEn": "What is AI, Why It Matters & AI in Daily Life",
+   "durationBn": "৫ দিন",
+   "hoursBn": "৩০ ঘণ্টা",
+   "tools": [
+    "ChatGPT",
+    "Gemini",
+    "Claude",
+    "Copilot",
+    "Perplexity"
+   ],
+   "summaryBn": "কৃত্রিম বুদ্ধিমত্তার মৌলিক সংজ্ঞা ও ইতিহাস, ন্যারো বনাম জেনারেল এআই, প্রম্পটিংয়ের প্রাথমিক সূত্র, মেশিন লার্নিং পরিচিতি এবং ব্যক্তি ও পেশাগত জীবনে এআই-এর বাস্তবমুখী ব্যবহার।",
+   "topicsBn": [
+    "Definition of Artificial Intelligence, Brief history & key milestones",
+    "Narrow AI vs. General AI (AGI) ধারণা ও পার্থক্য",
+    "Understanding the use of prompt in AI tools (Prompt fundamentals & context)",
+    "Basics of Machine Learning & Computer Vision",
+    "Ethical Considerations in AI & Understanding Bias in algorithms",
+    "AI for Personal Productivity, Communication, Social Media & Search",
+    "AI for shopping & Personal Finance, Home Automation",
+    "AI in Healthcare, Finance, Marketing, HR & Basic English communication"
+   ],
+   "learningOutcomesBn": [
+    "ব্যক্তিগত ও পেশাগত কাজে AI Assistant কার্যকরভাবে ব্যবহার করতে পারা",
+    "Email, Letter, Report ও অন্যান্য লেখালেখির কাজ AI দিয়ে সম্পন্ন করা",
+    "AI ব্যবহার করে Presentation, Document ও Creative Design তৈরি করা",
+    "শিক্ষা, চাকরি, ব্যবসা ও ব্যক্তিগত জীবনে AI-ভিত্তিক Productivity বহুগুণ বৃদ্ধি করা"
+   ],
+   "practicalDeliverableBn": "দৈনন্দিন কাজের জন্য ১০টি প্রমিত প্রম্পট লাইব্রেরি ও ব্যক্তিগত এআই ওয়ার্কফ্লো সেটআপ।"
+  },
+  {
+   "id": "mod-2",
+   "code": "02",
+   "codeBn": "০২",
+   "phaseId": "phase-1",
+   "phaseTitleBn": "ফেজ ০১: AI Essentials for Everyone Use",
+   "phaseTitleEn": "Phase 1: AI Essentials for Everyone Use",
+   "daysRangeBn": "Day 06 - 09",
+   "titleBn": "অফিস ও প্রোডাক্টিভিটি অটোমেশন (ডক, স্প্রেডশিট ও ডিজাইন)",
+   "titleEn": "AI for Office & Productivity (Google Gemini, ChatGPT, Canva)",
+   "durationBn": "৪ দিন",
+   "hoursBn": "২৪ ঘণ্টা",
+   "tools": [
+    "Google Gemini",
+    "ChatGPT",
+    "Copilot",
+    "DeepSeek",
+    "Google Docs",
+    "Google Sheets",
+    "Jasper",
+    "Canva",
+    "Grammarly"
+   ],
+   "summaryBn": "অফিসের রুটিন কাজ যেমন নোট নেওয়া, প্রফেশনাল ইমেইল, স্প্রেডশিটে ফর্মুলা অটোমেশন ও ডেটা বিশ্লেষণ, ভিজ্যুয়াল চার্ট এবং ক্যানভা দিয়ে দ্রুত প্রেজেন্টেশন ও সোশ্যাল ব্যানার তৈরি।",
+   "topicsBn": [
+    "Introduction to AI in Office and Productivity, Note-Taking & Research",
+    "Hands-on: AI for Writing, Summarization & Professional Email Communication",
+    "AI for Document Creation, Spreadsheets (Excel & Google Sheets) formula generation",
+    "Data Visualization with AI & Hands-on Business Data Insights",
+    "AI-Assisted Search, Knowledge Management & Workflow Automation",
+    "Chatbots & Virtual Assistants for Team Collaboration",
+    "AI for Sales & Marketing Automation using Jasper & Canva templates"
+   ],
+   "learningOutcomesBn": [
+    "AI-এর সাহায্যে Excel Formula, Data Analysis ও স্বয়ংক্রিয় রিপোর্ট প্রস্তুত করা",
+    "Professional Email, Letter, Notice, Report ও Meeting Minutes তৈরি করা",
+    "AI ব্যবহার করে Document দ্রুত লেখা, নির্ভুল সম্পাদনা ও Proofreading করা",
+    "Canva AI ব্যবহার করে Presentation, Report, Poster, Flyer ও Social Media Design প্রস্তুত করা"
+   ],
+   "practicalDeliverableBn": "একটি স্বয়ংক্রিয় এক্সেল ডেটা অ্যানালিটিক্স ড্যাশবোর্ড ও করপোরেট প্রেজেন্টেশন স্লাইড প্যাক।"
+  },
+  {
+   "id": "mod-3",
+   "code": "03",
+   "codeBn": "০৩",
+   "phaseId": "phase-1",
+   "phaseTitleBn": "ফেজ ০১: AI Essentials for Everyone Use",
+   "phaseTitleEn": "Phase 1: AI Essentials for Everyone Use",
+   "daysRangeBn": "Day 10 - 15",
+   "titleBn": "স্মার্ট কমিউনিকেশন, প্যারাফ্রেজিং ও কনটেন্ট ড্রাফটিং",
+   "titleEn": "AI for Smarter Communication (Grammarly, QuillBot, Jasper)",
+   "durationBn": "৬ দিন",
+   "hoursBn": "৩৬ ঘণ্টা",
+   "tools": [
+    "Grammarly",
+    "QuillBot",
+    "Jasper",
+    "Wordtune",
+    "DeepL Translator",
+    "Google Translate",
+    "Copilot",
+    "DeepSeek",
+    "Canva"
+   ],
+   "summaryBn": "আন্তর্জাতিক মানের ইংরেজি চিঠিপত্র, ব্যাকরণ ও বানান শুদ্ধিকরণ, টোন রূপান্তর (Formal/Professional/Friendly), প্যারাফ্রেজিং, বহুমাত্রিক অনুবাদ এবং জ্যাসপার দিয়ে মার্কেটিং কপিরাইটিং।",
+   "topicsBn": [
+    "Introduction to AI in Communication, NLP, Chatbots & Speech-to-Text messaging",
+    "Grammarly Setup, Grammar Basics, Tone & Style Adjustments for international clients",
+    "Grammarly Plagiarism Checker, Social Media Posts & Blog Content Review",
+    "QuillBot for Writing Clarity, Conciseness, Summarization & Research refining",
+    "Multilingual Communication & Translation using QuillBot & DeepL",
+    "Jasper Account Setup, Dashboard, Marketing Copy & Sales Messages",
+    "Jasper for Blog Posts, Social Media Content, LinkedIn Articles & Email Newsletters",
+    "Brand Voice অনুযায়ী কন্টেন্ট পার্সোনালাইজেশন ও পুনরাবৃত্তিমূলক কাজ অটোমেশন"
+   ],
+   "learningOutcomesBn": [
+    "Business Communication, Customer Support ও Team Communication-এর কার্যকর বার্তা তৈরি করা",
+    "লেখার Tone (Formal, Professional, Friendly) প্রয়োজন অনুযায়ী রূপান্তর করা",
+    "Grammarly AI ব্যবহার করে Grammar, Spelling ও Punctuation-এর ভুল নিখুঁতভাবে সংশোধন করা",
+    "আন্তর্জাতিক মানের Professional Writing ও Communication Skills গড়ে তোলা",
+    "AI-এর সাহায্যে Marketing Copy, Sales Message ও Customer Response তৈরি করা",
+    "Brand Voice অনুযায়ী Consistent Communication Content প্রস্তুত করা"
+   ],
+   "practicalDeliverableBn": "একটি ব্র্যান্ড ভয়েস গাইডবুক ও মাল্টি-চ্যানেল সেলস ইমেইল টেমপ্লেট সিরিজ।"
+  },
+  {
+   "id": "mod-4",
+   "code": "04",
+   "codeBn": "০৪",
+   "phaseId": "phase-1",
+   "phaseTitleBn": "ফেজ ০১: AI Essentials for Everyone Use",
+   "phaseTitleEn": "Phase 1: AI Essentials for Everyone Use",
+   "daysRangeBn": "Day 16 - 19",
+   "titleBn": "ডেটা-চালিত সিদ্ধান্ত গ্রহণ, এআই নীতি ও সাইবার নিরাপত্তা",
+   "titleEn": "AI for Decision Making, Ethics & Limitations",
+   "durationBn": "৪ দিন",
+   "hoursBn": "২৪ ঘণ্টা",
+   "tools": [
+    "ChatGPT",
+    "Google Gemini",
+    "Claude AI",
+    "Microsoft Copilot",
+    "Perplexity AI",
+    "Jasper",
+    "Canva",
+    "DeepSeek"
+   ],
+   "summaryBn": "বিজনেস ইন্টেলিজেন্স ও ঝুঁকি মূল্যায়ন, এআই-এর হ্যালুসিনেশন ও বায়াস শনাক্তকরণ, দায়িত্বশীল প্রয়োগ, ডেটা প্রাইভেসি এবং আন্তর্জাতিক এআই নীতিমালা (GDPR ও AI Act)।",
+   "topicsBn": [
+    "Introduction to AI for Data-Driven Decision Making & Business Intelligence",
+    "AI for Financial & Risk Decision Making, Strategic Planning & Forecasting",
+    "AI for Marketing, Customer, HR & Talent Decision Making",
+    "AI Dashboards, Executive Summaries & Real-World Data Analysis",
+    "Crisis Management & Risk Mitigation, Principles of Responsible AI",
+    "Ethical Theories (Utilitarianism, Deontology, Virtue Ethics) in AI Context",
+    "Defining Fairness, Metrics for Evaluating Fairness & Case Studies of Biased Systems",
+    "Analyzing Real-World Incidents of Bias, Regulations & Guidelines (GDPR, AI Act)",
+    "Data Privacy, Security & Confidentiality Best Practices for Personal Data"
+   ],
+   "learningOutcomesBn": [
+    "AI ব্যবহার করে Data-Driven Decision Making ও ব্যবসায়িক স্ট্র্যাটেজি প্রণয়ন করা",
+    "বিভিন্ন জটিল উৎস থেকে তথ্য বিশ্লেষণ ও তুলনা করে সিদ্ধান্ত নেওয়া",
+    "AI-এর সাহায্যে প্রফেশনাল রিপোর্ট, Dashboard ও Executive Summary তৈরি করা",
+    "AI-এর সীমাবদ্ধতা (Limitations) ও হ্যালুসিনেশন (Hallucination) নির্ভুলভাবে চিহ্নিত করা",
+    "Data Privacy, Security ও Confidentiality নীতি মেনে নিরাপদভাবে AI ব্যবহার করা"
+   ],
+   "practicalDeliverableBn": "একটি বিজনেস ডিসিশন এক্সিকিউটিভ ড্যাশবোর্ড ও এথিক্যাল কমপ্লায়েন্স অডিট রিপোর্ট।"
+  },
+  {
+   "id": "mod-5",
+   "code": "05",
+   "codeBn": "০৫",
+   "phaseId": "phase-2",
+   "phaseTitleBn": "ফেজ ০২: Basic AI for Work & Employment",
+   "phaseTitleEn": "Phase 2: Basic AI for Work & Employment",
+   "daysRangeBn": "Day 20 - 25",
+   "titleBn": "মার্কেটিং ও গ্রাফিক ডিজাইন (Canva ও Pixlr)",
+   "titleEn": "AI for Marketing & Content Creation (Canva & Pixlr)",
+   "durationBn": "৬ দিন",
+   "hoursBn": "৩৬ ঘণ্টা",
+   "tools": [
+    "Canva Magic Design",
+    "Canva Magic Media",
+    "Pixlr AI",
+    "Pixlr Express",
+    "Generative Fill",
+    "ChatGPT",
+    "Google Gemini",
+    "Claude AI",
+    "NotebookLM"
+   ],
+   "summaryBn": "মার্কেট রিসার্চ ও কাস্টমার ইনসাইট, ক্যানভা ম্যাজিক ডিজাইন দিয়ে সোশ্যাল মিডিয়া ব্যানার ও ফ্লায়ার, এবং পিক্সলার এআই দিয়ে লেয়ারিং, মাস্কিং ও জেনারেটিভ ফিল ফটো ম্যানিপুলেশন।",
+   "topicsBn": [
+    "AI Technologies in Business, Data Collection Techniques & Customer Insights",
+    "Data-Driven Marketing Decision Making & Building AI-Ready Creative Infrastructure",
+    "Introduction to Canva for Marketing, Templates, Social Media Graphics, Flyers & Brochures",
+    "Branding with Canva: Custom Color Palettes, Typography, Animations, Magic Media, Display Ads",
+    "Introduction to Pixlr for Marketing: Basic Image Editing (Crop, Resize, Adjust)",
+    "Pixlr Advanced Editing: Layering, Masking, Blending, Filters, Effects & Overlays",
+    "Pixlr Generative Fill, Background Removal, AI Enhance, Custom Illustrations & Mockups",
+    "Designing High-Converting Social Media Posts, Ad Creatives & Final Campaign Defenses"
+   ],
+   "learningOutcomesBn": [
+    "Blog, Website Content, Product Description ও SEO Content তৈরি করা",
+    "Data-Driven Marketing Decision গ্রহণ ও কাস্টমার বিহেভিয়ার অ্যানালাইসিস করা",
+    "Canva AI ব্যবহার করে Social Media Post, Banner, Flyer ও Ad Design তৈরি করা",
+    "Pixlr AI Image Generator ও Generative Fill দিয়ে Creative Visuals ও Mockups তৈরি করা",
+    "সোশ্যাল মিডিয়া বিজ্ঞাপনের জন্য স্বয়ংসম্পূর্ণ মাল্টি-ফরম্যাট ক্যাম্পেইন ডিজাইন করা"
+   ],
+   "practicalDeliverableBn": "একটি পূর্ণাঙ্গ ব্র্যান্ড ভিজ্যুয়াল কিট (লোগো ভ্যারিয়েশন, সোশ্যাল ব্যানার ও প্রোডাক্ট অ্যাড মকআপ)।"
+  },
+  {
+   "id": "mod-6",
+   "code": "06",
+   "codeBn": "০৬",
+   "phaseId": "phase-2",
+   "phaseTitleBn": "ফেজ ০২: Basic AI for Work & Employment",
+   "phaseTitleEn": "Phase 2: Basic AI for Work & Employment",
+   "daysRangeBn": "Day 26 - 29",
+   "titleBn": "ভিডিও ও অডিও প্রোডাকশন (InVideo ও ElevenLabs)",
+   "titleEn": "AI for Video & Audio Creation (InVideo & ElevenLabs)",
+   "durationBn": "৪ দিন",
+   "hoursBn": "২৪ ঘণ্টা",
+   "tools": [
+    "InVideo AI",
+    "AI Text-to-Video",
+    "Script Generator",
+    "Voiceover Generator",
+    "ElevenLabs AI",
+    "Voice Cloning",
+    "Sound Effects",
+    "ChatGPT",
+    "Canva"
+   ],
+   "summaryBn": "চিত্রনাট্য থেকে স্বয়ংক্রিয় পূর্ণাঙ্গ ভিডিও নির্মাণ, ইনভিডিও এআই সিন প্ল্যানিং, অটো সাবটাইটেল, ইলেভেনল্যাবস টেক্সট-টু-স্পিচ, ভয়েস ক্লোনিং এবং পডকাস্ট অডিও মাস্টারিং।",
+   "topicsBn": [
+    "Introduction to Video Marketing & InVideo Platform Setup",
+    "Promotional Video Creation, Service Explanations & InVideo AI Script Generator",
+    "Social Media Video Ads with Transitions, Captions & Background Music",
+    "Advanced InVideo: Green screen, Custom dimensions & AI Subtitle Generator",
+    "Introduction to Audio Marketing & ElevenLabs Text-to-Speech (TTS)",
+    "Professional Voiceovers, Tone, Pacing and Style Optimization",
+    "ElevenLabs Voice Cloning, Sound Effects & Multi-Voice Conversations",
+    "AI Audio Production for Podcasts, YouTube Videos, Webinars & Online Courses"
+   ],
+   "learningOutcomesBn": [
+    "AI ব্যবহার করে Video Script, Storyboard ও Scene Planning তৈরি করা",
+    "AI Voiceover ও Auto Subtitle ব্যবহার করে Video Production-এর গতি ১০ গুণ বাড়ানো",
+    "Text থেকে Natural Human-like Voice ও স্টুডিও কোয়ালিটি ভয়েসওভার তৈরি করা",
+    "Podcast, YouTube Video ও অনলাইন কোর্সের জন্য পূর্ণাঙ্গ AI Audio Content তৈরি করা"
+   ],
+   "practicalDeliverableBn": "একটি ৬০ সেকেন্ডের ফুল এইচডি প্রমোশনাল ভিডিও এবং মাল্টি-ভয়েস অডিও পডকাস্ট ট্র্যাক।"
+  },
+  {
+   "id": "mod-7",
+   "code": "07",
+   "codeBn": "০৭",
+   "phaseId": "phase-2",
+   "phaseTitleBn": "ফেজ ০২: Basic AI for Work & Employment",
+   "phaseTitleEn": "Phase 2: Basic AI for Work & Employment",
+   "daysRangeBn": "Day 30 - 33",
+   "titleBn": "কাস্টমার সার্ভিস, সেলস ও সিআরএম অটোমেশন",
+   "titleEn": "AI for Customer Service, Sales & CRM Automation",
+   "durationBn": "৪ দিন",
+   "hoursBn": "২৪ ঘণ্টা",
+   "tools": [
+    "Claude AI",
+    "Intercom AI",
+    "Zendesk AI",
+    "HubSpot AI",
+    "Salesforce Einstein AI",
+    "Zoho Zia AI",
+    "Tidio AI",
+    "ManyChat AI",
+    "Botpress AI",
+    "Zapier AI"
+   ],
+   "summaryBn": "স্বয়ংক্রিয় চ্যাটবট স্থাপন, রিয়েল-টাইম কাস্টমার কোয়েরি সমাধান, সেলস স্ক্রিপ্ট ও প্রপোজাল তৈরি, এফএকিউ অটোমেশন এবং ক্লাউড সিআরএম প্ল্যাটফর্ম ইন্টিগ্রেশন।",
+   "topicsBn": [
+    "Automating Business Processes, AI in Marketing and Sales Workflows",
+    "Enhancing Customer Experience with AI & Predictive Analytics for Retention",
+    "Financial Forecasting & Supply Chain Management with AI",
+    "Risk Management, Ethical Considerations & Implementing AI Projects",
+    "Chatbots & AI for Real-time Customer Support (Intercom, Zendesk, Tidio, ManyChat)",
+    "AI in Voice Customer Support & Automating Inquiries with Sentiment Analysis",
+    "AI-Driven Customer Support Automation (FAQ, Knowledge Base & Support Tickets)",
+    "Integrating AI with Enterprise CRM Systems (HubSpot, Salesforce, Zendesk)"
+   ],
+   "learningOutcomesBn": [
+    "AI দিয়ে Sales Script, Follow-up Message ও প্রফেশনাল Proposal তৈরি করা",
+    "AI Chatbot ব্যবহার করে Customer Query-এর দ্রুত ও নির্ভুল উত্তর প্রদান করা",
+    "AI ব্যবহার করে Sales Automation Workflow তৈরি ও মনিটর করা",
+    "Frequently Asked Questions (FAQ), Knowledge Base ও Support Content তৈরি করা",
+    "সিআরএম সিস্টেমের সাথে AI ইন্টিগ্রেশন করে কাস্টমার সার্ভিস স্কেল করা"
+   ],
+   "practicalDeliverableBn": "একটি কার্যকরী কাস্টমার সাপোর্ট চ্যাটবট ফ্রেমওয়ার্ক ও স্বয়ংক্রিয় লিড ফলো-আপ সিস্টেম।"
+  },
+  {
+   "id": "mod-8",
+   "code": "08",
+   "codeBn": "০৮",
+   "phaseId": "phase-2",
+   "phaseTitleBn": "ফেজ ০১: Basic AI for Work & Employment",
+   "phaseTitleEn": "Phase 2: Basic AI for Work & Employment",
+   "daysRangeBn": "Day 34 - 36",
+   "titleBn": "ডেটা অ্যানালাইসিস, রিসার্চ ও ওয়ার্কফ্লো অটোমেশন",
+   "titleEn": "AI for Data Analysis, Research & Workflow Automation",
+   "durationBn": "৩ দিন",
+   "hoursBn": "১৮ ঘণ্টা",
+   "tools": [
+    "Copilot",
+    "Claude AI",
+    "Perplexity AI",
+    "NotebookLM",
+    "Microsoft Excel",
+    "Google Sheets",
+    "ChatGPT Advanced Data Analysis",
+    "Zapier AI",
+    "Make",
+    "n8n"
+   ],
+   "summaryBn": "স্প্রেডশিটের জটিল ডেটা প্রসেসিং, ন্যাচারাল ল্যাঙ্গুয়েজ কোয়েরি, রিসার্চ পেপার সামারাইজেশন এবং জ্যাপিয়ার/মেক দিয়ে পুনরাবৃত্তিমূলক কাজের সম্পূর্ণ অটোমেশন।",
+   "topicsBn": [
+    "Introduction to AI for Data Analysis & Data Preprocessing with AI",
+    "Machine Learning for Data Insights & Data Visualization",
+    "NLP for Research & Hands-on Data Research Workflows",
+    "ChatGPT for Data Research, Analyzing & Summarizing Research Papers",
+    "Automating Literature Reviews & Hypothesis Generation with ChatGPT",
+    "Introduction to AI for Productivity & Tools that Automate Repetitive Tasks",
+    "Incorporating AI into Daily Workflows & Time Management",
+    "Automation Platforms: Zapier AI, Make (Integromat), MS Power Automate, n8n"
+   ],
+   "learningOutcomesBn": [
+    "Excel/Google Sheets-এর Data Analysis ও ফর্মুলা তৈরি স্বয়ংক্রিয় করা",
+    "AI Prompt ব্যবহার করে নির্ভুল Data Analysis Result ও ভিজ্যুয়াল চার্ট তৈরি করা",
+    "রিসার্চ পেপার ও টেকনিক্যাল ডকুমেন্টের সারসংক্ষেপ দ্রুত সম্পন্ন করা",
+    "AI Automation Workflow তৈরি করে দৈনন্দিন পুনরাবৃত্তিমূলক কাজের সময় বাঁচানো"
+   ],
+   "practicalDeliverableBn": "একটি মাল্টি-অ্যাপ এআই ওয়ার্কফ্লো অটোমেশন পাইপলাইন ও ডেটা অ্যানালিটিক্স রিপোর্ট।"
+  },
+  {
+   "id": "mod-9",
+   "code": "09",
+   "codeBn": "০৯",
+   "phaseId": "phase-2",
+   "phaseTitleBn": "ফেজ ০২: Basic AI for Work & Employment",
+   "phaseTitleEn": "Phase 2: Basic AI for Work & Employment",
+   "daysRangeBn": "Day 37 - 38",
+   "titleBn": "এইচআর, রিক্রুটমেন্ট ও ট্যালেন্ট ম্যানেজমেন্ট",
+   "titleEn": "AI for HR, Recruitment & Workforce Management",
+   "durationBn": "২ দিন",
+   "hoursBn": "১২ ঘণ্টা",
+   "tools": [
+    "ChatGPT",
+    "Google Gemini",
+    "Microsoft Copilot",
+    "LinkedIn Recruiter AI",
+    "LinkedIn Learning AI",
+    "Workable AI"
+   ],
+   "summaryBn": "চাকরির বিজ্ঞাপন ও জেডি তৈরি, বায়োডাটা স্ক্রিনিং ও শর্টলিস্টিং, ইন্টারভিউ প্রশ্নাবলি প্রণয়ন, এমপ্লয়ি অনবোর্ডিং এবং পারফরম্যান্স অ্যানালিটিক্স।",
+   "topicsBn": [
+    "Overview of AI in HR & Recruitment: Sourcing and Screening",
+    "AI for Candidate Matching, Selection, Interviewing & Assessments",
+    "Employee Engagement, Retention & Automating Recruitment Pipelines",
+    "AI for Performance Management & Predictive HR Analytics",
+    "AI-Assisted Learning, Development & HR Process Automation",
+    "AI for Diversity, Equity and Inclusion (DEI)"
+   ],
+   "learningOutcomesBn": [
+    "Candidate Matching ও Shortlisting-এর জন্য আধুনিক AI Tools ব্যবহার করা",
+    "নিখুঁত Job Description ও কাস্টমাইজড ইন্টারভিউ প্রশ্নমালা প্রণয়ন করা",
+    "Employee Onboarding Documents ও প্রফেশনাল HR Communication তৈরি করা",
+    "ট্যালেন্ট অ্যানালিটিক্স ও কর্মী মূল্যায়নে এআই-এর ডেটা-নির্ভর প্রয়োগ নিশ্চিত করা"
+   ],
+   "practicalDeliverableBn": "একটি পূর্ণাঙ্গ রিক্রুটমেন্ট ড্রাইভ কিট (জেডি, স্ক্রিনিং চেকলিস্ট ও অনবোর্ডিং হ্যান্ডবুক)।"
+  },
+  {
+   "id": "mod-10",
+   "code": "10",
+   "codeBn": "১০",
+   "phaseId": "phase-3",
+   "phaseTitleBn": "ফেজ ০৩: Freelancing & International Marketplaces",
+   "phaseTitleEn": "Phase 3: Freelancing & Marketplaces",
+   "daysRangeBn": "Day 39 - 40",
+   "titleBn": "ফ্রিল্যান্সিং এর মূলভিত্তি, পোর্টফোলিও ও ক্লায়েন্ট ম্যানেজমেন্ট",
+   "titleEn": "Freelancing Fundamentals, Portfolio & Client Management",
+   "durationBn": "২ দিন",
+   "hoursBn": "১২ ঘণ্টা",
+   "tools": [
+    "ChatGPT",
+    "Google Gemini",
+    "Claude AI",
+    "Perplexity AI",
+    "Canva AI"
+   ],
+   "summaryBn": "ফ্রিল্যান্সিংয়ের সঠিক নিশ ও স্কিল নির্বাচন, অনলাইন মার্কেট রিসার্চ, প্রফেশনাল পোর্টফোলিও ওয়েবসাইট তৈরি, ক্লায়েন্ট হ্যান্ডলিং, শিষ্টাচার এবং ব্যক্তিগত ফাইন্যান্স।",
+   "topicsBn": [
+    "Leveraging Social Media for Freelancing & Platform Overviews (Upwork, Fiverr, Freelancer)",
+    "Marketing Yourself as a Freelancer & Creating a Freelance Portfolio Website",
+    "Finding and Engaging Online Communities, Personal Finance for Freelancers",
+    "Handling Difficult Clients & Professional Communication Etiquette",
+    "Project Management Tools for Freelancers & Work-Life Balance Strategies",
+    "Building a Client Referral System, Staying Motivated & Continuous Learning"
+   ],
+   "learningOutcomesBn": [
+    "AI ব্যবহার করে Freelancing-এর জন্য প্রয়োজনীয় Skill নির্বাচন ও Market Research করা",
+    "আন্তর্জাতিক মানের সেলফ-ব্র্যান্ডিং ও প্রফেশনাল পোর্টফোলিও প্রস্তুত করা",
+    "Client Requirement Analysis করে কার্যকর ও পেশাদার রেসপন্স প্রদান করা",
+    "আন্তর্জাতিক ক্লায়েন্টদের সাথে দীর্ঘমেয়াদী ব্যবসায়িক সম্পর্ক স্থাপন করা"
+   ],
+   "practicalDeliverableBn": "একটি লাইভ পার্সোনাল পোর্টফোলিও ড্রাফট ও ক্লায়েন্ট কমিউনিকেশন গাইডবুক।"
+  },
+  {
+   "id": "mod-11",
+   "code": "11",
+   "codeBn": "১১",
+   "phaseId": "phase-3",
+   "phaseTitleBn": "ফেজ ০৩: Freelancing & International Marketplaces",
+   "phaseTitleEn": "Phase 3: Freelancing & Marketplaces",
+   "daysRangeBn": "Day 41 - 42",
+   "titleBn": "ফাইভার মার্কেটপ্লেস: গিগ তৈরি, র‍্যাংকিং ও অর্ডার ম্যানেজমেন্ট",
+   "titleEn": "Fiverr Marketplace Mastery",
+   "durationBn": "২ দিন",
+   "hoursBn": "১২ ঘণ্টা",
+   "tools": [
+    "Fiverr Seller Dashboard",
+    "Fiverr Gig Tools",
+    "Fiverr Keyword Research",
+    "Canva",
+    "Grammarly AI",
+    "ChatGPT"
+   ],
+   "summaryBn": "ফাইভারে সেলার অ্যাকাউন্ট খোলা, হাই-কনভার্টিং গিগ টাইটেল ও এসইও ডেসক্রিপশন, প্যাকেজ প্রাইসিং, ক্যানভা দিয়ে আকর্ষণীয় থাম্বনেইল ডিজাইন ও অর্ডার ডেলিভারি।",
+   "topicsBn": [
+    "Introduction to Fiverr, Creating an Account & Understanding Gigs",
+    "Fiverr Marketplace Mechanisms, Seller Levels & Ranking Algorithms",
+    "Market Research Techniques & Keyword Research Tools for High Conversion",
+    "Crafting High-Converting Gig Titles with SEO Keywords",
+    "Writing Compelling Gig Descriptions & Package Structuring (Basic, Standard, Premium)",
+    "Pricing Services Competitively & Designing Attractive Gig Images with Canva",
+    "Creating Engaging Gig Videos & Managing Client Expectations and Revisions",
+    "Effective Client Communication, Managing Deadlines & Winning 5-Star Reviews"
+   ],
+   "learningOutcomesBn": [
+    "Fiverr Marketplace-এর কার্যক্রম, Seller Level ও Ranking System পুরোপুরি উপলব্ধি করা",
+    "Buyer Requirement বিশ্লেষণ করে কাস্টম অফার ও সেলস মেসেজ তৈরি করা",
+    "আকর্ষণীয় Gig Thumbnail ও প্রমোশনাল ভিডিও তৈরি করে রূপান্তর হার বাড়ানো",
+    "সফলভাবে প্রথম অর্ডার অর্জন ও ধারাবাহিক ফাইভ-স্টার রিভিউ নিশ্চিত করার কৌশল"
+   ],
+   "practicalDeliverableBn": "ফাইভারে প্রকাশের উপযোগী ২টি পূর্ণাঙ্গ প্রস্তুত গিগ (টাইটেল, ডেসক্রিপশন, প্রাইসিং ও ব্যানারসহ)।"
+  },
+  {
+   "id": "mod-12",
+   "code": "12",
+   "codeBn": "১২",
+   "phaseId": "phase-3",
+   "phaseTitleBn": "ফেজ ০৩: Freelancing & International Marketplaces",
+   "phaseTitleEn": "Phase 3: Freelancing & Marketplaces",
+   "daysRangeBn": "Day 43 - 45",
+   "titleBn": "ফ্রিল্যান্সার ডট কম: বিডিং কৌশল ও প্রজেক্ট ম্যানেজমেন্ট",
+   "titleEn": "Freelancer.com Marketplace Mastery",
+   "durationBn": "৩ দিন",
+   "hoursBn": "১৮ ঘণ্টা",
+   "tools": [
+    "Proposal Writing AI",
+    "Gemini Market Research",
+    "Canva AI Portfolio",
+    "Google Sheets AI Bid Tracker",
+    "Task Management Tools"
+   ],
+   "summaryBn": "ফ্রিল্যান্সার ডট কমে প্রজেক্ট বিডিংয়ের বৈজ্ঞানিক কৌশল, কাস্টমাইজড কভার লেটার ড্রাফটিং, মাইলস্টোন পেমেন্ট সুরক্ষা ও ক্লায়েন্ট রিটেনশন কৌশল।",
+   "topicsBn": [
+    "Building a Professional Profile & Verifications on Freelancer.com",
+    "Understanding Freelancer.com Project System, Contests & Bidding Process",
+    "Writing Winning Job Proposals & Customized Cover Letters with AI",
+    "Gemini for Market Research, Project Analysis & Client Needs Breakdown",
+    "Responding to Client Reviews & Gracefully Handling Scope Creep and Revisions",
+    "Engaging Freelancer Communities, Networking & Platform Policies",
+    "Project & Task Management, Google Sheets AI for Bid and Project Tracking",
+    "Competitive Bid Strategy, Milestone Escrow Protection & Maximizing Client Retention"
+   ],
+   "learningOutcomesBn": [
+    "Freelancer.com Marketplace-এর কার্যক্রম, Project System ও Bidding Process বোঝা",
+    "AI ব্যবহার করে Customized Bid Proposal ও Winning Cover Letter লেখা",
+    "Competitive Bid Strategy ও সঠিক Pricing Strategy নির্ধারণ করা",
+    "প্রজেক্টের সময়মতো ডেলিভারি ও টেস্টমোনিয়াল অর্জনের মাধ্যমে প্রোফাইল গ্রোথ করা"
+   ],
+   "practicalDeliverableBn": "একটি গুগল শিটস বিড ট্র্যাকার এবং লাইভ প্রজেক্টের জন্য ৫টি কাস্টম বিড প্রপোজাল ড্রাফট।"
+  },
+  {
+   "id": "mod-13",
+   "code": "13",
+   "codeBn": "১৩",
+   "phaseId": "phase-3",
+   "phaseTitleBn": "ফেজ ০৩: Freelancing & International Marketplaces",
+   "phaseTitleEn": "Phase 3: Freelancing & Marketplaces",
+   "daysRangeBn": "Day 46 - 50",
+   "titleBn": "আপওয়ার্ক মার্কেটপ্লেস: প্রোফাইল অপ্টিমাইজেশন, প্রপোজাল ও চুক্তি",
+   "titleEn": "Upwork Marketplace Mastery & Portfolio Defense",
+   "durationBn": "৫ দিন",
+   "hoursBn": "৩০ ঘণ্টা",
+   "tools": [
+    "Upwork Platform Tools",
+    "Profile Optimization AI",
+    "Connects Strategy",
+    "Job Search Filters",
+    "Proposal Writing AI",
+    "Canva AI"
+   ],
+   "summaryBn": "বিশ্বের বৃহত্তম ফ্রিল্যান্সিং প্ল্যাটফর্ম আপওয়ার্কে ১০০% কমপ্লিট প্রোফাইল, কানেক্টস ম্যানেজমেন্ট, উইনিং প্রপোজাল রাইটিং, আওয়ার্লি ও ফিক্সড-প্রাইস চুক্তি এবং কোর্স সমাপনী ডিফেন্স।",
+   "topicsBn": [
+    "Introduction to Upwork, Creating an Upwork Account & Profile Approval",
+    "Crafting a Standout Profile Summary & Keyword Optimization for Discovery",
+    "Setting Competitive Hourly/Fixed Rates & Creating a Portfolio That Sells",
+    "Navigating Upwork Job Categories, Strategic Job Search & Connects Management",
+    "Writing Winning Proposals with AI: Hook, Value Proposition, Action Plan & CTA",
+    "Upwork Contract Management: Escrow, Milestones, Desktop App Time Tracking",
+    "Promoting Services Externally & Leveraging Upwork Search Algorithm",
+    "Client Communication Best Practices, Dispute Prevention & 5-Star Reviews",
+    "Payment Methods (Direct Bank, Payoneer), Tax Compliance & Global Soft Skills",
+    "Final Q&A, Mock Interviews, Real-World Portfolio Defense & Certification Wrap-Up"
+   ],
+   "learningOutcomesBn": [
+    "Client Job Post গভীরভাবে বিশ্লেষণ করে Winning Proposal তৈরি করা",
+    "Upwork Contract, Milestone ও Project Management দক্ষতার সাথে পরিচালনা করা",
+    "Competitive Pricing এবং Hourly/Fixed Price Strategy তৈরি করা",
+    "আন্তর্জাতিক ক্লায়েন্টদের সাথে দীর্ঘমেয়াদী চুক্তিতে কাজ করার আত্মবিশ্বাস ও সক্ষমতা অর্জন"
+   ],
+   "practicalDeliverableBn": "একটি ১০০% অপ্টিমাইজড আপওয়ার্ক প্রোফাইল, উইনিং প্রপোজাল ব্যাংক এবং ফাইনাল ক্যাপস্টোন পোর্টফোলিও ডিফেন্স।"
+  }
+ ],
+ "INSTRUCTORS": [
+  {
+   "id": "trainer-1",
+   "slideNumberBn": "০১",
+   "slideNumberEn": "01",
+   "status": "current",
+   "statusLabelBn": "বর্তমান প্রধান প্রশিক্ষক",
+   "tenureBn": "চলমান প্রশিক্ষণ কার্যক্রম ও সামগ্রিক তত্ত্বাবধান",
+   "nameBn": "মো. নাজমুল হাসান",
+   "nameEn": "Md. Nazmul Hasan",
+   "designationBn": "প্রধান প্রশিক্ষক ও সিনিয়র এআই স্পেশালিস্ট",
+   "credentialsBn": "সাবেক সিনিয়র এমএল কনসালট্যান্ট · ৮+ বছর ইন্ডাস্ট্রি অভিজ্ঞতা",
+   "academicBn": "বিএসসি ও এমএসসি ইন সিএসই, শাহজালাল বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয় (SUST)",
+   "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=85",
+   "quoteBn": "“প্রযুক্তির গভীর জ্ঞান তখনই সার্থক হয় যখন তা সিলেটের তরুণদের জীবনে আত্মবিশ্বাস, স্বাবলম্বিতা ও আন্তর্জাতিক কর্মসংস্থান এনে দিতে পারে।”",
+   "bioBn": "কৃত্রিম বুদ্ধিমত্তা, জেনারেটিভ মডেল এবং পাইথন সিস্টেম নিয়ে দীর্ঘ ৮ বছরের ব্যবহারিক কাজের অভিজ্ঞতা সম্পন্ন। যুব উন্নয়ন অধিদপ্তর, সিলেটের এই বিশেষ কর্মসূচিতে শিক্ষার্থীদের ল্যাব ভিত্তিক প্রজেক্ট তৈরি ও আন্তর্জাতিক মার্কেটপ্লেসে সরাসরি কাজ শুরু করার রোডম্যাপ বাস্তবায়নে নেতৃত্ব দিচ্ছেন।",
+   "specialtiesBn": [
+    "জেনারেটিভ এআই ও এলএলএম",
+    "প্রম্পট আর্কিটেকচার",
+    "পাইথন ডাটা অটোমেশন",
+    "মার্কেটপ্লেস ক্যাপস্টোন"
+   ],
+   "keyContributionsBn": [
+    "৩০০ ঘণ্টার নিবিড় ব্যবহারিক ক্লাসরুম ও ল্যাব সেশন পরিচালনা",
+    "১১টি আধুনিক এআই টুলের কার্যকর রিয়েল-ওয়ার্ল্ড ওয়ার্কফ্লো রূপরেখা",
+    "শিক্ষার্থীদের মার্কেটপ্লেস অনবোর্ডিং ও সরাসরি পোর্টফোলিও মূল্যায়ন"
+   ],
+   "teachingStats": {
+    "hoursTaughtBn": "৩০০+",
+    "batchBn": "চলমান ব্যাচ",
+    "studentsTrainedBn": "২৫ জন"
+   }
+  },
+  {
+   "id": "trainer-2",
+   "slideNumberBn": "০২",
+   "slideNumberEn": "02",
+   "status": "former",
+   "statusLabelBn": "সাবেক প্রশিক্ষক — ব্যাচ ০১",
+   "tenureBn": "১ম ব্যাচ মূল পাঠদান ও বুটক্যাম্প লিড (সম্পন্ন)",
+   "nameBn": "আরিফুর রহমান তানভীর",
+   "nameEn": "Arifur Rahman Tanvir",
+   "designationBn": "সাবেক প্রশিক্ষক · ক্লাউড ও এআই সিস্টেম ইঞ্জিনিয়ার",
+   "credentialsBn": "বর্তমানে সিনিয়র সফটওয়্যার ইঞ্জিনিয়ার (গ্লোবাল টেক ফার্ম)",
+   "academicBn": "বিএসসি ইন কম্পিউটার সায়েন্স অ্যান্ড ইঞ্জিনিয়ারিং (SUST)",
+   "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=85",
+   "quoteBn": "“প্রথম ব্যাচের তরুণদের মধ্যে থাকা সুপ্ত প্রতিভা ও প্রযুক্তি ভীতি দূর করে বাস্তব কাজের আত্মবিশ্বাস তৈরি করাই ছিল সবচেয়ে তৃপ্তিদায়ক অর্জন।”",
+   "bioBn": "সিলেট অঞ্চলের প্রথম এআই ব্যাচটির উদ্বোধনী পর্ব এবং প্রাথমিক কোর মডিউলসমূহ সফলভাবে সম্পন্ন করেন। তাঁর নির্দেশনায় প্রশিক্ষণার্থীরা কোডিংয়ের জটিলতা পেরিয়ে এআই পাওয়ার টুলস ব্যবহারের মাধ্যমে বাস্তবমুখী আউটপুট তৈরির ভিত্তি গড়ে তোলে।",
+   "specialtiesBn": [
+    "কম্পিউটার ভিশন",
+    "ক্লাউড ইনফ্রাস্ট্রাকচার",
+    "ডিপ লার্নিং পাইপলাইন",
+    "এন্টারপ্রাইজ সল্যুশন"
+   ],
+   "keyContributionsBn": [
+    "১ম ব্যাচের ২৫ জন শিক্ষার্থীর ফাউন্ডেশনাল এআই মডিউলে সফল পাঠদান",
+    "ভিডিও, পোস্টার ও ডকুমেন্টারি ল্যাব প্রোডাকশনের প্রথম ব্যাচ তদারকি",
+    "উদ্বোধনী প্রশিক্ষণার্থীদের শতভাগ কোর্স সমাপ্তিতে দিকনির্দেশনা"
+   ],
+   "teachingStats": {
+    "hoursTaughtBn": "৩০০",
+    "batchBn": "১ম ব্যাচ",
+    "studentsTrainedBn": "২৫ জন"
+   }
+  },
+  {
+   "id": "trainer-3",
+   "slideNumberBn": "০৩",
+   "slideNumberEn": "03",
+   "status": "former",
+   "statusLabelBn": "সাবেক প্রশিক্ষক — কারিকুলাম ও ল্যাব",
+   "tenureBn": "কারিকুলাম ফ্রেমওয়ার্ক প্রণয়ন ও প্রজেক্ট ল্যাব লিড (সম্পন্ন)",
+   "nameBn": "সৈয়দা ফারহানা আক্তার",
+   "nameEn": "Syeda Farhana Akter",
+   "designationBn": "সাবেক প্রশিক্ষক ও এআই কারিকুলাম ডিজাইনার",
+   "credentialsBn": "বর্তমানে এআই রিসার্চ ফেলো (ইউরোপীয় প্রযুক্তি ইনস্টিটিউট)",
+   "academicBn": "বিএসসি ইন সফটওয়্যার ইঞ্জিনিয়ারিং ও এমএসসি ইন ডাটা সায়েন্স",
+   "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=85",
+   "quoteBn": "“কারিকুলাম তৈরির সময় আমাদের মূল লক্ষ্য ছিল তাত্ত্বিক ধারণার চেয়ে সরাসরি ইন্ডাস্ট্রির চাহিদা অনুযায়ী ব্যবহারিক টুলসে দক্ষ করে তোলা।”",
+   "bioBn": "যুব উন্নয়ন অধিদপ্তর, সিলেটের ৩০০ ঘণ্টার পূর্ণাঙ্গ সিলেবাস স্ট্রাকচার এবং ৩-ফেজের ১৩টি মডিউলের ল্যাব এক্সারসাইজ ডিজাইন তৈরিতে মুখ্য ভূমিকা পালন করেন। পরবর্তীতে উচ্চতর আন্তর্জাতিক ফেলোশিপের জন্য স্থানান্তরিত হলেও তাঁর প্রণীত ফ্রেমওয়ার্ক আজও কোর্সটির মূলভিত্তি।",
+   "specialtiesBn": [
+    "ন্যাচারাল ল্যাঙ্গুয়েজ প্রসেসিং (NLP)",
+    "কারিকুলাম পেডাগজি",
+    "এথিক্যাল এআই ফ্রেমওয়ার্ক",
+    "ইন্টারেক্টিভ ল্যাব ডিজাইন"
+   ],
+   "keyContributionsBn": [
+    "৫০ দিনের ১৩টি পূর্ণাঙ্গ মডিউল ও ব্যবহারিক ল্যাব ফ্রেমওয়ার্ক রচনা",
+    "আন্তর্জাতিক মার্কেটপ্লেস ও রিমোট ওয়ার্কের উপযোগী কারিকুলাম ম্যাপিং",
+    "প্রশিক্ষণার্থীদের প্রজেক্ট মূল্যায়ন রুব্রিক্স ও গাইডলাইন প্রণয়ন"
+   ],
+   "teachingStats": {
+    "hoursTaughtBn": "১৫০+",
+    "batchBn": "কারিকুলাম পর্ব",
+    "studentsTrainedBn": "২৫ জন"
+   }
+  }
+ ]
+}

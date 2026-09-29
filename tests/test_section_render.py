@@ -17,6 +17,8 @@ WHAT §9.3's FOUR RULES ARE, AND WHY EACH GETS ITS OWN TEST
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from app.constants import SectionType
@@ -74,25 +76,42 @@ def test_a_valid_payload_is_accepted(section_type):
 
 
 @pytest.mark.parametrize("section_type", list(SectionType))
-def test_an_invalid_payload_is_rejected_with_a_bangla_reason(section_type):
-    """Step 3.1: "with the field name and the reason — not a generic error"."""
+def test_an_invalid_payload_is_rejected_with_a_reason(section_type):
+    """Step 3.1: "with the field name and the reason — not a generic error".
+
+    THE REASON IS ENGLISH (§11.1). §14.1 keeps the public SITE Bangla-first; the admin
+    panel is English, and this text is only ever shown in it — on the publish gate and
+    in the section editor. The check that used to live here asserted the reason was
+    NOT ASCII, which was the right assertion for a Bangla panel and the wrong one now.
+    What survives is the part that matters: it must say something.
+    """
     ok, reason = registry.validate_section(section_type, REJECTED[section_type])
     assert not ok
     assert reason, f"{section_type} rejected a payload without saying why"
-    assert not reason.isascii(), (
-        f"{section_type} gave a non-Bangla reason an editor would have to translate: "
-        f"{reason!r}"
+    assert reason[0].isupper(), (
+        f"{section_type} gave a reason that does not read as a sentence: {reason!r}"
     )
 
 
 @pytest.mark.parametrize("section_type", list(SectionType))
 def test_the_rejection_reason_names_the_field(section_type):
-    """§11.2's publish gate shows this text. 'Something is wrong' is not actionable."""
+    """§11.2's publish gate shows this text. 'Something is wrong' is not actionable.
+
+    Checked against the section's SCHEMA, not against the payload that was rejected:
+    most of these payloads are rejected precisely because a required field is MISSING,
+    so the field the reason names is usually one the payload never had.
+    """
     ok, reason = registry.validate_section(section_type, REJECTED[section_type])
     assert not ok
-    # Every reason is built as “label” …, so a field label must be quoted in it.
-    assert "“" in reason and "”" in reason, (
-        f"{section_type}'s reason does not name a field: {reason!r}"
+    # The label the editor prints above the input, derived the same way, so the reason
+    # and the form cannot disagree about what a field is called.
+    from app.routes.admin._labels import field_label
+    from app.sections.registry import SECTION_SCHEMAS
+
+    schema = SECTION_SCHEMAS.get(str(section_type)) or {}
+    named = [key for key in schema if field_label(key) in reason]
+    assert named, (
+        f"{section_type}'s reason does not name any field of its schema: {reason!r}"
     )
 
 
@@ -215,7 +234,7 @@ def test_a_section_failing_validation_is_not_rendered_and_is_flagged(make_page):
     assert len(result.sections) == 1, "the broken section was rendered anyway"
     assert len(result.problems) == 1, "the broken section was dropped without a flag"
     assert "quote" in result.problems[0]
-    assert not result.problems[0].isascii(), "the flag must be readable by an editor"
+    assert result.problems[0].isascii(), "the flag must be English, like the panel"
 
 
 def test_one_broken_section_does_not_take_down_the_page(make_page):
@@ -290,6 +309,47 @@ def test_every_section_template_renders(app, session, section_type):
     Rendered through Jinja with the real context builder, so a template that reads a
     key its module never sets fails here rather than on a live page.
     """
+    assert _render_section(app, session, section_type).strip(), (
+        f"{section_type}'s template rendered nothing"
+    )
+
+
+#: Two section types are BANDS: they draw a rule or a colour across the whole window
+#: and align their contents with a container *inside* themselves. Everything else hands
+#: its content to the page grid.
+FULL_BLEED = {SectionType.HERO, SectionType.CTA_BAND}
+
+
+@pytest.mark.parametrize("section_type", list(SectionType))
+def test_every_section_lands_inside_the_page_container(app, session, section_type):
+    """THE CONTAINER IS NOT DECORATION.
+
+    `/course` and `/batch-1` both shipped visibly broken because of this and nobody
+    saw it: the fact list, the cohort figures, the pull quote and the participant list
+    called macros that are deliberately bare — `components/data.html` is a kit, and a
+    table or a pager must not bring its own page grid — while the section adapter did
+    not supply one. The result was a heading and a list of ruled rows flush against the
+    left edge of the window, full-bleed, under a hero that was correctly indented.
+
+    A section is checked for the page container in its first two elements, because the
+    participant list has to supply it in two pieces: its filter bar is a full-bleed band
+    with an inner container, and the heading, count and grid get their own.
+    """
+    if section_type in FULL_BLEED:
+        pytest.skip("a band: full-bleed by design, with its own container inside")
+
+    opening_tags = re.findall(r"<[a-zA-Z][^>]*>", _render_section(app, session, section_type))[:2]
+    assert "container-site" in " ".join(opening_tags), (
+        f"{section_type} renders its content outside the page container: {opening_tags}"
+    )
+
+
+def _render_section(app, session, section_type):
+    """One section template, rendered the way `public/page.html` renders it.
+
+    Through Jinja with the real context builder, so a template that reads a key its
+    module never sets fails here rather than on a live page.
+    """
     from flask import render_template
     from jinja2 import StrictUndefined
 
@@ -300,8 +360,10 @@ def test_every_section_template_renders(app, session, section_type):
         payload = {"course_id": _make_course(session).id}
     elif section_type == SectionType.INSTITUTION_CARD:
         payload = {"institution_id": _make_institution(session).id}
-    elif section_type in (SectionType.GALLERY_STRIP, SectionType.MEDIA_FEATURE):
-        payload = {"media_ids": [_make_media(session).id]} if section_type == SectionType.GALLERY_STRIP else {"media_id": _make_media(session).id}
+    elif section_type == SectionType.GALLERY_STRIP:
+        payload = {"media_ids": [_make_media(session).id]}
+    elif section_type == SectionType.MEDIA_FEATURE:
+        payload = {"media_id": _make_media(session).id}
 
     original = app.jinja_env.undefined
     app.jinja_env.undefined = StrictUndefined
@@ -309,15 +371,11 @@ def test_every_section_template_renders(app, session, section_type):
         app.jinja_env.cache.clear()
     try:
         with app.test_request_context("/"):
-            html = render_template(
-                impl.template, context=impl.context(payload, None)
-            )
+            return render_template(impl.template, context=impl.context(payload, None))
     finally:
         app.jinja_env.undefined = original
         if app.jinja_env.cache is not None:
             app.jinja_env.cache.clear()
-
-    assert html.strip(), f"{section_type}'s template rendered nothing"
 
 
 def app_templates():

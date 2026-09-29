@@ -49,8 +49,18 @@ import pytest
 SHELL_MARKER = b'<div id="root">'
 
 #: The pages the frontend router owns — `SPA_ROUTES` in app/config.py, route for
-#: route against frontend/src/main.tsx.
-SPA_PATHS = ("/", "/gallery", "/contact")
+#: route against frontend/src/App.tsx. `/course` is NOT one of them: that page is in
+#: the CMS and Flask renders it from the `pages` table. `/course-modules` is React's
+#: own module browser and is a different page.
+SPA_PATHS = (
+    "/",
+    "/batches",
+    "/gallery",
+    "/participants",
+    "/trainers",
+    "/contact",
+    "/course-modules",
+)
 
 #: Every public page the Jinja site still owns (docs/FRONTEND.md). The three above are
 #: not among them: the frontend holds those, and holds them exclusively.
@@ -137,10 +147,13 @@ def test_the_routed_pages_are_withheld_from_the_jinja_table(client, app):
 
 def test_health_and_the_admin_path_are_not_shadowed(client):
     """The same failure on paths that never consult the database: `/health` is what
-    monitoring reads, and `/admin` must stay a 404 (§12.1)."""
+    monitoring reads, and `/admin` belongs to the CMS (§12.1).
+
+    `/admin` answers a redirect to its own slash-form, then to the login — never the
+    React shell, which would replace the admin with the public site."""
     assert client.get("/health").status_code == 200
-    assert client.get("/admin").status_code == 404
-    assert SHELL_MARKER not in client.get("/admin").data
+    assert client.get("/admin/").status_code == 302
+    assert SHELL_MARKER not in client.get("/admin/").data
 
 
 def test_a_post_only_route_still_answers_405_to_a_get(client):
@@ -151,7 +164,7 @@ def test_a_post_only_route_still_answers_405_to_a_get(client):
     blueprint's 404 instead of the site's 405 — and the 405 is the thing
     `test_auth.py` relies on to say logout cannot be CSRF'd by an `<img>` tag.
     """
-    assert client.get("/logout").status_code == 405
+    assert client.get("/admin/logout").status_code == 405
 
 
 # ─────────────────────────────────────────────────────────────────────────────

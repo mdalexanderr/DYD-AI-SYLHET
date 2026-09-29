@@ -92,27 +92,73 @@ def test_the_404_page_is_not_indexed(client):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# S13 — /admin must not exist
+# The admin surface — /admin, by the owner's decision
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_slash_admin_is_a_404_not_a_login_page(client):
-    """S13 and §12.1. A login page at /admin confirms the admin exists AND hands an
-    attacker the form to attack. A 404 says nothing."""
-    response = client.get("/admin")
-    assert response.status_code == 404
+def test_the_admin_surface_requires_a_session(client):
+    """THE ADMIN PATH IS KNOWABLE. THE SCREENS BEHIND IT ARE NOT.
+
+    S13 and §12.1 asked for a non-guessable prefix so that finding the admin at all
+    was hard. That trade was deliberately given up: the owner asked for `/admin`
+    with the login at `/admin/login`, and `flask check-config` warns about it on
+    every production run.
+
+    What these tests assert instead is the part that still protects the content —
+    that knowing the path gets an anonymous visitor nothing. Every screen redirects
+    to the login, and the login is the only page under the prefix that answers.
+    """
+    for path in ("/admin/", "/admin/pages", "/admin/participants", "/admin/settings"):
+        response = client.get(path)
+        assert response.status_code == 302, f"{path} answered {response.status_code}"
+        assert "/admin/login" in response.headers["Location"], path
 
 
-def test_nothing_is_routed_under_slash_admin(app):
-    """The stronger form: not just that /admin 404s, but that no rule uses it."""
-    plain = [str(rule.rule) for rule in app.url_map.iter_rules() if str(rule.rule).startswith("/admin")]
-    assert not plain, f"S13 requires that no route live under /admin; found {plain}"
+def test_the_guessable_siblings_are_still_404(app, client):
+    """Nothing ELSE moved into place. Probing for another name tells you nothing."""
+    for guess in ("/administrator", "/panel", "/cms", "/manage", "/wp-admin", "/login"):
+        assert client.get(guess).status_code == 404, guess
+
+    plain = [
+        str(rule.rule)
+        for rule in app.url_map.iter_rules()
+        if str(rule.rule).startswith("/administrator")
+    ]
+    assert not plain, f"nothing may live under /administrator; found {plain}"
 
 
-def test_the_admin_prefix_is_not_guessable(app):
-    """§12.1: the prefix is configuration, and a guessable default defeats it."""
-    prefix = str(app.config["ADMIN_URL_PREFIX"]).strip("/")
-    assert prefix not in {"", "admin", "login", "panel", "dashboard", "manage", "cms"}
+def test_the_admin_prefix_is_configured_and_never_empty(app):
+    """An empty prefix would mount the CMS at the root, on top of the public site."""
+    assert str(app.config["ADMIN_URL_PREFIX"]).strip("/")
+
+
+def test_every_admin_screen_refuses_an_anonymous_visitor(client, app):
+    """The guard, checked against the ROUTE TABLE rather than one URL at a time.
+
+    A screen added later without `@login_required` is the failure this exists for,
+    and it is a failure that looks completely fine in the browser of the developer
+    who added it, because they are already signed in.
+    """
+    prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
+    # The door itself, and logout, which is POST-only and so not reachable by GET.
+    exempt = {f"{prefix}/login", f"{prefix}/logout"}
+
+    checked = 0
+    for rule in app.url_map.iter_rules():
+        path = str(rule.rule)
+        if not path.startswith(prefix) or path in exempt or "<" in path:
+            continue
+        if "GET" not in (rule.methods or set()):
+            continue
+
+        response = client.get(path)
+        assert response.status_code == 302, f"{path} answered {response.status_code}"
+        assert f"{prefix}/login" in response.headers["Location"], path
+        checked += 1
+
+    # A floor, so this cannot quietly stop testing anything if the prefix is renamed
+    # wrongly and the loop matches no rules at all.
+    assert checked >= 10, f"only {checked} admin screens were checked"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ from __future__ import annotations
 import pytest
 
 PASSWORD = "correct-horse-battery-staple"
-ADMIN_URL = "/ops-sylhet/"
+ADMIN_URL = "/admin/"
 
 
 @pytest.fixture
@@ -138,13 +138,13 @@ def test_an_empty_database_counts_zero_rather_than_raising(app, session):
 # The screen
 # ─────────────────────────────────────────────────────────────────────────────
 def test_the_dashboard_renders_the_counts(client, admin_user, all_consent_states, no_csrf):
-    client.post("/login", data={"email": "dash@example.test", "password": PASSWORD})
+    client.post("/admin/login", data={"email": "dash@example.test", "password": PASSWORD})
 
     body = client.get(ADMIN_URL).get_data(as_text=True)
 
     assert "<html" in body.lower()
     # The headings the four named counts sit under.
-    for label in ("মোট", "প্রকাশিত", "সম্মতির অপেক্ষায়", "প্রত্যাহার"):
+    for label in ("In the register", "Published", "Awaiting consent", "Withdrawn"):
         assert label in body, f"the dashboard does not label {label!r}"
 
 
@@ -154,20 +154,25 @@ def test_the_dashboard_shows_the_missing_date_bucket(client, admin_user, all_con
     It is the only consent state that is both invisible and blocking — those people
     believe they consented, and nothing publishes them.
     """
-    client.post("/login", data={"email": "dash@example.test", "password": PASSWORD})
+    client.post("/admin/login", data={"email": "dash@example.test", "password": PASSWORD})
 
     body = client.get(ADMIN_URL).get_data(as_text=True)
 
-    assert "তারিখ" in body, "the consented-with-no-date bucket is not on the dashboard"
+    assert "Consented, no date" in body, (
+        "the consented-with-no-date bucket is not on the dashboard"
+    )
+    # And it is marked as the one needing a decision, not shown as a plain figure.
+    assert "admin-tile--alert" in body, "the blocking bucket is not marked"
 
 
 def test_the_dashboard_reports_pages_published_and_draft(client, admin_user, seeded, no_csrf):
     """Pages published vs draft, from the real seeded set (7 pages, all drafts)."""
-    client.post("/login", data={"email": "dash@example.test", "password": PASSWORD})
+    client.post("/admin/login", data={"email": "dash@example.test", "password": PASSWORD})
 
     body = client.get(ADMIN_URL).get_data(as_text=True)
 
-    assert "পৃষ্ঠা" in body
+    assert "Pages" in body
+    assert "sections" in body
 
 
 def test_the_dashboard_needs_a_session(client, admin_user, no_csrf):

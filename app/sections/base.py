@@ -68,11 +68,22 @@ class SectionError(ValueError):
 # Field checking
 # ─────────────────────────────────────────────────────────────────────────────
 def _label(name: str, spec: dict[str, Any]) -> str:
-    """The name an editor sees. Falls back to the key so it is never empty."""
-    return spec.get("label_bn") or name
+    """The name an editor sees, in the admin's language.
+
+    THE MESSAGES ARE ENGLISH BECAUSE ONLY THE ADMIN SEES THEM (§11.1)
+        A validation failure is never rendered to a reader: it is what the section
+        editor and the publish gate flash at the operator. So the label is the
+        English one, derived from the field name through the same helper the record
+        forms use — which means the editor and the error always agree on what a field
+        is called. `label_bn` is left alone in the schemas: it is the public site's
+        vocabulary, and it is still what the section's own copy uses.
+    """
+    from app.routes.admin._labels import choice_label
+
+    return choice_label(spec, name)
 
 
-def validate_href(href: Any, label: str = "লিংক") -> tuple[bool, str]:
+def validate_href(href: Any, label: str = "Link") -> tuple[bool, str]:
     """May this href be rendered? Shared by `cta` fields and by `cta_band`.
 
     `cta_band` stores its href flat rather than as a `cta` mapping, so the same rule
@@ -86,77 +97,77 @@ def validate_href(href: Any, label: str = "লিংক") -> tuple[bool, str]:
     """
     text = str(href or "").strip()
     if not text:
-        return False, f"“{label}” এর লিংক আবশ্যক।"
+        return False, f"{label} needs a link."
     if _UNSAFE_HREF.match(text):
-        return False, f"“{label}” এর লিংক নিরাপদ নয়।"
+        return False, f"The link in {label} is not safe to render."
     if text.startswith(("http://", "https://")) and not text.startswith(
         _ALLOWED_CTA_ORIGINS
     ):
-        return False, f"“{label}” এর বাইরের লিংক অনুমোদিত নয়।"
+        return False, f"{label} cannot link to an outside site."
     return True, ""
 
 
 def _check_scalar(kind: str, spec: dict[str, Any], value: Any, label: str) -> tuple[bool, str]:
     if kind in ("str", "text"):
         if not isinstance(value, str):
-            return False, f"“{label}” লেখা হতে হবে।"
+            return False, f"{label} must be text."
         limit = spec.get("max")
         if limit and kind == "str" and len(value) > limit:
-            return False, f"“{label}” সর্বোচ্চ {limit} অক্ষরের হতে পারে।"
+            return False, f"{label} cannot be longer than {limit} characters."
         return True, ""
 
     if kind == "int":
         # bool is an int subclass in Python, so it must be excluded explicitly or
         # `True` would sail through as 1.
         if isinstance(value, bool) or not isinstance(value, int):
-            return False, f"“{label}” সংখ্যা হতে হবে।"
+            return False, f"{label} must be a number."
         low, high = spec.get("min"), spec.get("max")
         if low is not None and value < low:
-            return False, f"“{label}” কমপক্ষে {low} হতে হবে।"
+            return False, f"{label} must be at least {low}."
         if high is not None and value > high:
-            return False, f"“{label}” সর্বোচ্চ {high} হতে পারে।"
+            return False, f"{label} cannot be more than {high}."
         return True, ""
 
     if kind == "bool":
         if not isinstance(value, bool):
-            return False, f"“{label}” সত্য/মিথ্যা হতে হবে।"
+            return False, f"{label} must be yes or no."
         return True, ""
 
     if kind == "enum":
         choices = tuple(spec.get("choices") or ())
         if value not in choices:
-            return False, f"“{label}” এর মান সঠিক নয় (হতে পারে: {', '.join(choices)})।"
+            return False, f"{label} is not one of the allowed values ({', '.join(choices)})."
         return True, ""
 
     if kind == "cta":
         if not isinstance(value, dict):
-            return False, f"“{label}” এ লেখা ও লিংক দুটোই থাকতে হবে।"
+            return False, f"{label} needs both a button label and a link."
         if not str(value.get("label") or "").strip():
-            return False, f"“{label}” এর লেখা আবশ্যক।"
+            return False, f"{label} needs a button label."
         return validate_href(value.get("href"), label)
 
     if kind == "ref":
         if isinstance(value, bool) or not isinstance(value, int):
-            return False, f"“{label}” এর রেফারেন্স সঠিক নয়।"
+            return False, f"{label} is not a valid reference."
         return True, ""
 
     if kind == "pair":
         if not isinstance(value, dict):
-            return False, f"“{label}” এ লেবেল ও মান থাকতে হবে।"
+            return False, f"{label} needs a label and a value."
         missing = [key for key in ("label_bn", "value_bn") if not value.get(key)]
         if missing:
-            return False, f"“{label}” এ {', '.join(missing)} আবশ্যক।"
+            return False, f"{label} is missing: {', '.join(missing)}."
         return True, ""
 
     if kind == "timeline_item":
         if not isinstance(value, dict):
-            return False, f"“{label}” এ তথ্য থাকতে হবে।"
+            return False, f"{label} has no content."
         missing = [key for key in ("date_bn", "title_bn") if not value.get(key)]
         if missing:
-            return False, f"“{label}” এ {', '.join(missing)} আবশ্যক।"
+            return False, f"{label} is missing: {', '.join(missing)}."
         return True, ""
 
-    return False, f"“{label}” এর ধরন অজানা ({kind})।"
+    return False, f"{label} is an unknown field type ({kind})."
 
 
 def _check_field(spec: dict[str, Any], payload: dict[str, Any], name: str) -> tuple[bool, str]:
@@ -168,19 +179,19 @@ def _check_field(spec: dict[str, Any], payload: dict[str, Any], name: str) -> tu
 
     if not present:
         if required:
-            return False, f"“{label}” আবশ্যক।"
+            return False, f"{label} is required."
         return True, ""
 
     value = payload[name]
 
     if kind in ("list", "list_ref"):
         if not isinstance(value, list):
-            return False, f"“{label}” একটি তালিকা হতে হবে।"
+            return False, f"{label} must be a list."
         low, high = spec.get("min_items"), spec.get("max_items")
         if low is not None and len(value) < low:
-            return False, f"“{label}” এ কমপক্ষে {low}টি থাকতে হবে।"
+            return False, f"{label} needs at least {low} item(s)."
         if high is not None and len(value) > high:
-            return False, f"“{label}” এ সর্বোচ্চ {high}টি থাকতে পারে।"
+            return False, f"{label} cannot hold more than {high} item(s)."
         item_spec = spec.get("item")
         if item_spec:
             for index, item in enumerate(value, start=1):
@@ -237,7 +248,7 @@ class SectionBase:
     def validate(self, payload: Any) -> tuple[bool, str]:
         """(ok, bangla_reason). Never raises for bad DATA — see the docstring."""
         if not isinstance(payload, dict):
-            return False, "সেকশনের তথ্য সঠিক বিন্যাসে নেই।"
+            return False, "The section's content is not in the expected format."
 
         for name, spec in self.schema.items():
             if not isinstance(spec, dict):

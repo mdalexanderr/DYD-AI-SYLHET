@@ -220,3 +220,103 @@ def test_both_login_outcomes_are_recorded(app, session, successful):
 
         assert row.after_json["successful"] is successful
         db.session.rollback()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The snapshot must fit in the column
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _sample_value(column):
+    """A plausible value for a column, chosen by its TYPE rather than by its name.
+
+    Why by type: the failure this guards against was a `datetime.date` reaching a JSON
+    column, and every `Date` column in the schema has the same problem — `consent_date`,
+    a course's start and end. A test that filled in one named column would have to be
+    extended every time somebody adds a date, which is the definition of a test that gets
+    skipped instead of updated.
+    """
+    from datetime import UTC, date, datetime
+    from decimal import Decimal
+    from enum import Enum as PyEnum
+
+    from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, Numeric
+
+    column_type = column.type
+
+    # Order matters: `Boolean` and `DateTime` are checked before the types they subclass.
+    if isinstance(column_type, DateTime):
+        return datetime(2026, 1, 15, 9, 30, tzinfo=UTC)
+    if isinstance(column_type, Date):
+        return date(2026, 1, 15)
+    if isinstance(column_type, Boolean):
+        return True
+    if isinstance(column_type, Integer):
+        return 7
+    if isinstance(column_type, Numeric):
+        return Decimal("1.50")
+    if isinstance(column_type, JSON):
+        return {"nested": [1, "two"]}
+    enum_class = getattr(column_type, "enum_class", None)
+    if isinstance(enum_class, type) and issubclass(enum_class, PyEnum):
+        return next(iter(enum_class))
+    return "x"
+
+
+def test_every_model_snapshot_is_json_serialisable(app, session):
+    """Every column of every model, filled and snapshotted, must survive `json.dumps`.
+
+    THIS IS THE REGRESSION TEST FOR A 500 ON THE CONSENT SCREEN. `ModelMixin.to_dict`
+    converted `datetime` and enums but not `date`, so recording consent WITH A DATE wrote
+    a snapshot containing a `datetime.date`, and SQLAlchemy raised
+    `Object of type date is not JSON serializable` at COMMIT. The operator saw a 500 on a
+    form that looked correct, and the consent record was lost.
+
+    It walks the whole schema rather than the one model that broke, because the same
+    mistake can be made again by adding a `Date`, `Numeric` or `JSON` column anywhere —
+    and the audit write is on the path of nearly every screen in the panel.
+    """
+    import json
+
+    from app.extensions import db
+
+    failures: list[str] = []
+    checked = 0
+
+    for mapper in db.Model.registry.mappers:
+        model = mapper.class_
+        # Some tables are on the bare declarative Base — `consent_events`, `audit_logs`,
+        # `login_attempts`. They are append-only records that are never the SUBJECT of a
+        # snapshot (you do not audit an audit row), and `audit.snapshot` returns None for
+        # them by design. The walk skips exactly those, and `checked` below proves it did
+        # not quietly skip everything.
+        if not hasattr(model, "to_dict"):
+            continue
+        instance = model()
+        for column in model.__table__.columns:
+            try:
+                setattr(instance, column.name, _sample_value(column))
+            except Exception:  # noqa: BLE001 — a column that refuses the sample still
+                continue  # gets snapshotted as None, which is also worth covering.
+        try:
+            json.dumps(instance.to_dict())
+            checked += 1
+        except (TypeError, ValueError) as error:
+            failures.append(f"{model.__name__}: {error}")
+
+    assert checked > 15, f"only {checked} models were covered — the walk is not working"
+    assert not failures, "a snapshot cannot be stored in the audit log: " + "; ".join(failures)
+
+
+def test_a_snapshot_renders_a_date_as_a_string(app, session):
+    """The specific value, read back the way the admin's audit screen reads it."""
+    from datetime import date
+
+    from app.models import Participant
+
+    row = Participant(slug="snap", name_bn="নাম", education="Other")
+    row.consent_date = date(2026, 1, 15)
+
+    snapshot = row.to_dict()
+    assert snapshot["consent_date"] == "2026-01-15"
+    assert isinstance(snapshot["consent_date"], str)

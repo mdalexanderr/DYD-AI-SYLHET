@@ -1,0 +1,119 @@
+{#
+  =============================================================================
+  admin/audit.html — route 33. plan.md §12.1.
+
+  EVERY WRITE, WITH WHO AND WHAT CHANGED
+  Secrets are already gone before the row is written: each model's `__audit_exclude__`
+  strips them on the way in (`models/base.py`). What is left is exactly what an
+  operator changed, which is the only reason to keep a log at all.
+
+  THE DIFF IS THE TWO SNAPSHOTS, NOT A COMPUTED ONE
+  A "changed fields" view has to decide what counts as a change — a float that round
+  trips, a relation re-saved with the same value — and every such decision is a way for
+  the log to disagree with the database. Two recorded snapshots cannot disagree.
+
+  THE FILTERS ARE TWO DROPDOWNS AND A URL
+  Entity type and action, as query parameters, so a view of "everything that happened
+  to participants" is a link somebody can send on.
+  =============================================================================
+#}
+{% extends "admin/layout.html" %}
+{% from "admin/_macros.html" import empty_state, pager %}
+
+{% block admin_title %}Audit log{% endblock %}
+
+{% block admin_lede %}
+<p class="admin-lede">
+  Every write in this panel, newest first, with the value before and after and the
+  account that made it. Read-only: nothing here can be edited or removed.
+</p>
+{% endblock %}
+
+{% block admin_content %}
+
+<form method="get" class="admin-filter-bar -mx-4 px-4 sm:-mx-6 sm:px-6" role="search">
+  <div class="field">
+    <label class="label" for="f-entity">Record type</label>
+    <select class="select" id="f-entity" name="entity_type">
+      <option value="">Every type</option>
+      {% for name in entity_types %}
+      <option value="{{ name }}" {% if entity_type == name %}selected{% endif %}>{{ admin_label(name) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label class="label" for="f-action">Action</label>
+    <select class="select" id="f-action" name="action">
+      <option value="">Every action</option>
+      {% for name in actions %}
+      <option value="{{ name }}" {% if action == name %}selected{% endif %}>{{ admin_label(name) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.audit_list') }}">Clear</a>
+</form>
+
+{% if not rows %}
+  <div class="mt-4">
+  {{ empty_state(
+       'Nothing recorded for this filter.',
+       'Every change made in this panel appears here. If nothing has been changed yet, the log is empty by definition.') }}
+  </div>
+{% else %}
+<div class="admin-panel mt-4">
+  <div class="table-scroll">
+    <table class="table-ruled">
+      <caption class="sr-only">Administrative changes</caption>
+      <thead>
+        <tr>
+          <th scope="col">When</th>
+          <th scope="col">Action</th>
+          <th scope="col">Record</th>
+          <th scope="col">Account</th>
+          <th scope="col">From</th>
+          <th scope="col">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="numeric">{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td><span class="badge badge-neutral">{{ admin_label(row.action) }}</span></td>
+          <td>
+            {{ admin_label(row.entity_type or '—') }}
+            {% if row.entity_id %}<span class="num text-ink-500">#{{ row.entity_id }}</span>{% endif %}
+          </td>
+          <td class="text-xs">
+            {% if row.actor_id %}<span class="num">#{{ row.actor_id }}</span>{% else %}System{% endif %}
+          </td>
+          <td class="numeric text-xs">{{ row.ip or '—' }}</td>
+          <td>
+            <details>
+              <summary class="cursor-pointer text-sm text-green-700">Before and after</summary>
+              <div class="mt-2 grid gap-2 text-xs md:grid-cols-2">
+                <div>
+                  <p class="font-semibold">Before</p>
+                  <pre class="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-all border border-line bg-paper-2 p-2" dir="ltr">{{ row.before_json | tojson(indent=1) if row.before_json else '—' }}</pre>
+                </div>
+                <div>
+                  <p class="font-semibold">After</p>
+                  <pre class="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-all border border-line bg-paper-2 p-2" dir="ltr">{{ row.after_json | tojson(indent=1) if row.after_json else '—' }}</pre>
+                </div>
+              </div>
+            </details>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{{ pager(page, (total // per_page) + (1 if total % per_page else 0), total, 'entries') }}
+
+{% endif %}
+
+{% endblock %}

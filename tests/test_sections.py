@@ -67,15 +67,22 @@ def test_validate_section_raises_for_an_unknown_type():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Validation returns a Bangla reason, never raises, for bad data
+# Validation returns an English reason, never raises, for bad data
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_a_missing_required_field_is_reported_in_bangla():
+def test_a_missing_required_field_is_reported_with_a_reason():
+    """§11.1: the panel is English, so the reason an editor reads is too.
+
+    The assertion used to be `not reason.isascii()` — the right test for a Bangla
+    panel and the wrong one now. What it is really protecting is that the reason is a
+    SENTENCE naming the field, not a code, so that is what is asserted.
+    """
     ok, reason = registry.validate_section(SectionType.HERO, {})
     assert ok is False
     assert reason
-    assert not reason.isascii(), "the reason an editor reads must be in Bangla"
+    assert reason.isascii(), f"the reason is not English: {reason!r}"
+    assert "Heading" in reason, f"the reason does not name the missing field: {reason!r}"
 
 
 def test_a_valid_hero_passes():

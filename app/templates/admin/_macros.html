@@ -1,0 +1,255 @@
+{#
+  =============================================================================
+  admin/_macros.html — the parts every admin screen is made of.
+
+  WHY MACROS AND NOT JUST CLASSES
+  A class can make two screens LOOK alike; it cannot make them BEHAVE alike. Two of
+  these carry behaviour that would otherwise be retyped on nine screens and would
+  eventually diverge on one of them:
+
+    * `panel()`       — the section + heading + body wrapper, so the panel rhythm
+                        cannot be different on the media screen.
+    * `post_form()`   — EVERY state-changing control in this panel is a POST with a
+                        CSRF token, with no exception anywhere in the admin, and a
+                        single forgotten `csrf_token` is a 400 on a screen nobody
+                        tested. One macro, one place to get it right.
+    * `empty_state()` — an empty screen ALWAYS explains what would fill it and
+                        offers the control that does so. "No results" alone is a
+                        dead end, and emptiness is a moment for direction.
+
+  NO JAVASCRIPT, INCLUDING FOR CONFIRMATIONS
+  §15.1 allows no script, so there is no `confirm()` on a destructive button and no
+  inline handler here. Destruction is made deliberate structurally instead: the
+  controls sit inside a `<details>` disclosure that must be opened first, and the
+  one genuinely irreversible action (deleting a section) is a separate form whose
+  button says exactly what it does.
+  =============================================================================
+#}
+
+{% macro panel(title=None, note=None) %}
+<section class="admin-panel">
+  {% if title %}
+  <div class="admin-panel-head">
+    <h2 class="admin-panel-title">{{ title }}</h2>
+    {% if note %}<p class="admin-panel-note">{{ note }}</p>{% endif %}
+  </div>
+  {% endif %}
+  <div class="admin-panel-body">{{ caller() }}</div>
+</section>
+{% endmacro %}
+
+
+{% macro post_form(action, label, hidden={}, tone='secondary', small=true) %}
+<form method="post" action="{{ action }}" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for key, value in hidden.items() %}
+  <input type="hidden" name="{{ key }}" value="{{ value }}">
+  {% endfor %}
+  <button class="btn btn-{{ tone }}{{ ' btn-sm' if small }}" type="submit">{{ label }}</button>
+</form>
+{% endmacro %}
+
+
+{% macro empty_state(title, hint, action_label=None, action_href=None) %}
+<div class="empty-state">
+  <p class="font-semibold text-ink-900">{{ title }}</p>
+  <p class="text-sm">{{ hint }}</p>
+  {% if action_label and action_href %}
+  <a class="btn btn-primary btn-sm mt-1" href="{{ action_href }}">{{ action_label }}</a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{#
+  State badges. The tones are the states this project actually has, and the mapping
+  is by MEANING rather than by colour: `published` is green because it is live,
+  `draft` is neutral because a draft is a normal state and not a fault — §5.3's own
+  note about unpublished participants — `withdrawn` is red because it is a consent
+  withdrawal, and `due` is gold, the one colour §7.2 reserves for citations, used
+  here for "this needs a decision".
+#}
+{% macro state_badge(state) %}
+{%- if state == 'published' -%}
+  <span class="badge">Published</span>
+{%- elif state == 'draft' -%}
+  <span class="badge badge-unpublished">Draft</span>
+{%- elif state == 'withdrawn' -%}
+  <span class="badge badge-withdrawn">Withdrawn</span>
+{%- elif state == 'due' -%}
+  <span class="badge border-gold bg-gold-100 text-ink-900">Date missing</span>
+{%- elif state == 'awaiting' -%}
+  <span class="badge badge-neutral">Awaiting consent</span>
+{%- elif state == 'ready' -%}
+  <span class="badge badge-neutral">Ready to publish</span>
+{%- else -%}
+  <span class="badge badge-neutral">{{ state }}</span>
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro consent_badge(participant) %}
+{%- if participant.consent_withdrawn_at -%}
+  <span class="badge badge-withdrawn">Withdrawn</span>
+{%- elif participant.consent_publication and participant.consent_date -%}
+  <span class="badge">Consented</span>
+{%- elif participant.consent_publication -%}
+  <span class="badge border-gold bg-gold-100 text-ink-900">No date</span>
+{%- else -%}
+  <span class="badge badge-neutral">Not consented</span>
+{%- endif -%}
+{% endmacro %}
+
+
+{#
+  Paging. Built by hand rather than through `url_for(**request.args)` for one reason:
+  `page` has to be REPLACED, and Jinja cannot spread a dict it has filtered — there
+  are no comprehensions in the language. So the surviving query string is rebuilt
+  here, with `urlencode` on each value, because a participant search may well be a
+  Bangla name or contain a space and an unencoded `&` would silently truncate the
+  filter on the next page.
+#}
+{% macro pager(page, pages, total, noun='records') %}
+{% if pages > 1 or total %}
+{% set keep = [] %}
+{% for key, value in request.args.items() %}
+  {% if key != 'page' %}{% set _ = keep.append(key ~ '=' ~ (value | urlencode)) %}{% endif %}
+{% endfor %}
+{% set suffix = ('&' ~ keep | join('&')) if keep else '' %}
+<nav class="admin-pager" aria-label="Pagination">
+  <p>
+    Page <span class="num">{{ page }}</span> of <span class="num">{{ pages }}</span>
+    · <span class="num">{{ total }}</span> {{ noun }}
+  </p>
+  <div class="admin-row-actions">
+    {% if page > 1 %}
+    <a class="btn btn-secondary btn-sm" href="{{ url_for(request.endpoint) }}?page={{ page - 1 }}{{ suffix }}">Previous</a>
+    {% else %}
+    <span class="btn btn-secondary btn-sm" aria-disabled="true">Previous</span>
+    {% endif %}
+    {% if page < pages %}
+    <a class="btn btn-secondary btn-sm" href="{{ url_for(request.endpoint) }}?page={{ page + 1 }}{{ suffix }}">Next</a>
+    {% else %}
+    <span class="btn btn-secondary btn-sm" aria-disabled="true">Next</span>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endmacro %}
+
+
+{# A definition row for the meta panels: label above, value below, on a rule. #}
+{% macro kv(label, value, tone='') %}
+<div class="border-t border-line-strong pt-2">
+  <dt class="text-xs text-ink-500">{{ label }}</dt>
+  <dd class="mt-0.5 text-sm {{ tone }}">{{ value }}</dd>
+</div>
+{% endmacro %}
+
+
+{#
+  ============================================================================
+  media_field — an image, on the record it belongs to.
+
+  WHY ONE MACRO FOR BOTH SCREENS
+  A trainer's portrait and a participant's photograph are the same four controls:
+  what is there now, choose a different one from the library, upload a new one,
+  or take it away. Writing that twice is how the two screens end up disagreeing
+  about what "remove" means.
+
+  THE UPLOAD AND THE PICKER SIT TOGETHER, deliberately. An operator adding a
+  trainer usually has the photograph in front of them, and sending them to the
+  media library first and back again is the kind of detour that ends with the
+  image never arriving.
+
+  `consent_name` IS NOT DECORATION
+  For a participant, `image_consent` is what decides whether the photograph can
+  ever be shown (§5.1's amendment). The checkbox therefore sits INSIDE the image
+  field rather than in a separate consent panel, so an operator cannot upload a
+  face without seeing the question that governs it. The database refuses the pair
+  if the answer is missing, so this is the second line of defence, not the only
+  one. Trainers pass no `consent_name`: a trainer's portrait is not personal data
+  the programme promised to withhold.
+
+  `current` is the MediaItem ROW (or None), and its URL comes from `media_src`,
+  the global that can only sign a row that exists.
+#}
+{% macro media_field(name='photo_id', images=(), current=none, consent_name=none,
+                     consent=false, label='Profile image', note=none, allow_remove=true) %}
+<div class="field md:col-span-2">
+  <span class="label">{{ label }}</span>
+  {% if note %}<p class="hint">{{ note }}</p>{% endif %}
+
+  <div class="flex flex-wrap items-start gap-5 mt-2">
+
+    {# What is there now. #}
+    <div class="shrink-0">
+      {% if current %}
+        <img src="{{ media_src(current) }}" alt="" width="96" height="96"
+             class="w-24 h-24 object-cover rounded-sm border border-line-strong bg-paper-3"
+             loading="lazy">
+      {% else %}
+        <div class="w-24 h-24 rounded-sm border border-dashed border-line-strong
+                    bg-paper-3 flex items-center justify-center text-center text-xs text-ink-500"
+             aria-hidden="true">
+          No image yet
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="flex-1 min-w-64 grid gap-3">
+
+      {# Pick one that is already in the library. #}
+      <div class="field">
+        <label class="label" for="f-{{ name }}">Choose from the library</label>
+        <select class="select" id="f-{{ name }}" name="{{ name }}">
+          <option value="">— none —</option>
+          {% for item in images %}
+          <option value="{{ item.id }}"
+                  {% if current and current.id == item.id %}selected{% endif %}>
+            #{{ item.id }} · {{ (item.alt_bn or item.path)[:60] }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if not images %}
+        <p class="hint">The library is empty — upload a file below and it is added to it.</p>
+        {% endif %}
+      </div>
+
+      {# Or bring a new one. #}
+      <div class="field">
+        <label class="label" for="f-{{ name }}-file">…or upload a new image</label>
+        <input class="input" type="file" id="f-{{ name }}-file" name="{{ name }}_file"
+               accept="image/png,image/jpeg,image/webp,image/gif">
+        <p class="hint">
+          PNG, JPEG, WebP or GIF. The file is stored outside the webroot under a name
+          we choose, and a file that only claims to be an image is refused.
+        </p>
+      </div>
+
+      {% if consent_name %}
+      <label class="flex items-start gap-2 text-sm text-ink-700">
+        <input class="checkbox mt-0.5" type="checkbox" name="{{ consent_name }}"
+               value="1" {% if consent %}checked{% endif %}>
+        <span>
+          This person has given <strong>separate written permission</strong> for their
+          photograph to be published.
+          <span class="block text-xs text-ink-500 mt-0.5">
+            Without this, the image is stored but never shown — the register draws their
+            initials instead. A photograph is not covered by the consent for a name,
+            an education level and an outcome.
+          </span>
+        </span>
+      </label>
+      {% endif %}
+
+      {% if allow_remove and current %}
+      <label class="flex items-center gap-2 text-sm text-ink-700">
+        <input class="checkbox" type="checkbox" name="remove_{{ name }}" value="1">
+        <span>Remove this image from the record</span>
+      </label>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}

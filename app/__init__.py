@@ -39,6 +39,10 @@ BLUEPRINT_MODULES = (
     ("app.routes.auth", "auth"),
     ("app.routes.seo", "seo"),
     ("app.routes.api", "api"),
+    # The content API the React half reads (§11.3). Its own blueprint with its own
+    # prefix, so `/api/health` and `/api/v1/content` cannot be confused for each other,
+    # and so the SPA proxy rule for `/api/*` in development covers both.
+    ("app.routes.content", "content"),
     ("app.routes.admin", "admin"),
     # Last, deliberately. It sits at the root, and Werkzeug resolves two rules for
     # one path in registration order — so registering it after every specific route
@@ -130,6 +134,12 @@ def _inject_template_globals(app: Flask) -> None:
     brand = {
         "title_bn": _cfg("SITE_TITLE_BN", "এআই সিলেট"),
         "tagline_bn": _cfg("SITE_TAGLINE_BN", "যুব উন্নয়ন অধিদপ্তর"),
+        # English identity for the admin panel (§11.1). The panel is English, so its
+        # masthead uses the department's official English name rather than the Bangla
+        # one — the public site keeps the Bangla, and neither is a translation of a UI
+        # string: they are the two names the department actually uses.
+        "title_en": _cfg("SITE_TITLE_EN", "AI Sylhet"),
+        "organisation_en": _cfg("SITE_ORGANISATION_EN", "Department of Youth Development"),
         "hotline": _cfg("SITE_HOTLINE", "+88 02-8091188"),
         "mobile": _cfg("SITE_HOTLINE_MOBILE", "01550-666900"),
         # The ORGANISATION's public contact address from §6.3, not a participant
@@ -293,8 +303,11 @@ def _before_request(app: Flask, config_class: type[BaseConfig]) -> None:
         if not allowlist:
             return None
 
+        # The login is inside this prefix, so covering the prefix covers the form as
+        # well — which is the half that matters, since it is where credentials are
+        # sent.
         prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
-        if not (request.path.startswith(prefix) or request.path == "/login"):
+        if not request.path.startswith(prefix):
             return None
 
         client = _forwarded_client_ip()
@@ -532,7 +545,14 @@ def _register_blueprints(app: Flask) -> None:
         url_prefix = getattr(module, "URL_PREFIX", None)
 
         if name == "admin":
-            # §12.1: a non-guessable prefix, and /admin stays a 404.
+            url_prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
+        elif name == "auth":
+            # The login lives UNDER the admin prefix, so `/admin/login` is the door
+            # and `/admin/...` is everything behind it. Keeping `/login` at the root
+            # as well would mean two login URLs, two things to rate-limit, and a
+            # session-cookie path that depends on which one was used. The guards in
+            # `_admin_ip_allowlist` and `_maintenance` cover the same prefix, so one
+            # setting protects the form and the screens behind it.
             url_prefix = "/" + str(app.config["ADMIN_URL_PREFIX"]).strip("/")
         elif name == "api":
             url_prefix = None  # /health, /manifest.json live at the root

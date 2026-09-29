@@ -1,0 +1,173 @@
+{#
+  =============================================================================
+  admin/_section_form.html — the field renderer for the section editor. §11.2.
+
+  ONE MACRO, THIRTEEN SECTION TYPES
+  It switches on `row.kind`, which is the FORM control the schema called for — not the
+  section type. A type's fields are drawn by whoever wrote its `schema`, so a field
+  added to a section class appears in the editor without a line changing here.
+
+  LABELS COME FROM THE SCHEMA, IN ENGLISH
+  `_fields.describe()` already resolved each row's label and hint (deriving
+  "Heading (Bangla)" from `heading_bn`), so this file never invents a name for a field.
+  The Bangla in the SCHEMAS stays where it is — it is the public site's vocabulary.
+
+  WHY THE REPEATED ROWS GROW WITH THE CONTENT
+  A `list` field renders one row per stored item plus exactly one blank row, and the
+  form is re-rendered after every save. Adding a fourth fact row therefore means saving
+  with the blank one filled in: one extra round trip and no JavaScript at all, because
+  §6.4's rule — every control works with scripting off — is why this screen is built
+  from forms rather than from the drag-and-drop editor the plan sketched.
+
+  THE NAMES ARE THE CONTRACT
+  `name`, `name.3.label_bn`, `name__href` — all three shapes are read back by
+  `app/routes/admin/_fields.py::section_payload`, which is tested against them.
+  Changing a name here without changing it there produces a form that silently saves
+  nothing.
+  =============================================================================
+#}
+
+{% macro row_label(row) %}
+  <p class="text-sm font-semibold text-ink-900">
+    {{ row.label }}{% if row.required %}<span class="text-flag-red" aria-hidden="true"> *</span>{% endif %}
+  </p>
+{% endmacro %}
+
+
+{% macro render_row(row) %}
+<div class="border-t border-line py-4 first:border-0 first:pt-0">
+
+  {% if row.kind == 'checkbox' %}
+  <label class="flex items-center gap-2 text-sm text-ink-700">
+    <input class="checkbox" type="checkbox" name="{{ row.name }}" {% if row.value %}checked{% endif %}>
+    <span>{{ row.label }}</span>
+  </label>
+
+  {% else %}
+  {{ row_label(row) }}
+  {% if row.hint %}<p class="hint mt-1">{{ row.hint }}</p>{% endif %}
+
+  {% if row.kind == 'text' %}
+    <input class="input mt-2" type="text" name="{{ row.name }}" value="{{ row.value }}"
+           {% if row.required %}required{% endif %}>
+
+  {% elif row.kind == 'textarea' %}
+    <textarea class="textarea mt-2" name="{{ row.name }}" rows="6"
+              {% if row.required %}required{% endif %}>{{ row.value }}</textarea>
+
+  {% elif row.kind == 'number' %}
+    <input class="input num mt-2" type="number" name="{{ row.name }}" value="{{ row.value }}"
+           {% if row.min is not none %}min="{{ row.min }}"{% endif %}
+           {% if row.max is not none %}max="{{ row.max }}"{% endif %}>
+
+  {% elif row.kind == 'select' %}
+    <select class="select mt-2" name="{{ row.name }}">
+      <option value="">— choose —</option>
+      {% for option in row.options %}
+      <option value="{{ option.value }}"
+              {% if row.value is not none and row.value|string == option.value|string %}selected{% endif %}>
+        {{ option.label }}
+      </option>
+      {% endfor %}
+    </select>
+    {% if not row.options %}
+    <p class="hint mt-1">
+      Nothing to choose from yet. Add the record this points at — an image in the media
+      library, a course, a definition — then come back.
+    </p>
+    {% endif %}
+
+  {% elif row.kind == 'cta' %}
+    <div class="admin-form-grid mt-2">
+      <div class="field">
+        <label class="label" for="f-{{ row.name }}-label">Button label (Bangla)</label>
+        <input class="input" type="text" id="f-{{ row.name }}-label" lang="bn"
+               name="{{ row.name }}__label" value="{{ row.label_value }}">
+      </div>
+      <div class="field">
+        <label class="label" for="f-{{ row.name }}-href">Link</label>
+        <input class="input num" type="text" id="f-{{ row.name }}-href"
+               name="{{ row.name }}__href" value="{{ row.href_value }}" placeholder="/batch-1">
+      </div>
+    </div>
+    <p class="hint mt-1">
+      A path inside this site (/batch-1), or mailto: and tel:. Links to other sites are
+      refused — an editable outbound link on a government domain is an open redirect.
+    </p>
+
+  {% elif row.kind == 'list_scalar' %}
+    <div class="mt-2 space-y-2">
+      {% for item in row.rows %}
+      <input class="input" type="{{ row.scalar_kind }}" name="{{ row.name }}.{{ item.index }}"
+             value="{{ item.value }}">
+      {% endfor %}
+    </div>
+
+  {% elif row.kind == 'list_ref' %}
+    <div class="mt-2 space-y-2">
+      {% for item in row.rows %}
+      <select class="select" name="{{ row.name }}.{{ item.index }}">
+        <option value="">— empty —</option>
+        {% for option in row.options %}
+        <option value="{{ option.value }}"
+                {% if item.value is not none and item.value|string == option.value|string %}selected{% endif %}>
+          {{ option.label }}
+        </option>
+        {% endfor %}
+      </select>
+      {% endfor %}
+    </div>
+
+  {% elif row.kind == 'list_structured' %}
+    <div class="mt-2 space-y-3">
+      {% for item in row.rows %}
+      <div class="grid gap-2 sm:grid-cols-{{ item.cells|length }}">
+        {% for cell in item.cells %}
+        <div class="field">
+          <label class="label" for="f-{{ row.name }}-{{ item.index }}-{{ cell.key }}">
+            {{ cell.label }}
+          </label>
+          <input class="input" type="text"
+                 id="f-{{ row.name }}-{{ item.index }}-{{ cell.key }}"
+                 name="{{ row.name }}.{{ item.index }}.{{ cell.key }}" value="{{ cell.value }}">
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <p class="hint mt-1">Filling the last empty row adds another one.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{#
+  The picker. A radio list of the thirteen types with their one-line purposes, posted
+  as a form — no free-form block builder, because the design system IS the list (§4.2)
+  and anything outside it is layout an editor can break.
+#}
+{% macro type_picker(choices, action) %}
+<form method="post" action="{{ action }}" class="admin-panel-body">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p class="admin-panel-title">Add a section</p>
+  <p class="admin-panel-note mt-0.5">
+    A new section starts empty and invalid until you fill in its required fields.
+  </p>
+
+  <div class="mt-3 grid gap-2 sm:grid-cols-2">
+    {% for choice in choices %}
+    <label class="flex cursor-pointer items-start gap-2 border border-line p-3
+                  hover:border-green-500">
+      <input class="checkbox mt-0.5" type="radio" name="type" value="{{ choice.value }}" required>
+      <span>
+        <span class="block text-sm font-semibold text-ink-900">{{ choice.label }}</span>
+        <span class="block text-xs text-ink-500">{{ choice.hint }}</span>
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <button class="btn btn-primary mt-4" type="submit">Add the section</button>
+</form>
+{% endmacro %}

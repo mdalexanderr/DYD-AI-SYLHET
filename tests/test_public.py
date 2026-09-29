@@ -68,7 +68,7 @@ def test_every_public_page_renders(client, live_pages, path):
     assert "<main" in body.lower(), f"{path} has no main landmark"
     # §9.3 rule 2: a dropped section is flagged on PageRender, never drawn. If one were
     # drawn the page would be telling a reader the site is broken.
-    assert "সেকশনটি দেখানো হয়নি" not in body, f"{path} leaked an internal section problem"
+    assert "was not rendered" not in body, f"{path} leaked an internal section problem"
 
 
 def test_the_cms_pages_actually_render_seeded_sections(client, live_pages):

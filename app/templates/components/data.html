@@ -2,6 +2,20 @@
    components/data.html — StatStrip, StatTable, FactList, DataTable, KpiCard,
    Pagination. plan.md §5.4 (statistics), §7.5 elements 5 & 6, §7.7.
 
+   THESE SIX ARE KIT PIECES: THEY DO NOT PLACE THEMSELVES.
+   None of them opens a `<section class="container-site">`, unlike the page blocks in
+   `components/content.html`, and that is on purpose: a table, a pager or a KPI card is
+   used INSIDE somebody else's container — the kitchen sink's, an admin screen's, or a
+   section adapter's. The caller supplies the page grid.
+
+   The consequence, learned the hard way: `sections/fact_list.html` and
+   `sections/stat_strip.html` called straight into here, so `/course` and `/batch-1`
+   rendered a heading and a column of ruled rows flush against the left edge of the
+   window, full-bleed, under a hero that was correctly indented. Both adapters now wrap
+   the call. `tests/test_section_render.py::test_every_section_lands_inside_the_page_container`
+   is what keeps that from coming back — if you add a section type that calls a macro
+   from this file, wrap the call.
+
    THE SMALL-CELL RULE IS NOT ENFORCED HERE.
    §5.4 says a figure derived from fewer than 5 records must not be published.
    These macros render `—` when handed a `None` value, but the SUPPRESSION itself

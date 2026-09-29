@@ -13,7 +13,8 @@ WHY AN enum_column HELPER
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
@@ -106,6 +107,13 @@ class ModelMixin(TimestampMixin):
 
     ``to_dict`` deliberately excludes secrets: an audit row must never become a
     place a password hash or a TOTP seed is readable.
+
+    AND IT NEVER RETURNS SOMETHING THE AUDIT ROW CANNOT HOLD. The snapshots are written
+    to JSON columns, so a value `json.dumps` refuses does not produce an unreadable diff —
+    it raises at COMMIT and takes the operator's change down with it. That is exactly how
+    "record consent with a date" failed: `consent_date` is a `datetime.date`, and
+    `TypeError: Object of type date is not JSON serializable` surfaced as a 500 on the
+    consent screen. An audit row must never be the reason a save fails.
     """
 
     #: Column names excluded from audit snapshots and from to_dict().
@@ -123,13 +131,39 @@ class ModelMixin(TimestampMixin):
         for column in self.__table__.columns:
             if column.name in skip:
                 continue
-            value = getattr(self, column.name, None)
-            if isinstance(value, datetime):
-                value = value.isoformat()
-            elif isinstance(value, Enum):
-                value = value.value
-            out[column.name] = value
+            out[column.name] = json_safe(getattr(self, column.name, None))
         return out
+
+
+def json_safe(value: Any) -> Any:
+    """A value the audit log's JSON columns can actually store.
+
+    WHY THIS IS NOT JUST `isinstance(value, datetime)`
+        A `Date` column holds a `datetime.date` — `consent_date`, and a course's start
+        and end dates. A `Numeric` column holds a `Decimal`. Neither is JSON-native, and
+        both appear on models an operator edits, so the narrow check that used to be here
+        left three screens able to 500 at commit rather than at the field they touched.
+
+    ANYTHING ELSE IS STRINGIFIED, deliberately. The alternatives — skipping the column,
+    or refusing the write — mean a diff with a hole in it, or a save that fails because
+    of a value nobody was editing. `str()` keeps the before/after readable, which is the
+    only thing the audit log is for.
+    """
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Decimal):
+        # As a string, so a figure that had two decimal places in the database still has
+        # two in the diff.
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [json_safe(item) for item in value]
+    return str(value)
 
 
 __all__ = [
@@ -139,5 +173,6 @@ __all__ = [
     "TimestampMixin",
     "db",
     "enum_column",
+    "json_safe",
     "utcnow",
 ]
