@@ -1,13 +1,13 @@
 {
   "slug": "sylhet-buttc",
-  "name_bn": "সিলেট বিইউটিটিসি",
-  "name_en": "Sylhet BUTTC",
+  "name_bn": "ভোলানন্দ-উত্তরণ টেকনিক্যাল ট্রেনিং সেন্টার",
+  "name_en": "Bholananda-Uttaran Technical Training Center",
   "role_bn": "প্রশিক্ষণ প্রতিষ্ঠান",
-  "address_bn": "সিলেট, বাংলাদেশ",
-  "contact_phone": "",
-  "contact_email": "",
-  "map_url": "",
-  "description_bn": "<p>সিলেট বিভাগে এই কর্মসূচির প্রশিক্ষণ বাস্তবায়নকারী প্রতিষ্ঠান।</p>",
+  "address_bn": "চৌহাট্টা, সিলেট সদর, সিলেট",
+  "contact_phone": "01550-666700",
+  "contact_email": "info@e-laeltd.com",
+  "map_url": "https://www.google.com/maps/search/?api=1&query=Bholananda-Uttaran+Technical+Training+Center&query_place_id=0x37505555ad41ca4f:0x18c1fdf3c0d59403",
+  "description_bn": "<p>সিলেট বিভাগে এই কর্মসূচির প্রশিক্ষণ বাস্তবায়নকারী প্রতিষ্ঠান — ভোলানন্দ-উত্তরণ টেকনিক্যাল ট্রেনিং সেন্টার (BUTTC)।</p>",
   "is_active": true,
-  "_note": "Q2 in plan.md §22 — the legal name and address are UNCONFIRMED. 'BUTTC' is used exactly as supplied and is not expanded or guessed at. This record must be corrected in the CMS before the Course and About pages go live (R11)."
+  "_note": "Q2 in plan.md §22 is RESOLVED (2026-09-29): the Sylhet delivery partner is Bholananda-Uttaran Technical Training Center (BUTTC), Chouhatta, Sylhet Sadar. The address, phone and email came from the centre's Google Maps listing and the operator's site (e-laeltd.com), supplied by the site owner. The slug stays `sylhet-buttc` for URL stability. map_url is recorded but nothing renders it yet."
 }

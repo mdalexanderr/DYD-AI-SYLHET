@@ -8,8 +8,9 @@ Ministry of Youth & Sports.
 The site documents the course as delivered in Sylhet and the cohort who took it: who they are, where
 they came from, what they learned, and what they have done since.
 
-Companion to the national site: <https://www.dydaiproject.com> · Delivered in Sylhet by **Sylhet
-BUTTC** (name to be confirmed, `plan.md` §22 Q2).
+Companion to the national site: <https://www.dydaiproject.com> · Delivered in Sylhet by
+**Bholananda-Uttaran Technical Training Center** (BUTTC), Chouhatta, Sylhet Sadar
+(`plan.md` §22 Q2 — resolved 2026-09-29).
 
 ---
 
