@@ -38,8 +38,17 @@ SITEMAP_CACHE_KEY = "seo:sitemap"
 
 
 def sitemap_payload() -> str:
-    """The sitemap XML. Every URL in it comes from a consent-checked source."""
-    root = request.url_root.rstrip("/")
+    """The sitemap XML. Every URL in it comes from a consent-checked source.
+
+    THE SITE'S OWN ADDRESS COMES FROM `APP_URL`, NOT FROM THE REQUEST.
+    `request.url_root` is built from `wsgi.url_scheme`, and behind both production
+    hosts that is `http` — Apache speaks plain HTTP to Passenger and to uWSGI — so
+    the sitemap advertised `http://` URLs on an HTTPS site and every entry was a
+    redirect. `flask check-config` already requires `APP_URL` to be https in
+    production, so the configured value is both available and authoritative; the
+    request is only a fallback, for development and for a test client.
+    """
+    root = (current_app.config.get("APP_URL") or "").rstrip("/") or request.url_root.rstrip("/")
     rule_for_slug = {slug: rule for rule, slug in PAGE_ROUTES}
 
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',

@@ -173,10 +173,20 @@ REQUIRED_FILES = [
     ".gitattributes",
     ".htaccess",
     "public/.htaccess",
-    "passenger_wsgi.py",
     "run.py",
     ".github/workflows/ci.yml",
+    # P9 — the entry points, the scripts and the runbook (`wsgi.py` is alwaysdata's
+    # application path; `passenger_wsgi.py` is cPanel's startup file; both would
+    # otherwise be rediscovered by whoever deploys next).
+    "wsgi.py",
+    "passenger_wsgi.py",
+    "deploy.sh",
+    "rollback.sh",
+    "cron_backup.sh",
+    "DEPLOY.md",
+    "tests/test_deployment.py",
     # Documents
+    "README.md",
     "plan.md",
     "EXECUTION-PLAN.md",
     "docs/DISCOVERY-QUESTIONNAIRE.md",
@@ -197,9 +207,8 @@ DEFERRED: dict[str, str] = {
     "app/services/audit_service.py, backup_service.py": "P6/P8",
     "app/templates/{public,participants,admin,sections,email}/": "P3–P6",
     "app/static/js/": "P4/P5 — the only JavaScript on the site",
-    "deploy.sh · rollback.sh · cron_backup.sh": "P9 — deploy & handover",
-    ".github/workflows/deploy.yml": "P9",
-    "README.md · DEPLOY.md · RUNBOOK.md · ADMIN_GUIDE.md": "P9",
+    ".github/workflows/deploy.yml": "P9 — a GitHub-triggered deploy; the scripts themselves are done",
+    "RUNBOOK.md · ADMIN_GUIDE.md": "P9 — handover documents for the operator",
 }
 
 

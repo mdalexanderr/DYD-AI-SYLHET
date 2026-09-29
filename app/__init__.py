@@ -60,6 +60,7 @@ def create_app(config_name: str | None = None) -> Flask:
     _configure_logging(app, config_class)
     _configure_hosts(app)
     _configure_paths(app)
+    _trust_the_proxy(app)
 
     from app.extensions import init_extensions
 
@@ -88,6 +89,33 @@ def create_app(config_name: str | None = None) -> Flask:
         _safe_database_label(app.config["SQLALCHEMY_DATABASE_URI"]),
     )
     return app
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+def _trust_the_proxy(app: Flask) -> None:
+    """Take the scheme, the host and the client address from the proxy's headers.
+
+    WHY THIS IS NOT OPTIONAL ON EITHER PRODUCTION HOST
+        cPanel's Passenger and alwaysdata's uWSGI both sit behind an Apache that
+        speaks plain HTTP to the app, so without this `request.is_secure` is False
+        on a site served over HTTPS and `request.url_root` says `http://`. Two
+        things depend on the answer: the HSTS header, and the absolute URLs in the
+        sitemap — a sitemap that advertises http:// on an https site is how a
+        crawler ends up indexing a redirect.
+
+    WHY THE FLAG IS A FLAG
+        Trusting these headers means believing a header the client can send. That
+        is safe exactly when the app cannot be reached except through the proxy —
+        which is true on both hosts, and is why `ProdConfig` turns it on and
+        `DevConfig` leaves it off.
+    """
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    if not app.config.get("TRUST_PROXY_HEADERS"):
+        return
+    # One proxy hop, which is the shape of both hosts: the client's connection ends
+    # at Apache, and Apache opens the only connection to the app.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -423,7 +451,12 @@ def _setting_maintenance() -> bool:
 
 
 def _after_request(app: Flask) -> None:
-    """Security headers, verbatim from §12.3."""
+    """Security headers, verbatim from §12.3 — and static caching, from §15.1."""
+
+    #: Vite writes the content hash into the filename, so a file at one of these URLs
+    #: is that file for ever. `/static/css/app.css` is NOT in the list: it keeps its
+    #: name across builds, which is exactly why it must be revalidated.
+    immutable_prefixes = ("/static/spa/spa-assets/",)
 
     @app.after_request
     def _headers(response: Response) -> Response:
@@ -435,12 +468,64 @@ def _after_request(app: Flask) -> None:
         response.headers.setdefault(
             "Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=()"
         )
-        if not app.debug and request.is_secure:
+
+        # HSTS IS SENT ON EVERY PRODUCTION RESPONSE, not only when `is_secure` is
+        # true. Behind a proxy that header is not always set, and an HSTS header on a
+        # plain-HTTP response is ignored by every browser — so sending it
+        # unconditionally in production is free, and it removes the one case that
+        # mattered: the site is HTTPS, and the browser is never told to insist on it.
+        #
+        # Keyed on APP_ENV rather than on PREFERRED_URL_SCHEME, because that setting
+        # defaults to https in EVERY config class including the test one, so a
+        # scheme test would put HSTS on a development response and pin a developer's
+        # browser to https://localhost for a year.
+        secure = request.is_secure or app.config.get("APP_ENV") == "production"
+        if not app.debug and secure:
             response.headers.setdefault(
                 "Strict-Transport-Security",
                 f"max-age={app.config['HSTS_MAX_AGE']}; includeSubDomains; preload",
             )
+
+        _cache_static(app, response, immutable_prefixes)
         return response
+
+
+def _cache_static(app: Flask, response: Response, immutable_prefixes: tuple[str, ...]) -> None:
+    """Cache-Control for files this app serves from disk.
+
+    THE TWO CASES ARE DIFFERENT AND TREATING THEM ALIKE COSTS ONE OF THEM.
+    A hashed asset served `no-cache` revalidates on every navigation — a round trip
+    per file per page for bytes that cannot have changed. An unhashed file served
+    `immutable` is worse: the browser keeps the old CSS for a year after a deploy.
+
+    A RESPONSE THAT ALREADY DECIDED IS LEFT ALONE, with two exceptions that together
+    cost an afternoon of a rule that never ran once. `send_file` sets
+    `Cache-Control: no-cache` whenever its `max_age` is None, and in Flask 2.x that is
+    the default — so every `/static/` response already carried a header. It is also a
+    `direct_passthrough` response, because the file object is handed to the WSGI server
+    to stream. So a guard on "already has a header" AND a guard on passthrough each
+    silently disabled this function, and the browser revalidated every asset on every
+    navigation.
+
+    `no-cache` on a static file is not a decision, it is the absence of one, so it is
+    the value that gets replaced. A passthrough response's HEADERS are still ours to
+    set — the body is what streams — so that is not a reason to skip either. Anything
+    else in the header is somebody's real policy: the media route sets its own
+    `immutable` (§13.1), and a private-file response says `no-store` and means it.
+    """
+    if not request.path.startswith("/static/"):
+        return
+
+    existing = response.headers.get("Cache-Control", "")
+    if existing and existing.strip() != "no-cache":
+        return
+
+    if request.path.startswith(immutable_prefixes):
+        seconds = app.config["IMMUTABLE_CACHE_SECONDS"]
+        response.headers["Cache-Control"] = f"public, max-age={seconds}, immutable"
+    else:
+        seconds = app.config["STATIC_CACHE_SECONDS"]
+        response.headers["Cache-Control"] = f"public, max-age={seconds}"
 
 
 def _error_handlers(app: Flask) -> None:

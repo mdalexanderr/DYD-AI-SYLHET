@@ -15,17 +15,42 @@ BUTTC** (name to be confirmed, `plan.md` §22 Q2).
 
 ## Status
 
-> 📋 **Planning stage. No application code yet.**
+> ✅ **Built, tested and deployable.** See [`DEPLOY.md`](DEPLOY.md) for the runbook.
 
 | Item | State |
 |---|---|
 | Master plan | ✅ [`plan.md`](plan.md) — 1,797 lines, 23 sections, 109 indexed headings |
-| Product | ✅ Documentary site + CMS for one admin |
-| Design direction | ✅ A + C hybrid (Surma Protocol) |
-| CSS approach | ✅ Tailwind CSS v4 (CSS-first `@theme`) |
-| Development model | ✅ Solo build + an external design supplier (`plan.md` §4) |
+| Application | ✅ Flask + Jinja pages, the React front end, and the admin CMS |
+| Database | ✅ 21 tables, migrations applied, consent enforced by two `CHECK` constraints |
+| Tests | ✅ `python -m pytest -q --no-cov` |
+| Gates | ✅ `npm run gates` — CSS budget, ban list, §9.1 tree audit |
+| Deployment | ✅ [`DEPLOY.md`](DEPLOY.md) — alwaysdata (free plan), plus `deploy.sh`, `rollback.sh`, `cron_backup.sh` |
 | Batch 1 dates, institution, roster, consent records | ⏳ pending (`plan.md` §22) |
-| **Next step** | **M1 — the Tailwind design system plus static screens** (`plan.md` §20) |
+| **Next step** | **Import the real trainees and trainers, then go live** |
+
+---
+
+## Running it, and deploying it
+
+```bash
+# local
+.\.venv\Scripts\python.exe -m flask db upgrade      # create the tables
+.\.venv\Scripts\python.exe -m flask seed            # reference data (drafts)
+.\.venv\Scripts\python.exe -m flask publish-pages   # publish the pages
+.\.venv\Scripts\python.exe run.py                   # http://127.0.0.1:5000
+
+# production — alwaysdata, free plan, one command
+cd ~/sylhet && ./deploy.sh
+```
+
+Two entry points, one bootstrap: `wsgi.py` is what alwaysdata's panel points at
+(type **Python WSGI**, application path = that file), and `passenger_wsgi.py` is
+cPanel's startup filename. Both hand over to the same place, because the one rule that
+must not be got wrong twice is that `APP_ENV=production` is set **before**
+`app/config.py` is imported.
+
+`flask backup` dumps the database and the uploads directory, records a row the
+**Admin → Backups** screen reads, and keeps 30 days — `cron_backup.sh` schedules it.
 
 ---
 
@@ -116,9 +141,11 @@ CI patterns are proven rather than invented.
 
 ## Where to read more
 
-| Looking for | Section in [`plan.md`](plan.md) |
+| Looking for | Where |
 |---|---|
-| What is and is not being built | §2 Scope & Non-Goals |
+| **Deploying this site** (alwaysdata, step by step) | [`DEPLOY.md`](DEPLOY.md) |
+| The React front end, and how the two halves fit together | [`docs/FRONTEND.md`](docs/FRONTEND.md) |
+| What is and is not being built | [`plan.md`](plan.md) §2 Scope & Non-Goals |
 | Programme facts and coverage | §3 |
 | Content model — 10 content types, 13 section types | §4 |
 | Participant fields, consent model, statistics | §5 |
@@ -126,14 +153,14 @@ CI patterns are proven rather than invented.
 | Visual direction, design tokens, anti-slop | §7 |
 | Tailwind and local development | §8 |
 | Architecture and the section renderer | §9 |
-| Data model — 17 tables | §10 |
+| Data model — 21 tables | §10 |
 | Admin CMS screens and workflows | §11 |
 | Security, 2FA, privacy commitments | §12 |
 | Media pipeline | §13 |
 | Bangla typography and fonts | §14 |
 | Performance, PWA, SEO | §15 |
 | Environment variables and settings | §16 |
-| Deployment, `deploy.sh`, cron, go-live | §17 |
+| Deployment, `deploy.sh`, cron, go-live | §17 — and [`DEPLOY.md`](DEPLOY.md) for the alwaysdata specifics |
 | Operational runbook and withdrawal workflow | §18 |
 | Testing strategy | §19 |
 | Roadmap — 37 days, staged | §20 |
@@ -142,4 +169,7 @@ CI patterns are proven rather than invented.
 
 ---
 
-<sub>`plan.md` is the single source of truth. Nothing is implemented until that plan is approved.</sub>
+<sub>`plan.md` is the single source of truth for what the site should be. Where this
+repository has gone beyond it — the React front end, portraits with their own consent,
+the deployment target — the amendment is dated in the plan itself and recorded in
+[`EXECUTION-PLAN.md`](EXECUTION-PLAN.md).</sub>

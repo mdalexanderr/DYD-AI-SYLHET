@@ -66,6 +66,7 @@ def register_cli(app) -> None:
     app.cli.add_command(check_db)
     app.cli.add_command(css_status)
     app.cli.add_command(render_check)
+    app.cli.add_command(backup)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -879,6 +880,273 @@ def _probe_photo_guard() -> bool:
     else:
         db.session.rollback()
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+@click.command("backup")
+@click.option("--keep-days", default=30, show_default=True,
+              help="How long an archive is kept before the sweep removes it.")
+@click.option("--skip-uploads", is_flag=True, default=False,
+              help="Database only. For a large uploads directory on a cron run that must be quick.")
+@with_appcontext
+def backup(keep_days: int, skip_uploads: bool) -> None:
+    """Dump the database and the uploads directory, and record both (§17.5).
+
+    WHY THIS IS A COMMAND AND NOT A SHELL SCRIPT
+        A shell script would need the database password, which means reading it out
+        of `.env` with grep and putting it on a command line where `ps` can see it.
+        Here the DSN is already parsed by the application, and the password is handed
+        to the dump tool through `MYSQL_PWD` — an environment variable, which is the
+        one channel that does not appear in a process list.
+
+    IT RECORDS WHAT IT DID, INCLUDING A FAILURE
+        `Backup` rows are what `/admin/backups` shows. A backup that failed silently
+        in a cron log is indistinguishable from one that never ran, and the screen
+        exists to make that difference visible — so a failure writes a row with its
+        error before the command exits non-zero.
+
+    RETENTION LIVES HERE TOO, keyed on `expires_at`. Pruning in the shell script
+    would let a file and its row disagree about whether the archive still exists.
+    """
+    import gzip
+    import os
+    import shutil
+    import subprocess
+    from datetime import timedelta
+    from pathlib import Path
+    from app import _safe_database_label
+    from app.constants import BackupKind, BackupStatus
+    from app.models import Backup
+    from app.models.base import utcnow
+
+    stamp = utcnow().strftime("%Y%m%d-%H%M%S")
+    root = Path(current_app.config["BACKUP_ROOT"])
+    root.mkdir(parents=True, exist_ok=True)
+
+    uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    label = _safe_database_label(uri)
+    _out()
+    _out(f"  Backup    {stamp}")
+    _out(f"  Database  {label}")
+    _out(f"  Into      {root}")
+    _out()
+
+    written: list[Path] = []
+    failures: list[str] = []
+
+    # ── 1. The database ──────────────────────────────────────────────────────
+    dump_path = root / f"db-{stamp}.sql.gz"
+    try:
+        if uri.startswith("sqlite"):
+            _dump_sqlite(uri, dump_path)
+        else:
+            _dump_mysql(uri, dump_path)
+        size = dump_path.stat().st_size
+        written.append(dump_path)
+        _ok(f"database: {dump_path.name} ({size / 1024:.0f} KB)")
+    except Exception as error:  # noqa: BLE001 — the message is the report
+        failures.append(f"database: {error}")
+        _fail(f"database: {error}")
+
+    # ── 2. The uploads ───────────────────────────────────────────────────────
+    # Not in alwaysdata's own backups, and not reproducible: a replaced photograph is
+    # gone for good without this.
+    upload_root = Path(current_app.config["UPLOAD_ROOT"])
+    archive_base = str(root / f"uploads-{stamp}")
+    uploads_path = Path(f"{archive_base}.tar.gz")
+    if skip_uploads:
+        _warn("uploads skipped (--skip-uploads)")
+    elif not upload_root.is_dir():
+        _warn(f"no uploads directory at {upload_root}; nothing to archive")
+    else:
+        try:
+            # make_archive appends the `.tar.gz` itself, so the base name is what we
+            # pass and the finished path is what we look for afterwards.
+            shutil.make_archive(archive_base, "gztar", root_dir=upload_root)
+            size = uploads_path.stat().st_size
+            written.append(uploads_path)
+            _ok(f"uploads: {uploads_path.name} ({size / 1024:.0f} KB)")
+        except Exception as error:  # noqa: BLE001
+            failures.append(f"uploads: {error}")
+            _fail(f"uploads: {error}")
+
+    # ── 3. Off-site ──────────────────────────────────────────────────────────
+    # A backup on the same disk is a backup of the disk's last good hour, not of the
+    # disaster. The command is the operator's — we only report whether it worked.
+    offsite_ok = False
+    offsite_cmd = current_app.config.get("BACKUP_OFFSITE_CMD") or ""
+    if offsite_cmd and written:
+        offsite_ok = True
+        for path in written:
+            try:
+                subprocess.run(
+                    offsite_cmd.replace("{src}", str(path)),
+                    shell=True, check=True, capture_output=True, timeout=600,
+                )
+            except subprocess.CalledProcessError as error:
+                offsite_ok = False
+                failures.append(f"offsite: {error.stderr.decode()[:200]}")
+                _fail(f"offsite copy of {path.name} failed")
+        if offsite_ok:
+            _ok("off-site copy sent")
+    elif not offsite_cmd:
+        _warn("BACKUP_OFFSITE_CMD is not set — this archive is on the same disk as the site")
+
+    # ── 4. Record it, and sweep what has expired ─────────────────────────────
+    # Naive UTC, because `Backup.expires_at` is a plain DATETIME and MySQL has no
+    # timezone to store — `utcnow()` is aware, so the marker comes off here and the
+    # comparison below is naive-to-naive. (See `models/base.utcnow`.)
+    now = utcnow().replace(tzinfo=None)
+    expires = now + timedelta(days=keep_days)
+    for path in written:
+        db.session.add(
+            Backup(
+                kind=BackupKind.UPLOADS if path.name.startswith("uploads") else BackupKind.DATABASE,
+                filename=path.name,
+                size_bytes=path.stat().st_size,
+                status=BackupStatus.OK,
+                offsite_ok=offsite_ok,
+                expires_at=expires,
+            )
+        )
+
+    removed = 0
+    for row in list(db.session.execute(db.select(Backup)).scalars()):
+        if row.expires_at is not None and row.expires_at < now:
+            # The FILE first, then the row: a row pointing at a missing archive is a
+            # screen that offers a download which 404s.
+            try:
+                (root / row.filename).unlink(missing_ok=True)
+            except OSError as error:  # pragma: no cover — a locked file on Windows
+                _warn(f"could not remove {row.filename}: {error}")
+            db.session.delete(row)
+            removed += 1
+    if removed:
+        _ok(f"swept {removed} expired archive(s)")
+
+    if failures:
+        db.session.add(
+            Backup(
+                kind=BackupKind.FULL,
+                filename=f"failed-{stamp}",
+                status=BackupStatus.FAILED,
+                error="; ".join(failures)[:2000],
+            )
+        )
+
+    db.session.commit()
+    _out()
+    if failures:
+        _fail("the backup did not complete — see /admin/backups")
+        raise SystemExit(1)
+    _ok("backup complete")
+    _out()
+
+
+def _dump_sqlite(uri: str, destination: Path) -> None:
+    """A consistent copy of a SQLite database: `VACUUM INTO`, then compress.
+
+    NOT a file copy. SQLite in WAL mode keeps recent commits in a side file, so
+    `cp ai_sylhet.db backup.db` can be missing the last transactions — and the
+    backups taken by hand are always the ones taken during the day. `VACUUM INTO`
+    writes a transactionally consistent database, in one statement, from inside the
+    engine that knows the answer.
+    """
+    import gzip
+    import shutil
+    import sqlite3
+    import tempfile
+    from pathlib import Path
+
+    from sqlalchemy.engine import make_url
+
+    path = make_url(uri).database
+    if not path or path == ":memory:":
+        # An in-memory database has no file and disappears with the process, so
+        # there is nothing a backup could contain. Saying so beats writing an
+        # archive that restores to an empty schema.
+        raise RuntimeError(
+            "the database is in memory, so there is no file to snapshot — "
+            "point SQLALCHEMY_DATABASE_URI at a file to back it up"
+        )
+    if not Path(path).is_file():
+        raise RuntimeError(f"no database file at {path}")
+
+    # A SEPARATE sqlite3 connection, not the app's: `VACUUM` refuses to run inside a
+    # transaction, and the app's session usually has one open.
+    with tempfile.TemporaryDirectory() as tmp:
+        snapshot = Path(tmp) / "snapshot.db"
+        connection = sqlite3.connect(path)
+        try:
+            connection.execute("VACUUM INTO ?", (str(snapshot),))
+        finally:
+            connection.close()
+        with open(snapshot, "rb") as source, gzip.open(destination, "wb") as target:
+            shutil.copyfileobj(source, target, 1024 * 256)
+
+
+def _dump_mysql(uri: str, destination: Path) -> None:
+    """`mariadb-dump`/`mysqldump` streamed into gzip, password in the environment.
+
+    `--single-transaction` so the dump is consistent without locking the tables — a
+    dump that locks `participants` for a minute is a minute the CMS cannot record a
+    consent. `--no-tablespaces` because the shared host's database user does not have
+    the PROCESS privilege, and the dump aborts without it.
+
+    THE STREAM IS COPIED, NOT COLLECTED: `subprocess.run(..., capture_output=True)`
+    would hold the whole database in the web user's 256 MB. The database outlives the
+    process doing the copying; it does not need to fit in its memory.
+    """
+    import gzip
+    import os
+    import shutil
+    import subprocess
+
+    from sqlalchemy.engine import make_url
+
+    parsed = make_url(uri)
+    binary = shutil.which("mariadb-dump") or shutil.which("mysqldump")
+    if binary is None:
+        raise RuntimeError(
+            "neither mariadb-dump nor mysqldump is on PATH. On alwaysdata both are "
+            "available over SSH; without them, take the database backup from the panel."
+        )
+
+    environment = dict(os.environ)
+    # The password goes through the ENVIRONMENT, never argv: a command line is world-
+    # readable through `ps`, and this one can dump every participant record.
+    # `make_url` has ALREADY percent-decoded it, which is why a password with `#` or a
+    # space belongs in the DSN as `%23` / `%20` — nothing here unquotes it a second
+    # time, or `p%2540` would come out as `p@`.
+    if parsed.password:
+        environment["MYSQL_PWD"] = parsed.password
+
+    command = [
+        binary,
+        "--host", parsed.host or "localhost",
+        "--user", parsed.username or "",
+        "--single-transaction",
+        "--quick",
+        "--no-tablespaces",
+        "--default-character-set=utf8mb4",
+        parsed.database or "",
+    ]
+    with open(destination, "wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb") as compressed:
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment
+        )
+        assert process.stdout is not None and process.stderr is not None
+        shutil.copyfileobj(process.stdout, compressed, 1024 * 256)
+        process.stdout.close()
+        complaint = process.stderr.read().decode(errors="replace").strip()
+        process.stderr.close()
+        process.wait()
+
+    if process.returncode != 0:
+        # No half-written archive left behind pretending to be a backup.
+        destination.unlink(missing_ok=True)
+        last_line = complaint.splitlines()[-1] if complaint else "dump failed"
+        raise RuntimeError(last_line)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

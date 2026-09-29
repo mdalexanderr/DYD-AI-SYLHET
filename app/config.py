@@ -231,6 +231,30 @@ class BaseConfig:
     LOGIN_LOCKOUT_MINUTES = _int("LOGIN_LOCKOUT_MINUTES", 30)
     ALLOWED_HOSTS = _csv("ALLOWED_HOSTS", ("localhost", "127.0.0.1"))
 
+    # ── Behind a reverse proxy ───────────────────────────────────────────────
+    # BOTH PRODUCTION TARGETS ARE PROXIES — cPanel's Passenger and alwaysdata's
+    # uWSGI both sit behind an Apache that speaks plain HTTP to the app. Without
+    # this, `request.is_secure` is False on an HTTPS site, so HSTS is never sent,
+    # and `request.url_root` builds `http://` links into the sitemap.
+    #
+    # WHAT IT TRUSTS, and why that is a decision rather than a default: with the
+    # flag on, `X-Forwarded-For`, `-Proto` and `-Host` from the client are believed.
+    # A client that can reach the app DIRECTLY could therefore forge its own IP
+    # (which is what the login lockout is keyed on). The flag is therefore False
+    # here and True in `ProdConfig`, where "the app is only reachable through the
+    # host's web server" is true by construction. Turn it OFF if the app is ever
+    # exposed on a port of its own.
+    TRUST_PROXY_HEADERS = _bool("TRUST_PROXY_HEADERS", False)
+
+    # ── Static file caching ──────────────────────────────────────────────────
+    # Flask's default is "no Cache-Control, revalidate every time", which is correct
+    # and wasteful for a 434 KB JavaScript bundle. The rule in `_after_request`
+    # splits the two cases: content-addressed files under `/static/spa/spa-assets/`
+    # carry a hash of their contents in the filename, so they can be cached for a
+    # year and never revalidated; everything else gets an hour plus an ETag.
+    STATIC_CACHE_SECONDS = _int("STATIC_CACHE_SECONDS", 3600)
+    IMMUTABLE_CACHE_SECONDS = _int("IMMUTABLE_CACHE_SECONDS", 31536000)
+
     # ── Uploads (§13.1, §13.2) ───────────────────────────────────────────────
     # Outside the webroot. Serving uploads from the app directory is how an
     # uploaded file becomes an executable one.
@@ -415,7 +439,7 @@ class TestConfig(BaseConfig):
 
 
 class ProdConfig(BaseConfig):
-    """Production on cPanel + Passenger.
+    """Production — cPanel + Passenger, or alwaysdata + uWSGI.
 
     The three settings with no safe default are validated in ``validate()`` and
     called from the app factory, so a misconfigured production boot fails loudly
@@ -426,6 +450,11 @@ class ProdConfig(BaseConfig):
     TESTING = False
     SESSION_COOKIE_SECURE = True
     TURNSTILE_ENABLED = _bool("TURNSTILE_ENABLED", True)
+
+    #: On in production, and only in production — see the section in `BaseConfig`.
+    #: Both production targets put an Apache in front of the app, so both need the
+    #: scheme and the client address to come from the proxy's headers.
+    TRUST_PROXY_HEADERS = _bool("TRUST_PROXY_HEADERS", True)
 
     @classmethod
     def validate(cls) -> None:
