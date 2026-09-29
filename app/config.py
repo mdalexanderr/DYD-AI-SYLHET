@@ -220,12 +220,17 @@ class BaseConfig:
     # line brings it back — so this is a setting, not a removal, and the README says
     # so. See `app/routes/auth.py`'s module docstring for what the login does now.
     #
+    # THE DEFAULT IS `False` TOO, so a deployment that never sets the variable still
+    # gets the one-step login the owner asked for. The flag is the switch; the default
+    # is what an unconfigured box does, and those two disagreeing is how 2FA comes
+    # back by accident on the next host.
+    #
     # `flask check-config` warns about the prefix on every production run. It is a
     # warning rather than a refusal because a check that will not pass on a
     # configuration somebody deliberately chose is a check that gets bypassed.
     ADMIN_URL_PREFIX = _str("ADMIN_URL_PREFIX", "admin")
     ADMIN_IP_ALLOWLIST = _csv("ADMIN_IP_ALLOWLIST")
-    ADMIN_2FA_REQUIRED = _bool("ADMIN_2FA_REQUIRED", True)
+    ADMIN_2FA_REQUIRED = _bool("ADMIN_2FA_REQUIRED", False)
     BCRYPT_LOG_ROUNDS = _int("BCRYPT_LOG_ROUNDS", 12)
     LOGIN_MAX_ATTEMPTS = _int("LOGIN_MAX_ATTEMPTS", 3)
     LOGIN_LOCKOUT_MINUTES = _int("LOGIN_LOCKOUT_MINUTES", 30)

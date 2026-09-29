@@ -175,7 +175,7 @@ process and they are the authoritative configuration. At minimum:
 | `UPLOAD_ROOT` | `/home/<account>/sylhet-uploads` | Outside the app directory (§13.1). |
 | `BACKUP_ROOT` | `/home/<account>/sylhet-var/backups` | Where §11 writes. |
 | `MAIL_PROVIDER` | `dryrun` first | Logs the contact-form email instead of sending it. Switch to `smtp` once the site is up. |
-| `ADMIN_2FA_REQUIRED` | `true` | TOTP on the single admin account. |
+| `ADMIN_2FA_REQUIRED` | `false` | The owner's decision: the login is one step. `flask check-config` warns about it on every production run (§12.1 wanted TOTP), by design. |
 | `ADMIN_IP_ALLOWLIST` | *(empty)* | Optional; a comma-separated CIDR list. Only fill it in if your address is static. |
 
 ### Why there is also a `.env` on the server
