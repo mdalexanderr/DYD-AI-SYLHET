@@ -287,7 +287,28 @@ class FeatureFlag(StrEnum):
 
 
 # ── Nav (§6.3) ───────────────────────────────────────────────────────────────
+# TWO LISTS, ONE DESTINATION EACH. The header carries the pages a reader moves
+# between; the footer is the index and carries one more. `/privacy` is in neither —
+# `site_footer` appends it itself.
+#
+# About is in the footer, not the header (owner's decision, 2026-09-29). Like the
+# React header in `frontend/src/components/`, the bar stays short: About answers a
+# question once — what this site is and how consent works — and that question is
+# asked on the way out, not on the way in.
+#
+# The database flag `show_in_nav` is a DIFFERENT thing and is deliberately left alone:
+# it feeds `page_service.nav_pages()`, which the sitemap uses, so About keeps
+# `show_in_nav=True` there and stays in `sitemap.xml`.
 HEADER_NAV: tuple[dict[str, str], ...] = (
+    {"slug": "home", "label": "হোম", "path": "/"},
+    {"slug": "course", "label": "কোর্স", "path": "/course"},
+    {"slug": "batch-1", "label": "ব্যাচ ১", "path": "/batch-1"},
+    {"slug": "gallery", "label": "গ্যালারি", "path": "/gallery"},
+    {"slug": "contact", "label": "যোগাযোগ", "path": "/contact"},
+)
+
+#: The footer index: `HEADER_NAV` plus About, in reading order (About before Contact).
+FOOTER_NAV: tuple[dict[str, str], ...] = (
     {"slug": "home", "label": "হোম", "path": "/"},
     {"slug": "course", "label": "কোর্স", "path": "/course"},
     {"slug": "batch-1", "label": "ব্যাচ ১", "path": "/batch-1"},

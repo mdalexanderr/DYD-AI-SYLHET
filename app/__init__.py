@@ -144,16 +144,22 @@ def _inject_template_globals(app: Flask) -> None:
     So brand identity comes from config with §6.3 defaults, and nothing here
     queries anything.
 
-    HEADER_NAV carries the plan's key `path`; the `site_nav` macro reads `href`.
-    The translation happens once, here, rather than by teaching the macro both
-    names — two names for one value is two names that will diverge.
+    HEADER_NAV carries the plan's key `path`; the `site_nav` macro reads `href`. The
+    translation happens once, here, rather than by teaching the macro both names —
+    two names for one value is two names that will diverge.
     """
-    from app.constants import HEADER_NAV
+    from app.constants import FOOTER_NAV, HEADER_NAV
 
-    nav_items = [
-        {"slug": item["slug"], "label": item["label"], "href": item["path"]}
-        for item in HEADER_NAV
-    ]
+    def _as_nav_items(source) -> list[dict[str, str]]:
+        return [
+            {"slug": item["slug"], "label": item["label"], "href": item["path"]}
+            for item in source
+        ]
+
+    # The header and the footer are NOT the same list. The footer is the index and
+    # carries About, which the header leaves out — see `constants.HEADER_NAV`.
+    nav_items = _as_nav_items(HEADER_NAV)
+    footer_nav_items = _as_nav_items(FOOTER_NAV)
 
     def _cfg(key: str, fallback: str | None) -> str | None:
         value = app.config.get(key)
@@ -198,6 +204,7 @@ def _inject_template_globals(app: Flask) -> None:
 
         return {
             "nav_items": nav_items,
+            "footer_nav_items": footer_nav_items,
             "current_slug": current_slug,
             "brand": brand,
         }
